@@ -4,6 +4,8 @@ project(cost_effective_queue)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_CXX_FLAGS_ASAN "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer") 
+
 # For clangd to work
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -56,14 +58,14 @@ endforeach()
 # Proto compilation
 # ------------------------------------------------------------------------------
 
-get_filename_component(proto "protos/messages.proto" ABSOLUTE)
+get_filename_component(proto "protos/echo_service.proto" ABSOLUTE)
 get_filename_component(proto_path ${proto} PATH)
 
 set(proto_dir "${CMAKE_CURRENT_BINARY_DIR}/proto")
-set(proto_srcs "${proto_dir}/messages.pb.cc")
-set(proto_hdrs "${proto_dir}/messages.pb.h")
-set(grpc_srcs "${proto_dir}/messages.grpc.pb.cc")
-set(grpc_hdrs "${proto_dir}/messages.grpc.pb.h")
+set(proto_srcs "${proto_dir}/echo_service.pb.cc")
+set(proto_hdrs "${proto_dir}/echo_service.pb.h")
+set(grpc_srcs "${proto_dir}/echo_service.grpc.pb.cc")
+set(grpc_hdrs "${proto_dir}/echo_service.grpc.pb.h")
 
 add_custom_command(
   OUTPUT "${proto_srcs}" "${proto_hdrs}" "${grpc_srcs}" "${grpc_hdrs}"
@@ -100,3 +102,6 @@ add_executable(server src/server.cpp)
 target_link_libraries(server grpc_proto)
 target_include_directories(server PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
+add_executable(client_fiber src/client_fibers.cpp)
+target_link_libraries(client_fiber grpc_proto Boost::fiber)
+target_include_directories(client_fiber PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

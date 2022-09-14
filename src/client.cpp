@@ -2,8 +2,8 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include <proto/messages.pb.h>
-#include <proto/messages.grpc.pb.h>
+#include <proto/echo_service.grpc.pb.h>
+#include <proto/echo_service.pb.h>
 
 int main(int argc, char** argv) {
   if (argc != 2) {
@@ -11,12 +11,12 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  auto channel = grpc::CreateChannel(argv[1], grpc::InsecureChannelCredentials()); 
+  auto channel = grpc::CreateChannel(argv[1], grpc::InsecureChannelCredentials());
 
-  HelloRequest request;
+  EchoRequest request;
   request.set_name("Hello");
 
-  HelloReply reply;
+  EchoReply reply;
 
   auto stub = EchoService::NewStub(channel);
   grpc::ClientContext context;

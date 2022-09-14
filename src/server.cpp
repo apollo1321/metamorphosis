@@ -2,12 +2,12 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include <proto/messages.grpc.pb.h>
-#include <proto/messages.pb.h>
+#include <proto/echo_service.grpc.pb.h>
+#include <proto/echo_service.pb.h>
 
 class ServiceImpl : public EchoService::Service {
-  grpc::Status SayHello(grpc::ServerContext*, const HelloRequest* request,
-                        HelloReply* reply) override {
+  grpc::Status SayHello(grpc::ServerContext*, const EchoRequest* request,
+                        EchoReply* reply) override {
     reply->set_message("Server: " + request->name());
     return grpc::Status::OK;
   }
