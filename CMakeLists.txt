@@ -105,3 +105,7 @@ target_include_directories(server PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 add_executable(client_fiber src/client_fibers.cpp)
 target_link_libraries(client_fiber grpc_proto Boost::fiber)
 target_include_directories(client_fiber PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+add_executable(server_fiber src/server_fibers.cpp)
+target_link_libraries(server_fiber grpc_proto Boost::fiber)
+target_include_directories(server_fiber PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
