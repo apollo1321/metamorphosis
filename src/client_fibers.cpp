@@ -90,7 +90,6 @@ void FiberMain(AsyncEchoService& service) {
   };
 
   log("starting rpc call");
-  using namespace std::chrono_literals;
   auto answer = service.SayHello(GetFiberId());
   log("received answer: " + answer);
 }
