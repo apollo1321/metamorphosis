@@ -5,6 +5,7 @@ project(cost_effective_queue)
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_CXX_FLAGS_ASAN "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer") 
+set(CMAKE_CXX_FLAGS_TSAN "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread -fno-omit-frame-pointer") 
 
 # For clangd to work
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -94,18 +95,18 @@ target_link_libraries(grpc_proto
 # Client-server compilation
 # ------------------------------------------------------------------------------
 
-add_executable(client src/client.cpp)
-target_link_libraries(client grpc_proto)
-target_include_directories(client PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(client_sync src/sync/client.cpp)
+target_link_libraries(client_sync grpc_proto)
+target_include_directories(client_sync PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(server src/server.cpp)
-target_link_libraries(server grpc_proto)
-target_include_directories(server PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(server_sync src/sync/server.cpp)
+target_link_libraries(server_sync grpc_proto)
+target_include_directories(server_sync PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(client_fiber src/client_fibers.cpp)
-target_link_libraries(client_fiber grpc_proto Boost::fiber)
-target_include_directories(client_fiber PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(client_async src/async/client.cpp)
+target_link_libraries(client_async grpc_proto Boost::fiber)
+target_include_directories(client_async PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(server_fiber src/server_fibers.cpp)
-target_link_libraries(server_fiber grpc_proto Boost::fiber)
-target_include_directories(server_fiber PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(server_async src/async/server.cpp)
+target_link_libraries(server_async grpc_proto Boost::fiber)
+target_include_directories(server_async PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

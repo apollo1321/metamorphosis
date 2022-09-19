@@ -16,10 +16,8 @@ class AsyncEchoService {
       : stub_{EchoService::NewStub(channel)} {
   }
 
-  std::string SayHello(std::string name) {
-    EchoRequest request;
-    request.set_name(name);
-
+  // This method is rpc service abstraction that should be called in fibers
+  EchoReply SayHello(const EchoRequest& request) {
     AsyncClientCall call;
 
     call.response_reader = stub_->PrepareAsyncSayHello(&call.context, request, &queue_);
@@ -35,7 +33,7 @@ class AsyncEchoService {
       throw std::runtime_error("RPC Failed: " + call.status.error_message());
     }
 
-    return call.reply.message();
+    return std::move(call.reply);
   }
 
   void Run() {
@@ -90,8 +88,10 @@ void FiberMain(AsyncEchoService& service) {
   };
 
   log("starting rpc call");
-  auto answer = service.SayHello(GetFiberId());
-  log("received answer: " + answer);
+  EchoRequest request;
+  request.set_name(GetFiberId());
+  auto answer = service.SayHello(request);
+  log("received answer: " + answer.message());
 }
 
 int main(int argc, char** argv) {
@@ -102,14 +102,17 @@ int main(int argc, char** argv) {
 
   AsyncEchoService echo_service(grpc::CreateChannel(argv[1], grpc::InsecureChannelCredentials()));
 
+  // Run service client in separate thread
   std::thread client_handler{[&echo_service]() {
     echo_service.Run();
   }};
 
+  // Run 20 fibers on current thread
   std::vector<boost::fibers::fiber> fibers;
 
   for (int i = 0; i < 20; ++i) {
     fibers.emplace_back(boost::fibers::launch::post, [&echo_service]() {
+      // Each fiber make 1 rpc request and prints result
       FiberMain(echo_service);
     });
   }

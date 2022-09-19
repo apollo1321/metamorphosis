@@ -1,4 +1,6 @@
 #include <iostream>
+#include <memory>
+#include <thread>
 
 #include <grpcpp/grpcpp.h>
 
@@ -10,7 +12,7 @@
 using FiberTask = std::function<void()>;
 using FiberTaskChannel = boost::fibers::buffered_channel<FiberTask>;
 
-// This function is actual rpc service running in fiber
+// This function is actual rpc service implementation running in fiber
 EchoReply SayHello(const EchoRequest& request) {
   EchoReply reply;
   reply.set_message("Hello from async server " + request.name());
