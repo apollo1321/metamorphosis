@@ -9,7 +9,8 @@
 #include <grpcpp/impl/rpc_method.h>
 #include <grpcpp/support/async_unary_call.h>
 
-#include <boost/fiber/all.hpp>
+#include <boost/fiber/condition_variable.hpp>
+#include <boost/fiber/mutex.hpp>
 
 class RpcClientBase {
  public:
