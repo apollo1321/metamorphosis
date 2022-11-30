@@ -14,7 +14,7 @@
 
 class RpcClientBase {
  public:
-  explicit RpcClientBase(std::shared_ptr<grpc::Channel> channel) noexcept;
+  explicit RpcClientBase(const std::string& address) noexcept;
 
   ~RpcClientBase();
 

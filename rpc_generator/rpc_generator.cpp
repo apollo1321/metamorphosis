@@ -135,7 +135,7 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
     vars["service_class"] = vars["service_name"] + "Handler";
 
     printer.Print("\n");
-    printer.Print(vars, "class $service_class$ : private RpcHandlerBase {\n");
+    printer.Print(vars, "class $service_class$ : public RpcHandlerBase {\n");
     printer.Print("public:\n");
     printer.Indent();
 
@@ -144,10 +144,10 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
     // Destructor
     printer.Print(vars, "~$service_class$();\n\n");
 
-    // Run
+    // using
     printer.Print(vars, "using RpcHandlerBase::Run;\n");
-    // ShutDown
     printer.Print(vars, "using RpcHandlerBase::ShutDown;\n\n");
+    printer.Print(vars, "using RpcHandlerBase::MakeDefaultRunConfig;\n\n");
 
     // Placeholders for handlers
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
@@ -163,12 +163,12 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
     printer.Indent();
 
     // Put methods rpc calls in queue
-    printer.Print(vars, "void PutAllMethodsCallsInQueue() override;\n\n");
+    printer.Print(vars, "void PutAllMethodsCallsInQueue(size_t queue_id) override;\n\n");
 
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       put_method_info(service->method(method_id));
 
-      printer.Print(vars, "void Put$method_name$InQueue();\n");
+      printer.Print(vars, "void Put$method_name$InQueue(size_t queue_id);\n");
     }
 
     // Make rpc calls struct for each method
@@ -183,7 +183,7 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
           vars,
           "explicit RpcCall$method_name$($service_name$Handler* handler) : handler{handler} {}\n");
       printer.Print(vars, "void operator()() noexcept override;\n");
-      printer.Print(vars, "void PutNewCallInQueue() noexcept override;\n");
+      printer.Print(vars, "void PutNewCallInQueue(size_t queue_id) noexcept override;\n");
       printer.Print(vars, "$service_class$* handler;\n");
       printer.Outdent();
       printer.Print("};\n");
@@ -252,11 +252,11 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
     printer.Print("}\n\n");
 
     // Put methods rpc calls in queue
-    printer.Print(vars, "void $service_class$::PutAllMethodsCallsInQueue() {\n");
+    printer.Print(vars, "void $service_class$::PutAllMethodsCallsInQueue(size_t queue_id) {\n");
     printer.Indent();
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       put_method_info(service->method(method_id));
-      printer.Print(vars, "Put$method_name$InQueue();\n");
+      printer.Print(vars, "Put$method_name$InQueue(queue_id);\n");
     }
     printer.Outdent();
     printer.Print("}\n\n");
@@ -265,9 +265,9 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
       put_method_info(service->method(method_id));
       vars["id"] = std::to_string(method_id);
 
-      printer.Print(vars, "void $service_class$::Put$method_name$InQueue() {\n");
+      printer.Print(vars, "void $service_class$::Put$method_name$InQueue(size_t queue_id) {\n");
       printer.Indent();
-      printer.Print(vars, "PutRpcCallInQueue($id$, new RpcCall$method_name${this});\n");
+      printer.Print(vars, "PutRpcCallInQueue($id$, queue_id, new RpcCall$method_name${this});\n");
       printer.Outdent();
       printer.Print("}\n");
     }
@@ -286,9 +286,9 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
 
       printer.Print("\n");
       printer.Print(vars,
-                    "void $service_class$::RpcCall$method_name$::PutNewCallInQueue() noexcept {\n");
+                    "void $service_class$::RpcCall$method_name$::PutNewCallInQueue(size_t queue_id) noexcept {\n");
       printer.Indent();
-      printer.Print(vars, "handler->Put$method_name$InQueue();\n");
+      printer.Print(vars, "handler->Put$method_name$InQueue(queue_id);\n");
       printer.Outdent();
       printer.Print("}\n");
     }

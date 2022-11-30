@@ -1,6 +1,5 @@
 #pragma once
 
-#include <barrier>
 #include <memory>
 #include <thread>
 
@@ -22,15 +21,24 @@ class FiberTask {
 
 using FiberTaskChannel = boost::fibers::buffered_channel<FiberTask*>;
 
-class RpcHandlerBase : protected ::grpc::Service {
+class RpcHandlerBase : public ::grpc::Service {
  public:
-  void Run(const std::string& address, FiberTaskChannel* channel, size_t thread_count = 1);
+  struct RunConfig {
+    size_t queue_count{};
+    size_t threads_per_queue{};
+    size_t worker_threads_count{};
+  };
+
+ public:
+  void Run(const std::string& address, const RunConfig& config = MakeDefaultRunConfig());
   void ShutDown();
   bool IsRunning() const noexcept;
 
+  static RunConfig MakeDefaultRunConfig() noexcept;
+
  protected:
   struct RpcCallBase : public FiberTask {
-    virtual void PutNewCallInQueue() noexcept = 0;
+    virtual void PutNewCallInQueue(size_t queue_id) noexcept = 0;
 
     bool finished = false;
   };
@@ -65,12 +73,12 @@ class RpcHandlerBase : protected ::grpc::Service {
   };
 
  protected:
-  virtual void PutAllMethodsCallsInQueue() = 0;
+  virtual void PutAllMethodsCallsInQueue(size_t queue_id) = 0;
 
   template <class RpcCall>
-  void PutRpcCallInQueue(int index, RpcCall* rpc_call) {
-    RequestAsyncUnary(index, &rpc_call->context, &rpc_call->request, &rpc_call->responder,
-                      queue_.get(), queue_.get(), rpc_call);
+  void PutRpcCallInQueue(int method_id, int queue_id, RpcCall* rpc_call) {
+    RequestAsyncUnary(method_id, &rpc_call->context, &rpc_call->request, &rpc_call->responder,
+                      queues_[queue_id].get(), queues_[queue_id].get(), rpc_call);
   }
 
   static grpc::Status SyncMethodStub() {
@@ -79,14 +87,17 @@ class RpcHandlerBase : protected ::grpc::Service {
   }
 
  private:
+  void RunDispatchingWorker(size_t queue_id) noexcept;
   void RunWorker() noexcept;
 
  private:
-  std::unique_ptr<grpc::ServerCompletionQueue> queue_;
   std::unique_ptr<grpc::Server> server_;
 
-  std::vector<std::thread> threads_;
-  FiberTaskChannel* channel_;
+  std::vector<std::thread> worker_threads_;
+  std::vector<std::thread> dispatching_threads_;
+  std::vector<std::unique_ptr<grpc::ServerCompletionQueue>> queues_;
+
+  std::unique_ptr<FiberTaskChannel> channel_;
 
   std::atomic<bool> running_ = false;
 };

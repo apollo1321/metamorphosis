@@ -2,8 +2,9 @@
 
 #include <boost/assert.hpp>
 
-RpcClientBase::RpcClientBase(std::shared_ptr<grpc::Channel> channel) noexcept
-    : channel_{std::move(channel)}, dispatching_thread_([this]() {
+RpcClientBase::RpcClientBase(const std::string& address) noexcept
+    : channel_{grpc::CreateChannel(address, grpc::InsecureChannelCredentials())},
+      dispatching_thread_([this]() {
         DispatchServiceResponses();
       }) {
 }
