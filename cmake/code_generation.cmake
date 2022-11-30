@@ -24,8 +24,11 @@ function(generate_proto PROTO_NAME)
   set(CLIENT_SRC "${PROTO_DIR}/${PROTO_NAME}.client.cc")
   set(CLIENT_HDR "${PROTO_DIR}/${PROTO_NAME}.client.h")
 
+  set(HANDLER_SRC "${PROTO_DIR}/${PROTO_NAME}.handler.cc")
+  set(HANDLER_HDR "${PROTO_DIR}/${PROTO_NAME}.handler.h")
+
   add_custom_command(
-    OUTPUT "${PROTO_SRC}" "${PROTO_HDR}" "${CLIENT_SRC}" "${CLIENT_HDR}"
+    OUTPUT ${PROTO_SRC} ${PROTO_HDR} ${CLIENT_SRC} ${CLIENT_HDR} ${HANDLER_SRC} ${HANDLER_HDR}
     COMMAND $<TARGET_FILE:protoc>
     ARGS 
       --cpp_out "${PROTO_DIR}"
@@ -37,12 +40,16 @@ function(generate_proto PROTO_NAME)
   )
 
   add_library(${PROTO_NAME}
-    rpc_generator/rpc_client_base.h
-    rpc_generator/rpc_client_base.cpp
+    rpc_generator/lib/rpc_client_base.h
+    rpc_generator/lib/rpc_client_base.cpp
+    rpc_generator/lib/rpc_handler_base.h
+    rpc_generator/lib/rpc_handler_base.cpp
     ${PROTO_SRC}
     ${PROTO_HDR}
     ${CLIENT_SRC}
     ${CLIENT_HDR}
+    ${HANDLER_SRC}
+    ${HANDLER_HDR}
   )
   target_link_libraries(${PROTO_NAME}
     grpc++_reflection
@@ -50,6 +57,6 @@ function(generate_proto PROTO_NAME)
     libprotobuf
     Boost::fiber
   )
+  target_include_directories(${PROTO_NAME} PUBLIC rpc_generator/lib)
 
-  target_include_directories(${PROTO_NAME} PUBLIC rpc_generator)
 endfunction()
