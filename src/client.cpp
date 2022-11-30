@@ -3,7 +3,6 @@
 #include <sstream>
 #include <vector>
 
-#include <grpcpp/create_channel.h>
 #include <proto/echo_service.client.h>
 #include <boost/fiber/all.hpp>
 
@@ -51,9 +50,7 @@ int main(int argc, char** argv) {
   std::vector<std::thread> threads;
   for (int thread_id = 0; thread_id < 1; ++thread_id) {
     threads.emplace_back([&]() {
-      auto channel = grpc::CreateChannel(argv[1], grpc::InsecureChannelCredentials());
-
-      EchoServiceClient client(channel);
+      EchoServiceClient client(argv[1]);
 
       std::vector<boost::fibers::fiber> fibers;
 
