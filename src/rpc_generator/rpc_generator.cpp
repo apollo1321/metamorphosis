@@ -41,7 +41,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
   // Includes
   printer.Print("#pragma once\n\n");
   printer.Print("#include \"$name$.pb.h\"\n\n", "name", file_name);
-  printer.Print("#include <rpc_client_base.h>\n");
+  printer.Print("#include <runtime/rpc_client_base.h>\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -118,7 +118,7 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
   // Includes
   printer.Print("#pragma once\n\n");
   printer.Print("#include \"$name$.pb.h\"\n\n", "name", file_name);
-  printer.Print("#include <rpc_handler_base.h>\n");
+  printer.Print("#include <runtime/rpc_handler_base.h>\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -286,7 +286,8 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
 
       printer.Print("\n");
       printer.Print(vars,
-                    "void $service_class$::RpcCall$method_name$::PutNewCallInQueue(size_t queue_id) noexcept {\n");
+                    "void $service_class$::RpcCall$method_name$::PutNewCallInQueue(size_t "
+                    "queue_id) noexcept {\n");
       printer.Indent();
       printer.Print(vars, "handler->Put$method_name$InQueue(queue_id);\n");
       printer.Outdent();

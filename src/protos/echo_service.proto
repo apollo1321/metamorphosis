@@ -10,5 +10,4 @@ message EchoReply {
 
 service EchoService {
   rpc SayHello(EchoRequest) returns (EchoReply) {}
-  rpc SayHello2(EchoRequest) returns (EchoReply) {}
 }

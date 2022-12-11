@@ -14,10 +14,5 @@ include(cmake/code_generation.cmake)
 
 generate_proto("echo_service")
 
-add_executable(client_async src/client.cpp)
-target_link_libraries(client_async echo_service Boost::fiber)
-target_include_directories(client_async PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-add_executable(server_async src/server.cpp)
-target_link_libraries(server_async echo_service Boost::fiber)
-target_include_directories(server_async PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(echo_benchmark src/benchmark/main.cpp)
+target_link_libraries(echo_benchmark echo_service)
