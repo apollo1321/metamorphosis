@@ -3,17 +3,17 @@
 # ------------------------------------------------------------------------------
 
 add_executable(rpc_generator_exe
-  rpc_generator/main.cpp 
-  rpc_generator/rpc_generator.cpp
-  rpc_generator/rpc_generator.h)
+  src/rpc_generator/main.cpp 
+  src/rpc_generator/rpc_generator.cpp
+  src/rpc_generator/rpc_generator.h)
 target_link_libraries(rpc_generator_exe libprotobuf libprotoc)
 
 # ------------------------------------------------------------------------------
-# Proto compilation
+# Proto codegeneration
 # ------------------------------------------------------------------------------
 
 function(generate_proto PROTO_NAME)
-  get_filename_component(PROTO_PATH "protos/${PROTO_NAME}.proto" ABSOLUTE)
+  get_filename_component(PROTO_PATH "src/protos/${PROTO_NAME}.proto" ABSOLUTE)
   get_filename_component(IMPORTS_DIR ${PROTO_PATH} DIRECTORY)
 
   set(PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
@@ -40,10 +40,10 @@ function(generate_proto PROTO_NAME)
   )
 
   add_library(${PROTO_NAME}
-    rpc_generator/lib/rpc_client_base.h
-    rpc_generator/lib/rpc_client_base.cpp
-    rpc_generator/lib/rpc_handler_base.h
-    rpc_generator/lib/rpc_handler_base.cpp
+    src/runtime/rpc_client_base.h
+    src/runtime/rpc_client_base.cpp
+    src/runtime/rpc_handler_base.h
+    src/runtime/rpc_handler_base.cpp
     ${PROTO_SRC}
     ${PROTO_HDR}
     ${CLIENT_SRC}
@@ -57,6 +57,6 @@ function(generate_proto PROTO_NAME)
     libprotobuf
     Boost::fiber
   )
-  target_include_directories(${PROTO_NAME} PUBLIC rpc_generator/lib)
+  target_include_directories(${PROTO_NAME} PUBLIC src ${CMAKE_CURRENT_BINARY_DIR})
 
 endfunction()

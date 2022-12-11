@@ -10,7 +10,7 @@ Boost fibers over `gRPC` implementation of `RPC` runtime are used.
 For serialization/deserialization protobufs are used. 
 `RPC` services are declared in protobuf format.
 
-### Code generation of services
+### Code generation of RPC services
 
 It is not so easy to adapt the fibers so that they work correctly with `gRPC`. To simplify adding new `RPC` services, code generation has been written for both clients and handlers.
 

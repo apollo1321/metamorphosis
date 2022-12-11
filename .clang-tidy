@@ -39,4 +39,3 @@ CheckOptions:
     value: _t
   - key: readability-identifier-naming.TypeTemplateParameterCase
     value: CamelCase
-
