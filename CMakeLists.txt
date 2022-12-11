@@ -16,3 +16,11 @@ generate_proto("echo_service")
 
 add_executable(echo_benchmark src/benchmark/main.cpp)
 target_link_libraries(echo_benchmark echo_service)
+
+generate_proto("queue")
+
+add_executable(queue_client src/queue/client.cpp)
+target_link_libraries(queue_client queue CLI11::CLI11)
+
+add_executable(queue_service src/queue/service.cpp)
+target_link_libraries(queue_service queue CLI11::CLI11)

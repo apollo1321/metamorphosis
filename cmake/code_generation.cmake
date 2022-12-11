@@ -31,6 +31,7 @@ function(generate_proto PROTO_NAME)
     OUTPUT ${PROTO_SRC} ${PROTO_HDR} ${CLIENT_SRC} ${CLIENT_HDR} ${HANDLER_SRC} ${HANDLER_HDR}
     COMMAND $<TARGET_FILE:protoc>
     ARGS 
+      --proto_path "${protobuf_SOURCE_DIR}/src"
       --cpp_out "${PROTO_DIR}"
       --rpc_out "${PROTO_DIR}"
       -I "${IMPORTS_DIR}"

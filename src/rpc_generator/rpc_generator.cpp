@@ -7,6 +7,7 @@
 #include <google/protobuf/io/zero_copy_stream.h>
 
 using google::protobuf::FileDescriptor;
+using google::protobuf::MethodDescriptor;
 using google::protobuf::compiler::CodeGenerator;
 using google::protobuf::compiler::GeneratorContext;
 using google::protobuf::io::Printer;
@@ -31,6 +32,44 @@ std::string GetProtoFileName(const FileDescriptor* file) noexcept {
   return file->name().substr(0, file->name().size() + 1 - sizeof(".proto"));
 }
 
+std::string PackageToNamespace(const std::string& package) noexcept {
+  std::string result;
+  for (auto ch : package) {
+    if (ch == '.') {
+      result += "::";
+    } else {
+      result += ch;
+    }
+  }
+  return result;
+}
+
+void AddMethodInfo(std::map<std::string, std::string>& vars, const MethodDescriptor* method) {
+  vars["method_name"] = method->name();
+  const auto output_ns = PackageToNamespace(method->input_type()->file()->package());
+  if (!output_ns.empty()) {
+    vars["output_type"] = output_ns + "::" + method->output_type()->name();
+  } else {
+    vars["output_type"] = method->output_type()->name();
+  }
+  const auto input_ns = PackageToNamespace(method->output_type()->file()->package());
+  if (!input_ns.empty()) {
+    vars["input_type"] = input_ns + "::" + method->input_type()->name();
+  } else {
+    vars["input_type"] = method->input_type()->name();
+  }
+}
+
+void AddDependencyHeaders(Printer& printer, const FileDescriptor* file) noexcept {
+  for (int dependency_id = 0; dependency_id < file->dependency_count(); ++dependency_id) {
+    auto dependency = file->dependency(dependency_id);
+    auto proto_path = dependency->name();
+    proto_path = proto_path.substr(0, proto_path.size() - sizeof(".proto") + 1);
+    printer.Print("#include <$path$.pb.h>\n", "path", proto_path);
+  }
+  printer.Print("\n");
+}
+
 void GenerateClientHeader(GeneratorContext* generator_context,
                           const FileDescriptor* file) noexcept {
   const std::string file_name = GetProtoFileName(file);
@@ -41,6 +80,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
   // Includes
   printer.Print("#pragma once\n\n");
   printer.Print("#include \"$name$.pb.h\"\n\n", "name", file_name);
+  AddDependencyHeaders(printer, file);
   printer.Print("#include <runtime/rpc_client_base.h>\n");
 
   // Services
@@ -59,10 +99,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
 
     // Methods
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
-      auto method = service->method(method_id);
-      vars["method_name"] = method->name();
-      vars["output_type"] = method->output_type()->name();
-      vars["input_type"] = method->input_type()->name();
+      AddMethodInfo(vars, service->method(method_id));
       printer.Print(vars, "$output_type$ $method_name$(const $input_type$& input);\n");
     }
 
@@ -92,11 +129,9 @@ void GenerateClientSource(GeneratorContext* generator_context,
 
     // Methods
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
+      AddMethodInfo(vars, service->method(method_id));
+
       printer.Print("\n");
-      auto method = service->method(method_id);
-      vars["method_name"] = method->name();
-      vars["output_type"] = method->output_type()->name();
-      vars["input_type"] = method->input_type()->name();
       printer.Print(vars,
                     "$output_type$ $service_class$::$method_name$(const $input_type$& input) {\n");
       printer.Indent();
@@ -118,17 +153,12 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
   // Includes
   printer.Print("#pragma once\n\n");
   printer.Print("#include \"$name$.pb.h\"\n\n", "name", file_name);
+  AddDependencyHeaders(printer, file);
   printer.Print("#include <runtime/rpc_handler_base.h>\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
     std::map<std::string, std::string> vars;
-
-    auto put_method_info = [&vars](const auto& method) {
-      vars["method_name"] = method->name();
-      vars["output_type"] = method->output_type()->name();
-      vars["input_type"] = method->input_type()->name();
-    };
 
     auto service = file->service(service_id);
     vars["service_name"] = service->name();
@@ -151,7 +181,7 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
 
     // Placeholders for handlers
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
-      put_method_info(service->method(method_id));
+      AddMethodInfo(vars, service->method(method_id));
 
       printer.Print(vars,
                     "virtual $output_type$ $method_name$(const $input_type$& request) = 0;\n");
@@ -166,14 +196,14 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
     printer.Print(vars, "void PutAllMethodsCallsInQueue(size_t queue_id) override;\n\n");
 
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
-      put_method_info(service->method(method_id));
+      AddMethodInfo(vars, service->method(method_id));
 
       printer.Print(vars, "void Put$method_name$InQueue(size_t queue_id);\n");
     }
 
     // Make rpc calls struct for each method
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
-      put_method_info(service->method(method_id));
+      AddMethodInfo(vars, service->method(method_id));
 
       printer.Print("\n");
       printer.Print(
@@ -211,12 +241,6 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
     std::map<std::string, std::string> vars;
 
-    auto put_method_info = [&vars](const auto& method) {
-      vars["method_name"] = method->name();
-      vars["output_type"] = method->output_type()->name();
-      vars["input_type"] = method->input_type()->name();
-    };
-
     auto service = file->service(service_id);
     vars["service_name"] = service->name();
     vars["service_class"] = vars["service_name"] + "Handler";
@@ -228,7 +252,7 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
     printer.Indent();
     printer.Print("auto stub = [](auto, auto, auto, auto) { return SyncMethodStub(); };\n");
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
-      put_method_info(service->method(method_id));
+      AddMethodInfo(vars, service->method(method_id));
       vars["id"] = std::to_string(method_id);
 
       printer.Print("\n");
@@ -255,14 +279,14 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
     printer.Print(vars, "void $service_class$::PutAllMethodsCallsInQueue(size_t queue_id) {\n");
     printer.Indent();
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
-      put_method_info(service->method(method_id));
+      AddMethodInfo(vars, service->method(method_id));
       printer.Print(vars, "Put$method_name$InQueue(queue_id);\n");
     }
     printer.Outdent();
     printer.Print("}\n\n");
 
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
-      put_method_info(service->method(method_id));
+      AddMethodInfo(vars, service->method(method_id));
       vars["id"] = std::to_string(method_id);
 
       printer.Print(vars, "void $service_class$::Put$method_name$InQueue(size_t queue_id) {\n");
@@ -274,7 +298,7 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
 
     // struct method implementation
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
-      put_method_info(service->method(method_id));
+      AddMethodInfo(vars, service->method(method_id));
 
       printer.Print("\n");
       printer.Print(vars, "void $service_class$::RpcCall$method_name$::operator()() noexcept {\n");

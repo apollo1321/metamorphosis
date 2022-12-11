@@ -98,13 +98,15 @@ FetchContent_MakeAvailable(protobuf grpc)
 # boost
 # ------------------------------------------------------------------------------
 
-set(BOOST_LIBRARIES config preprocessor assert mp11 winapi pool context
-                static_assert throw_exception type_traits container_hash move
-                core integer detail intrusive predef smart_ptr array bind
-                concept_check exception function iterator mpl range regex tuple
-                unordered algorithm conversion io function_types fusion utility
-                optional system align atomic type_index typeof variant2
-                filesystem format fiber)
+set(BOOST_LIBRARIES 
+  # assert
+  assert
+  # fibers
+  config preprocessor mp11 winapi pool context static_assert throw_exception
+  type_traits container_hash move core integer detail intrusive predef smart_ptr
+  array bind concept_check exception function iterator mpl range regex tuple
+  unordered algorithm conversion io function_types fusion utility optional
+  system align atomic type_index typeof variant2 filesystem format fiber)
 set(BOOST_VERSION boost-1.80.0)
 
 foreach(lib ${BOOST_LIBRARIES})
@@ -114,3 +116,13 @@ foreach(lib ${BOOST_LIBRARIES})
   )
   FetchContent_MakeAvailable(boost-${lib})
 endforeach()
+
+# ------------------------------------------------------------------------------
+# cli11
+# ------------------------------------------------------------------------------
+
+FetchContent_Declare(
+  cli11
+  URL https://github.com/CLIUtils/CLI11/archive/refs/tags/v2.3.1.tar.gz
+)
+FetchContent_MakeAvailable(cli11)
