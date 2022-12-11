@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+message Message {
+  string data = 1;
+}
+
+message StoreReply {
+  uint64 id = 1;
+}
+
+enum GetRequestStatus {
+  OK = 0;
+  INVALID_ID = 1;
+  DROPPED = 2;
+}
+
+message GetReply {
+  Message message = 1;
+  GetRequestStatus status = 2;
+}
+
+message GetRequest {
+  uint64 id = 1;
+}
+
+service QueueService {
+  rpc Store(Message) returns (StoreReply) {}
+  rpc Get(GetRequest) returns (GetReply) {}
+
+  rpc ShutDown(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+}

@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-All libraries are automatically downloaded at the project configuration stage. `Boost fibers`, `protobuf`, `gRPC` and `gtest` are used directly. The rest of the dependencies are needed for the libraries themselves.
+All libraries are automatically downloaded at the project configuration stage. `Boost fibers`, `protobuf`, `gRPC`, `gtest` and `CLI11` are used directly. The rest of the dependencies are needed for the libraries themselves.
 
 ## Runtime
 
