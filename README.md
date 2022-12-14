@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-All libraries are automatically downloaded at the project configuration stage. `Boost fibers`, `protobuf`, `gRPC`, `gtest` and `CLI11` are used directly. The rest of the dependencies are needed for the libraries themselves.
+All libraries are automatically downloaded at the project configuration stage. `Boost fibers`, `protobuf`, `gRPC`, `gtest`, `CLI11` and `RocksDB` are used directly. The rest of the dependencies are needed for the libraries themselves.
 
 ## Runtime
 
@@ -27,4 +27,3 @@ TODO (`~100K rps` on `Apple M1 Pro, 10 cores`)
 ## Distributed queue protocol
 
 TODO
-

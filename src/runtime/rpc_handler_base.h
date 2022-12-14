@@ -9,7 +9,6 @@
 #include <grpcpp/support/async_unary_call.h>
 #include <grpcpp/support/method_handler.h>
 
-#include <boost/assert.hpp>
 #include <boost/fiber/buffered_channel.hpp>
 
 class FiberTask {
@@ -81,10 +80,7 @@ class RpcHandlerBase : public ::grpc::Service {
                       queues_[queue_id].get(), queues_[queue_id].get(), rpc_call);
   }
 
-  static grpc::Status SyncMethodStub() {
-    BOOST_ASSERT_MSG(false, "sync version of method must not be called");
-    BOOST_UNREACHABLE_RETURN();
-  }
+  static grpc::Status SyncMethodStub();
 
  private:
   void RunDispatchingWorker(size_t queue_id) noexcept;

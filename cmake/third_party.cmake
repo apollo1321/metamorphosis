@@ -99,10 +99,7 @@ FetchContent_MakeAvailable(protobuf grpc)
 # ------------------------------------------------------------------------------
 
 set(BOOST_LIBRARIES 
-  # assert
-  assert
-  # fibers
-  config preprocessor mp11 winapi pool context static_assert throw_exception
+  assert config preprocessor mp11 winapi pool context static_assert throw_exception
   type_traits container_hash move core integer detail intrusive predef smart_ptr
   array bind concept_check exception function iterator mpl range regex tuple
   unordered algorithm conversion io function_types fusion utility optional
@@ -126,3 +123,17 @@ FetchContent_Declare(
   URL https://github.com/CLIUtils/CLI11/archive/refs/tags/v2.3.1.tar.gz
 )
 FetchContent_MakeAvailable(cli11)
+
+# ------------------------------------------------------------------------------
+# rocksdb
+# ------------------------------------------------------------------------------
+
+FetchContent_Declare(
+  rocksdb
+  URL https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
+)
+set(WITH_GFLAGS OFF)
+set(WITH_TESTS OFF)
+set(WITH_BENCHMARK_TOOLS OFF)
+set(WITH_TOOLS OFF)
+FetchContent_MakeAvailable(rocksdb)

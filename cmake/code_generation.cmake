@@ -1,19 +1,6 @@
-# ------------------------------------------------------------------------------
-# Proto codegeneration plugin
-# ------------------------------------------------------------------------------
-
-add_executable(rpc_generator_exe
-  src/rpc_generator/main.cpp 
-  src/rpc_generator/rpc_generator.cpp
-  src/rpc_generator/rpc_generator.h)
-target_link_libraries(rpc_generator_exe libprotobuf libprotoc)
-
-# ------------------------------------------------------------------------------
-# Proto codegeneration
-# ------------------------------------------------------------------------------
-
-function(generate_proto PROTO_NAME)
-  get_filename_component(PROTO_PATH "src/protos/${PROTO_NAME}.proto" ABSOLUTE)
+function(generate_proto TARGET PROTO)
+  get_filename_component(PROTO_PATH ${PROTO} ABSOLUTE)
+  get_filename_component(PROTO_NAME ${PROTO} NAME_WLE)
   get_filename_component(IMPORTS_DIR ${PROTO_PATH} DIRECTORY)
 
   set(PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
@@ -35,16 +22,12 @@ function(generate_proto PROTO_NAME)
       --cpp_out "${PROTO_DIR}"
       --rpc_out "${PROTO_DIR}"
       -I "${IMPORTS_DIR}"
-      --plugin=protoc-gen-rpc=$<TARGET_FILE:rpc_generator_exe>
+      --plugin=protoc-gen-rpc=$<TARGET_FILE:rpc_generator>
       "${PROTO_PATH}"
-    DEPENDS "${PROTO_PATH}" rpc_generator_exe
+    DEPENDS "${PROTO_PATH}" rpc_generator
   )
 
-  add_library(${PROTO_NAME}
-    src/runtime/rpc_client_base.h
-    src/runtime/rpc_client_base.cpp
-    src/runtime/rpc_handler_base.h
-    src/runtime/rpc_handler_base.cpp
+  add_library(${TARGET}
     ${PROTO_SRC}
     ${PROTO_HDR}
     ${CLIENT_SRC}
@@ -52,12 +35,6 @@ function(generate_proto PROTO_NAME)
     ${HANDLER_SRC}
     ${HANDLER_HDR}
   )
-  target_link_libraries(${PROTO_NAME}
-    grpc++_reflection
-    grpc++
-    libprotobuf
-    Boost::fiber
-  )
-  target_include_directories(${PROTO_NAME} PUBLIC src ${CMAKE_CURRENT_BINARY_DIR})
-
+  target_link_libraries(${TARGET} runtime)
+  target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 endfunction()

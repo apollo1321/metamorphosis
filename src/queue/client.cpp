@@ -2,7 +2,7 @@
 
 #include <CLI/CLI.hpp>
 
-#include <proto/queue.client.h>
+#include <proto/queue_service.client.h>
 
 int main(int argc, char** argv) {
   CLI::App app{"Queue service client"};
@@ -13,13 +13,17 @@ int main(int argc, char** argv) {
 
   auto shutdown = app.add_subcommand("shutdown", "shutdown service queue");
 
-  auto store = app.add_subcommand("store", "store message in queue");
+  auto store = app.add_subcommand("append", "append message in queue");
   std::string data;
   store->add_option("-m,--message", data, "message to add");
 
-  auto get = app.add_subcommand("get", "get message from queue");
-  uint64_t id{};
-  get->add_option("-i,--id", id, "message id");
+  auto read = app.add_subcommand("read", "read message from queue");
+  uint64_t read_id{};
+  read->add_option("-i,--id", read_id, "message id");
+
+  auto trim = app.add_subcommand("trim", "trim queue");
+  uint64_t trim_id{};
+  trim->add_option("-i,--id", trim_id, "all messages in range [0, id) will be deleted");
 
   app.require_subcommand(1);
 
@@ -33,28 +37,31 @@ int main(int argc, char** argv) {
       std::cout << "shutting down service" << std::endl;
     }
     if (*store) {
-      Message message;
+      AppendRequest message;
       message.set_data(data);
-      auto result = client.Store(message);
-      std::cout << "stored message id: " << result.id() << std::endl;
+      auto result = client.Append(message);
+      std::cout << "append message id: " << result.id() << std::endl;
     }
-    if (*get) {
-      GetRequest request;
-      request.set_id(id);
-      auto result = client.Get(request);
+    if (*read) {
+      ReadRequest request;
+      request.set_id(read_id);
+      auto result = client.Read(request);
       switch (result.status()) {
         case OK:
-          std::cout << "Message: " << result.message().data() << std::endl;
+          std::cout << "Message: " << result.data() << std::endl;
           break;
-        case INVALID_ID:
-          std::cout << "Invalid id" << std::endl;
-          break;
-        case DROPPED:
-          std::cout << "Message was dropped" << std::endl;
+        case NO_DATA:
+          std::cout << "No data for this id" << std::endl;
           break;
         default:
-          std::cout << "unexpected result" << std::endl;
+          abort();
       }
+    }
+    if (*trim) {
+      TrimRequest request;
+      request.set_id(trim_id);
+      auto result = client.Trim(request);
+      std::cout << "Successfully trimmed queue" << std::endl;
     }
   } catch (std::exception& e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
