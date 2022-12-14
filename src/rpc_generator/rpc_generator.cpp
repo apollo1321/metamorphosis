@@ -46,13 +46,13 @@ std::string PackageToNamespace(const std::string& package) noexcept {
 
 void AddMethodInfo(std::map<std::string, std::string>& vars, const MethodDescriptor* method) {
   vars["method_name"] = method->name();
-  const auto output_ns = PackageToNamespace(method->input_type()->file()->package());
+  const auto output_ns = PackageToNamespace(method->output_type()->file()->package());
   if (!output_ns.empty()) {
     vars["output_type"] = output_ns + "::" + method->output_type()->name();
   } else {
     vars["output_type"] = method->output_type()->name();
   }
-  const auto input_ns = PackageToNamespace(method->output_type()->file()->package());
+  const auto input_ns = PackageToNamespace(method->input_type()->file()->package());
   if (!input_ns.empty()) {
     vars["input_type"] = input_ns + "::" + method->input_type()->name();
   } else {

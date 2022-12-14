@@ -9,18 +9,10 @@ set(CMAKE_CXX_FLAGS_TSAN "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread -fno-omit-f
 # For clangd to work
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Needed by rocksdb
+add_compile_options(-frtti)
+
 include(cmake/third_party.cmake)
+include(cmake/library.cmake)
 include(cmake/code_generation.cmake)
-
-generate_proto("echo_service")
-
-add_executable(echo_benchmark src/benchmark/main.cpp)
-target_link_libraries(echo_benchmark echo_service)
-
-generate_proto("queue")
-
-add_executable(queue_client src/queue/client.cpp)
-target_link_libraries(queue_client queue CLI11::CLI11)
-
-add_executable(queue_service src/queue/service.cpp)
-target_link_libraries(queue_service queue CLI11::CLI11)
+include(cmake/executables.cmake)

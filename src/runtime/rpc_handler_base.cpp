@@ -1,5 +1,6 @@
 #include "rpc_handler_base.h"
 
+#include <util/condition_check.h>
 #include <boost/fiber/fiber.hpp>
 
 void RpcHandlerBase::Run(const std::string& address, const RunConfig& config) {
@@ -96,4 +97,9 @@ RpcHandlerBase::RunConfig RpcHandlerBase::MakeDefaultRunConfig() noexcept {
   auto queue_count = std::max(std::thread::hardware_concurrency() / 2, 1u);
   auto worker_count = std::max(std::thread::hardware_concurrency() / 4, 1u);
   return {.queue_count = queue_count, .worker_threads_count = worker_count, .threads_per_queue = 2};
+}
+
+grpc::Status RpcHandlerBase::SyncMethodStub() {
+  VERIFY(false, "sync version of method must not be called");
+  abort();
 }

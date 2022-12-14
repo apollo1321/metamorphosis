@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+// Append operation
+message AppendRequest {
+  string data = 1;
+}
+
+message AppendReply {
+  uint64 id = 1;
+}
+
+// Read operation
+message ReadRequest {
+  uint64 id = 1;
+}
+
+enum ReadStatus {
+  OK = 0;
+  NO_DATA = 1;
+}
+
+message ReadReply {
+  string data = 1;
+  ReadStatus status = 2;
+}
+
+// Trim operation
+message TrimRequest {
+  uint64 id = 1;
+}
+
+service QueueService {
+  rpc Append(AppendRequest) returns (AppendReply) {}
+  rpc Read(ReadRequest) returns (ReadReply) {}
+  rpc Trim(TrimRequest) returns (google.protobuf.Empty) {}
+
+  rpc ShutDown(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+}
