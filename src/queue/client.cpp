@@ -15,15 +15,15 @@ int main(int argc, char** argv) {
 
   auto store = app.add_subcommand("append", "append message in queue");
   std::string data;
-  store->add_option("-m,--message", data, "message to add");
+  store->add_option("message", data, "message to add");
 
   auto read = app.add_subcommand("read", "read message from queue");
   uint64_t read_id{};
-  read->add_option("-i,--id", read_id, "message id");
+  read->add_option("id", read_id, "message id");
 
   auto trim = app.add_subcommand("trim", "trim queue");
   uint64_t trim_id{};
-  trim->add_option("-i,--id", trim_id, "all messages in range [0, id) will be deleted");
+  trim->add_option("id", trim_id, "all messages in range [0, id) will be deleted");
 
   app.require_subcommand(1);
 
