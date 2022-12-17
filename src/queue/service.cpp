@@ -13,8 +13,9 @@ class QueueService final : public QueueServiceHandler {
  public:
   struct U64Comparator final : rocksdb::Comparator {
     int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const {
-      uint64_t a_val = reinterpret_cast<uint64_t>(a.data());
-      uint64_t b_val = reinterpret_cast<uint64_t>(a.data());
+      VERIFY(a.size() == sizeof(uint64_t) && b.size() == sizeof(uint64_t), "invalid size of compared keys");
+      uint64_t a_val = *reinterpret_cast<const uint64_t*>(a.data());
+      uint64_t b_val = *reinterpret_cast<const uint64_t*>(b.data());
       return a_val == b_val ? 0 : a_val < b_val ? -1 : +1;
     }
 
@@ -39,6 +40,7 @@ class QueueService final : public QueueServiceHandler {
     {
       rocksdb::Options options;
       options.create_if_missing = true;
+      options.comparator = &comparator_;
       rocksdb::DB* db{};
       ENSURE_STATUS(rocksdb::DB::Open(options, db_path, &db));
       database_ = std::unique_ptr<rocksdb::DB>(db);
@@ -53,7 +55,7 @@ class QueueService final : public QueueServiceHandler {
       if (!iterator->Valid()) {
         end_index_ = 0;
       } else {
-        end_index_ = reinterpret_cast<uint64_t>(iterator->key().data()) + 1;
+        end_index_ = *reinterpret_cast<const uint64_t*>(iterator->key().data()) + 1;
       }
     }
   }
