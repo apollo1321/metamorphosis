@@ -1,4 +1,4 @@
-*build*
+*build*/
 .root
 .cache
 compile_commands.json

@@ -72,7 +72,7 @@ void RpcHandlerBase::RunWorker() noexcept {
       break;
     }
 
-    boost::fibers::fiber(launch::post, std::ref(*task)).detach();
+    boost::fibers::fiber(launch::dispatch, std::ref(*task)).detach();
   }
 }
 

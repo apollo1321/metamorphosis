@@ -14,7 +14,7 @@ target_link_libraries(rpc_generator libprotobuf libprotoc)
 
 generate_proto(echo_service_proto src/benchmark/echo_service.proto)
 add_executable(echo_benchmark src/benchmark/main.cpp)
-target_link_libraries(echo_benchmark echo_service_proto)
+target_link_libraries(echo_benchmark echo_service_proto CLI11::CLI11)
 
 # ------------------------------------------------------------------------------
 # queue
