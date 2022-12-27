@@ -132,8 +132,8 @@ FetchContent_Declare(
   rocksdb
   URL https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
 )
-set(WITH_GFLAGS OFF)
-set(WITH_TESTS OFF)
-set(WITH_BENCHMARK_TOOLS OFF)
-set(WITH_TOOLS OFF)
+set(WITH_GFLAGS          OFF CACHE INTERNAL "")
+set(WITH_TESTS           OFF CACHE INTERNAL "")
+set(WITH_BENCHMARK_TOOLS OFF CACHE INTERNAL "")
+set(WITH_TOOLS           OFF CACHE INTERNAL "")
 FetchContent_MakeAvailable(rocksdb)

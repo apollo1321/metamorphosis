@@ -7,6 +7,8 @@
 #include <proto/echo_service.client.h>
 #include <proto/echo_service.handler.h>
 
+#include <CLI/CLI.hpp>
+
 using namespace std::chrono_literals;
 
 class EchoServiceHandlerImpl final : public EchoServiceHandler {
@@ -88,10 +90,30 @@ void BenchEchoService(RpcHandlerBase::RunConfig server_config, ClientConfig clie
   std::cout << "RPS: " << count_result / duration.count() << "\n\n";
 }
 
-int main() {
-  RpcHandlerBase::RunConfig server_config{
-      .queue_count = 1, .threads_per_queue = 1, .worker_threads_count = 1};
-  ClientConfig client_config{.thread_count = 1, .fiber_count = 5000};
+int main(int argc, char** argv) {
+  CLI::App app{"Echo service benchmark"};
 
-  BenchEchoService(server_config, client_config, 10050);
+  uint16_t port;
+  app.add_option("-p,--port", port, "free port")->default_val(10050);
+
+  auto server = app.add_subcommand("server", "server config");
+  RpcHandlerBase::RunConfig server_config{};
+
+  server->add_option("-q,--queues", server_config.queue_count, "completion queue count")
+      ->default_val(1);
+  server->add_option("-t,--threads", server_config.threads_per_queue, "threads per queue")
+      ->default_val(1);
+  server->add_option("-w,--workers", server_config.worker_threads_count, "worker threads count")
+      ->default_val(1);
+
+  ClientConfig client_config{};
+  auto client = app.add_subcommand("client", "client config");
+
+  client->add_option("-t,--threads", client_config.thread_count, "threads count")->default_val(1);
+  client->add_option("-f,--fibers", client_config.fiber_count, "fibers per thread")
+      ->default_val(500);
+
+  CLI11_PARSE(app, argc, argv);
+
+  BenchEchoService(server_config, client_config, port);
 }

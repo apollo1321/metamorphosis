@@ -1,29 +1,59 @@
 # Cost-effective distributed queue
 
+## Purpose
+
+As a rule, for fault tolerance, distributed queues are configured so that
+replicas are located in different [availability
+zones](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html).
+
+In this configuration, when writing to the queue, or when reading from the
+queue, data is copied to the long-range scale several times.
+
+The goal of this project is to reduce the number of copies of data over the
+network in a distributed queue.
+
+Reducing the amount of data transmission over the network in the task of
+collecting a large amount of data will significantly reduce the
+[cost](https://aws.amazon.com/ec2/pricing/on-demand/).
+
 ## Dependencies
 
-All libraries are automatically downloaded at the project configuration stage. `Boost fibers`, `protobuf`, `gRPC`, `gtest`, `CLI11` and `RocksDB` are used directly. The rest of the dependencies are needed for the libraries themselves.
+All libraries are automatically downloaded at the project configuration stage.
+`Boost fibers`, `protobuf`, `gRPC`, `gtest`, `CLI11` and `RocksDB` are used
+directly. The rest of the dependencies are needed for the libraries themselves.
 
-## Runtime
+## Requirements
 
-Boost fibers over `gRPC` implementation of `RPC` runtime are used. 
-For serialization/deserialization protobufs are used. 
-`RPC` services are declared in protobuf format.
+* `cmake >= 3.15`
+* `ninja`
+* `clang`
 
-### Code generation of RPC services
+## Running
 
-It is not so easy to adapt the fibers so that they work correctly with `gRPC`. To simplify adding new `RPC` services, code generation has been written for both clients and handlers.
+### Queue
 
-To add new `RPC` service, you first need to declare it in protobuf format. Stubs then can be generated. 
+At the moment, the implementation of the queue with 1 replica is written. The
+data is stored on the hard disk and written synchronously. The queue supports
+the following operations:
 
-For handler stubs you need to implement service methods by overriding them. When the client sends a request, the implemented methods will be launched in the fiber. 
+* `Append` - add message and get its `id`
+* `Read` - read message at given `id`
+* `Trim` - delete all messages in range `[0, id)`
 
-Clients are provided with an interface with the necessary `RPC` methods. When calling the method, the current fiber will be suspended and after the response is received, it will be resumed.
+```sh
+./scripts/build-queue.sh
+./scripts/run-queue-service.sh &
+./scripts/run-queue-client.sh -h
+```
 
-### Benchmarking
+### Benchmark
 
-TODO (`~100K rps` on `Apple M1 Pro, 10 cores`)
+```sh
+./scripts/build-benchmark.sh
+./scripts/run-benchmark.sh
+```
 
-## Distributed queue protocol
+### More info
 
-TODO
+* [runtime](/docs/runtime.md)
+* [protocol](/docs/queue_protocol.md)
