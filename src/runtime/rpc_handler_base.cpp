@@ -96,7 +96,7 @@ void RpcHandlerBase::ShutDown() {
 RpcHandlerBase::RunConfig RpcHandlerBase::MakeDefaultRunConfig() noexcept {
   auto queue_count = std::max(std::thread::hardware_concurrency() / 2, 1u);
   auto worker_count = std::max(std::thread::hardware_concurrency() / 4, 1u);
-  return {.queue_count = queue_count, .worker_threads_count = worker_count, .threads_per_queue = 2};
+  return {.queue_count = queue_count, .threads_per_queue = 2, .worker_threads_count = worker_count};
 }
 
 grpc::Status RpcHandlerBase::SyncMethodStub() {
