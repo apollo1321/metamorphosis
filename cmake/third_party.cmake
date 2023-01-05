@@ -1,6 +1,5 @@
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
-cmake_policy(SET CMP0135 NEW)
 
 # Using URL instead of GIT in FetchContent to speed up configuration step and 
 # decrease download size
@@ -52,7 +51,7 @@ FetchContent_Populate(cares)
 
 FetchContent_Declare(
   boringssl
-  URL https://boringssl.googlesource.com/boringssl/+archive/refs/heads/main-with-bazel.tar.gz
+  URL https://boringssl.googlesource.com/boringssl/+archive/4fb158925f7753d80fb858cb0239dff893ef9f15.tar.gz
 )
 FetchContent_Populate(boringssl)
 
@@ -93,6 +92,15 @@ FetchContent_Declare(
   URL https://github.com/grpc/grpc/archive/refs/tags/v1.51.0.tar.gz
 )
 FetchContent_MakeAvailable(protobuf grpc)
+
+# Fix gcc compilation bug
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  set(BROKEN_HEADER ${grpc_SOURCE_DIR}/src/core/ext/xds/xds_listener.h)
+  set(BROKEN_SOURCE ${grpc_SOURCE_DIR}/src/core/ext/xds/xds_listener.cc)
+  execute_process(
+    COMMAND bash ${PROJECT_SOURCE_DIR}/scripts/impl/fix-gcc-compilation.sh ${BROKEN_HEADER} ${BROKEN_SOURCE}
+  )
+endif()
 
 # ------------------------------------------------------------------------------
 # boost

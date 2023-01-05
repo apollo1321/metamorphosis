@@ -26,7 +26,7 @@ directly. The rest of the dependencies are needed for the libraries themselves.
 
 * `cmake >= 3.15`
 * `ninja`
-* `clang`
+* `clang` or `gcc`
 
 ## Running
 
