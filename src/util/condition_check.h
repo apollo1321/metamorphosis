@@ -22,7 +22,7 @@
 #define VERIFY(CONDIDITION, MESSAGE)                            \
   do {                                                          \
     if (!(CONDIDITION)) {                                       \
-      std::cerr << "verify failed: " << (MESSAGE) << std::endl; \
+      std::cerr << "VERIFY failed: " << (MESSAGE) << std::endl; \
       std::abort();                                             \
     }                                                           \
   } while (false)

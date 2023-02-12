@@ -11,11 +11,11 @@ function(generate_proto TARGET PROTO)
   set(CLIENT_SRC "${PROTO_DIR}/${PROTO_NAME}.client.cc")
   set(CLIENT_HDR "${PROTO_DIR}/${PROTO_NAME}.client.h")
 
-  set(HANDLER_SRC "${PROTO_DIR}/${PROTO_NAME}.handler.cc")
-  set(HANDLER_HDR "${PROTO_DIR}/${PROTO_NAME}.handler.h")
+  set(SERVICE_SRC "${PROTO_DIR}/${PROTO_NAME}.service.cc")
+  set(SERVICE_HDR "${PROTO_DIR}/${PROTO_NAME}.service.h")
 
   add_custom_command(
-    OUTPUT ${PROTO_SRC} ${PROTO_HDR} ${CLIENT_SRC} ${CLIENT_HDR} ${HANDLER_SRC} ${HANDLER_HDR}
+    OUTPUT ${PROTO_SRC} ${PROTO_HDR} ${CLIENT_SRC} ${CLIENT_HDR} ${SERVICE_SRC} ${SERVICE_HDR}
     COMMAND $<TARGET_FILE:protoc>
     ARGS 
       --proto_path "${protobuf_SOURCE_DIR}/src"
@@ -32,8 +32,8 @@ function(generate_proto TARGET PROTO)
     ${PROTO_HDR}
     ${CLIENT_SRC}
     ${CLIENT_HDR}
-    ${HANDLER_SRC}
-    ${HANDLER_HDR}
+    ${SERVICE_SRC}
+    ${SERVICE_HDR}
   )
   target_link_libraries(${TARGET} runtime)
   target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

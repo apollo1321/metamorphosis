@@ -6,14 +6,17 @@
 #include <rocksdb/db.h>
 #include <CLI/CLI.hpp>
 
-#include <proto/queue_service.handler.h>
+#include <proto/queue_service.service.h>
+
+#include <runtime/rpc_server.h>
 #include <util/condition_check.h>
 
-class QueueService final : public QueueServiceHandler {
+class QueueService final : public QueueServiceStub {
  public:
   struct U64Comparator final : rocksdb::Comparator {
     int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const {
-      VERIFY(a.size() == sizeof(uint64_t) && b.size() == sizeof(uint64_t), "invalid size of compared keys");
+      VERIFY(a.size() == sizeof(uint64_t) && b.size() == sizeof(uint64_t),
+             "invalid size of compared keys");
       uint64_t a_val = *reinterpret_cast<const uint64_t*>(a.data());
       uint64_t b_val = *reinterpret_cast<const uint64_t*>(b.data());
       return a_val == b_val ? 0 : a_val < b_val ? -1 : +1;
@@ -111,13 +114,11 @@ class QueueService final : public QueueServiceHandler {
     return google::protobuf::Empty{};
   }
 
-  void ShutDownWait() {
+  void WaitShutDown() {
     std::unique_lock guard(shut_down_mutex_);
     shut_down_cv_.wait(guard, [this]() {
       return shut_down_;
     });
-
-    QueueServiceHandler::ShutDown();
   }
 
  private:
@@ -152,14 +153,14 @@ int main(int argc, char** argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  try {
-    QueueService service(db_path);
-    service.Run(address);
-    std::cout << "Running queue service at " << address << std::endl;
-    service.ShutDownWait();
-    std::cout << "Shut down" << std::endl;
-  } catch (std::exception& e) {
-    std::cerr << "Service failure: " << e.what() << std::endl;
-    return 1;
-  }
+  QueueService service(db_path);
+
+  RpcServer server;
+  server.Register(&service);
+
+  server.Run(address);
+  std::cout << "Running queue service at " << address << std::endl;
+  service.WaitShutDown();
+  std::cout << "Shut down" << std::endl;
+  server.ShutDown();
 }

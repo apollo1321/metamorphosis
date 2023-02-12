@@ -144,17 +144,17 @@ void GenerateClientSource(GeneratorContext* generator_context,
   }
 }
 
-void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescriptor* file) {
+void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescriptor* file) {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".handler.h"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".service.h"));
   Printer printer(stream.get(), '$');
 
   // Includes
   printer.Print("#pragma once\n\n");
   printer.Print("#include \"$name$.pb.h\"\n\n", "name", file_name);
   AddDependencyHeaders(printer, file);
-  printer.Print("#include <runtime/rpc_handler_base.h>\n");
+  printer.Print("#include <runtime/rpc_service_base.h>\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -162,24 +162,17 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
 
     auto service = file->service(service_id);
     vars["service_name"] = service->name();
-    vars["service_class"] = vars["service_name"] + "Handler";
+    vars["service_class"] = vars["service_name"] + "Stub";
 
     printer.Print("\n");
-    printer.Print(vars, "class $service_class$ : public RpcHandlerBase {\n");
+    printer.Print(vars, "class $service_class$ : public RpcServiceBase {\n");
     printer.Print("public:\n");
     printer.Indent();
 
     // Constructor
     printer.Print(vars, "$service_class$();\n");
-    // Destructor
-    printer.Print(vars, "~$service_class$();\n\n");
 
-    // using
-    printer.Print(vars, "using RpcHandlerBase::Run;\n");
-    printer.Print(vars, "using RpcHandlerBase::ShutDown;\n\n");
-    printer.Print(vars, "using RpcHandlerBase::MakeDefaultRunConfig;\n\n");
-
-    // Placeholders for handlers
+    // Placeholders for services
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
 
@@ -193,12 +186,13 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
     printer.Indent();
 
     // Put methods rpc calls in queue
-    printer.Print(vars, "void PutAllMethodsCallsInQueue(size_t queue_id) override;\n\n");
+    printer.Print(
+        vars, "void PutAllMethodsCallsInQueue(grpc::ServerCompletionQueue& queue) override;\n\n");
 
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
 
-      printer.Print(vars, "void Put$method_name$InQueue(size_t queue_id);\n");
+      printer.Print(vars, "void Put$method_name$InQueue(grpc::ServerCompletionQueue& queue);\n");
     }
 
     // Make rpc calls struct for each method
@@ -211,9 +205,10 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
       printer.Indent();
       printer.Print(
           vars,
-          "explicit RpcCall$method_name$($service_name$Handler* handler) : handler{handler} {}\n");
+          "explicit RpcCall$method_name$($service_class$* handler) : handler{handler} {}\n");
       printer.Print(vars, "void operator()() noexcept override;\n");
-      printer.Print(vars, "void PutNewCallInQueue(size_t queue_id) noexcept override;\n");
+      printer.Print(
+          vars, "void PutNewCallInQueue(grpc::ServerCompletionQueue& queue) noexcept override;\n");
       printer.Print(vars, "$service_class$* handler;\n");
       printer.Outdent();
       printer.Print("};\n");
@@ -224,14 +219,14 @@ void GenerateHandlerHeader(GeneratorContext* generator_context, const FileDescri
   }
 }
 
-void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescriptor* file) {
+void GenerateServiceSource(GeneratorContext* generator_context, const FileDescriptor* file) {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".handler.cc"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".service.cc"));
   Printer printer(stream.get(), '$');
 
   // Includes
-  printer.Print("#include \"$name$.handler.h\"\n\n", "name", file_name);
+  printer.Print("#include \"$name$.service.h\"\n\n", "name", file_name);
 
   // Using
   printer.Print("using namespace grpc::internal;  // NOLINT\n");
@@ -243,7 +238,7 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
 
     auto service = file->service(service_id);
     vars["service_name"] = service->name();
-    vars["service_class"] = vars["service_name"] + "Handler";
+    vars["service_class"] = vars["service_name"] + "Stub";
 
     printer.Print("\n");
 
@@ -268,19 +263,14 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
     printer.Outdent();
     printer.Print("}\n\n");
 
-    // Destructor
-    printer.Print(vars, "$service_class$::~$service_class$() {\n");
-    printer.Indent();
-    printer.Print("if (IsRunning()) { ShutDown(); }\n");
-    printer.Outdent();
-    printer.Print("}\n\n");
-
     // Put methods rpc calls in queue
-    printer.Print(vars, "void $service_class$::PutAllMethodsCallsInQueue(size_t queue_id) {\n");
+    printer.Print(
+        vars,
+        "void $service_class$::PutAllMethodsCallsInQueue(grpc::ServerCompletionQueue& queue) {\n");
     printer.Indent();
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
-      printer.Print(vars, "Put$method_name$InQueue(queue_id);\n");
+      printer.Print(vars, "Put$method_name$InQueue(queue);\n");
     }
     printer.Outdent();
     printer.Print("}\n\n");
@@ -289,9 +279,11 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
       AddMethodInfo(vars, service->method(method_id));
       vars["id"] = std::to_string(method_id);
 
-      printer.Print(vars, "void $service_class$::Put$method_name$InQueue(size_t queue_id) {\n");
+      printer.Print(
+          vars,
+          "void $service_class$::Put$method_name$InQueue(grpc::ServerCompletionQueue& queue) {\n");
       printer.Indent();
-      printer.Print(vars, "PutRpcCallInQueue($id$, queue_id, new RpcCall$method_name${this});\n");
+      printer.Print(vars, "PutRpcCallInQueue(queue, $id$, new RpcCall$method_name${this});\n");
       printer.Outdent();
       printer.Print("}\n");
     }
@@ -310,10 +302,11 @@ void GenerateHandlerSource(GeneratorContext* generator_context, const FileDescri
 
       printer.Print("\n");
       printer.Print(vars,
-                    "void $service_class$::RpcCall$method_name$::PutNewCallInQueue(size_t "
-                    "queue_id) noexcept {\n");
+                    "void "
+                    "$service_class$::RpcCall$method_name$::PutNewCallInQueue(grpc::"
+                    "ServerCompletionQueue& queue) noexcept {\n");
       printer.Indent();
-      printer.Print(vars, "handler->Put$method_name$InQueue(queue_id);\n");
+      printer.Print(vars, "handler->Put$method_name$InQueue(queue);\n");
       printer.Outdent();
       printer.Print("}\n");
     }
@@ -332,8 +325,8 @@ bool RpcGenerator::Generate(const FileDescriptor* file, const std::string& param
   GenerateClientHeader(generator_context, file);
   GenerateClientSource(generator_context, file);
 
-  GenerateHandlerHeader(generator_context, file);
-  GenerateHandlerSource(generator_context, file);
+  GenerateServiceHeader(generator_context, file);
+  GenerateServiceSource(generator_context, file);
 
   return true;
 }

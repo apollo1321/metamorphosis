@@ -5,13 +5,15 @@
 #include <thread>
 
 #include <proto/echo_service.client.h>
-#include <proto/echo_service.handler.h>
+#include <proto/echo_service.service.h>
+
+#include <runtime/rpc_server.h>
 
 #include <CLI/CLI.hpp>
 
 using namespace std::chrono_literals;
 
-class EchoServiceHandlerImpl final : public EchoServiceHandler {
+class EchoService final : public EchoServiceStub {
   EchoReply SayHello(const EchoRequest& request) override {
     EchoReply reply;
     reply.set_message("Hello from async server " + request.name());
@@ -24,8 +26,7 @@ struct ClientConfig {
   size_t thread_count;
 };
 
-void BenchEchoService(RpcHandlerBase::RunConfig server_config, ClientConfig client_config,
-                      uint16_t port) {
+void BenchEchoService(RunConfig server_config, ClientConfig client_config, uint16_t port) {
   std::cout << "=================================\n";
   std::cout << "Server config: \n";
   std::cout << "\tqueue_count = " << server_config.queue_count << '\n';
@@ -35,7 +36,10 @@ void BenchEchoService(RpcHandlerBase::RunConfig server_config, ClientConfig clie
   std::cout << "\tfiber_count = " << client_config.fiber_count << '\n';
   std::cout << "\tthread_count = " << client_config.thread_count << '\n';
 
-  EchoServiceHandlerImpl server;
+  EchoService service;
+  RpcServer server;
+  server.Register(&service);
+
   server.Run("127.0.0.1:" + std::to_string(port), server_config);
 
   std::atomic<bool> running{true};
@@ -97,7 +101,7 @@ int main(int argc, char** argv) {
   app.add_option("-p,--port", port, "free port")->default_val(10050);
 
   auto server = app.add_subcommand("server", "server config");
-  RpcHandlerBase::RunConfig server_config{};
+  RunConfig server_config{};
 
   server->add_option("-q,--queues", server_config.queue_count, "completion queue count")
       ->default_val(1);
