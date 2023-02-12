@@ -4,7 +4,8 @@
 
 add_library(runtime 
   src/runtime/rpc_client_base.cpp
-  src/runtime/rpc_handler_base.cpp)
+  src/runtime/rpc_server.cpp
+  src/runtime/rpc_service_base.cpp)
 
 target_link_libraries(runtime 
   libprotobuf
