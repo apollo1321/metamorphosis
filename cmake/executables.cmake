@@ -27,3 +27,15 @@ target_link_libraries(queue_client queue_service_proto CLI11::CLI11)
 
 add_executable(queue_service src/queue/service.cpp)
 target_link_libraries(queue_service queue_service_proto CLI11::CLI11 store)
+
+# ------------------------------------------------------------------------------
+# two-replica-queue
+# ------------------------------------------------------------------------------
+
+generate_proto(queue_service_proto2 src/two_replica_queue/queue_api.proto)
+
+add_executable(queue_client2 src/two_replica_queue/client.cpp)
+target_link_libraries(queue_client2 queue_service_proto2 CLI11::CLI11)
+
+add_executable(queue_service2 src/two_replica_queue/service.cpp)
+target_link_libraries(queue_service2 queue_service_proto2 CLI11::CLI11 store)
