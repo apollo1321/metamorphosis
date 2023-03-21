@@ -3,7 +3,7 @@ function(generate_proto TARGET PROTO)
   get_filename_component(PROTO_NAME ${PROTO} NAME_WLE)
   get_filename_component(IMPORTS_DIR ${PROTO_PATH} DIRECTORY)
 
-  set(PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
+  set(PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
   set(PROTO_SRC "${PROTO_DIR}/${PROTO_NAME}.pb.cc")
   set(PROTO_HDR "${PROTO_DIR}/${PROTO_NAME}.pb.h")

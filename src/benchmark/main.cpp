@@ -4,14 +4,16 @@
 #include <string>
 #include <thread>
 
-#include <proto/echo_service.client.h>
-#include <proto/echo_service.service.h>
+#include <benchmark/echo_service.client.h>
+#include <benchmark/echo_service.service.h>
 
 #include <runtime/rpc_server.h>
 
 #include <CLI/CLI.hpp>
 
 using namespace std::chrono_literals;
+using runtime::RunConfig;
+using runtime::RpcServer;
 
 class EchoService final : public EchoServiceStub {
   EchoReply SayHello(const EchoRequest& request) override {
