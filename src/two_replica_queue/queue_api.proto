@@ -2,65 +2,42 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 
-
-////////////////////////////////////////////////////////////
-// Source API
-////////////////////////////////////////////////////////////
-
-message SinkAddress {
-  string ip = 1;
-  uint64 port = 2;
-}
-
 message AppendRequest {
   string data = 1;
 }
 
 message AppendReply {
-  uint64 id = 1;
-}
+  enum Status {
+    OK,
+    REDIRECT
+  }
 
-service SourceAdminHandles {
-  rpc Shutdown(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc AddSink(SinkAddress) returns (google.protobuf.Empty) {}
-}
+  message StatusPayload {
+    Address redirect = 1;
+  };
 
-service QueueSource {
-  rpc Append(AppendRequest) returns (AppendReply) {}
-  rpc Read(ReadRequest) returns (ReadReply) {}
-}
+  Status status = 1;
+  uint64 appended_id = 2;
 
-////////////////////////////////////////////////////////////
-// Sink API
-////////////////////////////////////////////////////////////
+  StatusPayload status_payload = 3; // additional
+}
 
 message ReadRequest {
-  uint64 id = 1;
+  enum Status {
+    OK,
+    NO_DATA
+  }
+
+  Status status = 1;
+  int32 index = 2;
 }
 
 message ReadReply {
-  enum ReadStatus {
-    OK = 0;
-    NO_DATA = 1;
-  }
-
-  string data = 1;
-  ReadStatus status = 2;
-}
-
-message SubscribeRequest {
-  uint64 id = 1;
-}
-
-message SubscribeReply {
   string data = 1;
 }
 
-service QueueSink {
+rpc QueueReplica {
+  rpc Append(AppendRequest) returns (AppendReply) {}
   rpc Read(ReadRequest) returns (ReadReply) {}
-  rpc Subscribe(SubscribeRequest) returns (SubscribeReply) {}
-}
-
-service QueueAdminHandles {
-  rpc Shutdown(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  rpc Subscribe() returns (ReadReply) {}
 }

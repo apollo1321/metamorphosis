@@ -12,6 +12,8 @@
 #include <boost/fiber/condition_variable.hpp>
 #include <boost/fiber/mutex.hpp>
 
+namespace runtime {
+
 class RpcClientBase {
  public:
   explicit RpcClientBase(const std::string& address) noexcept;
@@ -65,3 +67,5 @@ class RpcClientBase {
   std::shared_ptr<grpc::Channel> channel_;
   std::thread dispatching_thread_;
 };
+
+}  // namespace runtime

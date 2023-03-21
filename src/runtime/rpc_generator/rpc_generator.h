@@ -1,3 +1,5 @@
+#pragma once
+
 #include <google/protobuf/compiler/code_generator.h>
 #include <google/protobuf/descriptor.h>
 

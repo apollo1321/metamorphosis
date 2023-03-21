@@ -2,6 +2,8 @@
 
 #include <util/condition_check.h>
 
+namespace runtime {
+
 RpcClientBase::RpcClientBase(const std::string& address) noexcept
     : channel_{grpc::CreateChannel(address, grpc::InsecureChannelCredentials())},
       dispatching_thread_([this]() {
@@ -28,3 +30,5 @@ void RpcClientBase::DispatchServiceResponses() {
     call->is_set = true;
   }
 }
+
+}  // namespace runtime

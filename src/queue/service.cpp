@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
 
   QueueService service(db_path);
 
-  RpcServer server;
+  runtime::RpcServer server;
   server.Register(&service);
 
   server.Run(address);
