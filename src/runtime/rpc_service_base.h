@@ -10,6 +10,8 @@
 
 #include "task.h"
 
+namespace runtime {
+
 class RpcServiceBase : public grpc::Service {
  protected:
   struct RpcCallBase : public FiberTask {
@@ -60,3 +62,5 @@ class RpcServiceBase : public grpc::Service {
 
   friend class RpcServer;
 };
+
+}  // namespace runtime

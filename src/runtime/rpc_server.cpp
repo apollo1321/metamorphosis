@@ -4,6 +4,8 @@
 
 #include <util/condition_check.h>
 
+namespace runtime {
+
 RunConfig RunConfig::MakeDefaultRunConfig() noexcept {
   auto queue_count = std::max(std::thread::hardware_concurrency() / 2, 1u);
   auto worker_count = std::max(std::thread::hardware_concurrency() / 4, 1u);
@@ -103,3 +105,5 @@ void RpcServer::ShutDown() noexcept {
     thread.join();
   }
 }
+
+}  // namespace runtime

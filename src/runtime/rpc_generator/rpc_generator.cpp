@@ -91,7 +91,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
     vars["service_name"] = service->name();
 
     printer.Print("\n");
-    printer.Print(vars, "class $service_name$Client final : private RpcClientBase {\n");
+    printer.Print(vars, "class $service_name$Client final : private runtime::RpcClientBase {\n");
     printer.Print("public:\n");
     printer.Indent();
 
@@ -165,7 +165,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
     vars["service_class"] = vars["service_name"] + "Stub";
 
     printer.Print("\n");
-    printer.Print(vars, "class $service_class$ : public RpcServiceBase {\n");
+    printer.Print(vars, "class $service_class$ : public runtime::RpcServiceBase {\n");
     printer.Print("public:\n");
     printer.Indent();
 
@@ -204,8 +204,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
           vars, "struct RpcCall$method_name$ : public RpcCall<$input_type$, $output_type$> {\n");
       printer.Indent();
       printer.Print(
-          vars,
-          "explicit RpcCall$method_name$($service_class$* handler) : handler{handler} {}\n");
+          vars, "explicit RpcCall$method_name$($service_class$* handler) : handler{handler} {}\n");
       printer.Print(vars, "void operator()() noexcept override;\n");
       printer.Print(
           vars, "void PutNewCallInQueue(grpc::ServerCompletionQueue& queue) noexcept override;\n");

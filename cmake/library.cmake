@@ -16,6 +16,24 @@ target_link_libraries(runtime
 target_include_directories(runtime PUBLIC src)
 
 # ------------------------------------------------------------------------------
+# runtime_simulator
+# ------------------------------------------------------------------------------
+
+add_library(runtime_simulator
+  src/runtime_simulator/api.cpp
+  src/runtime_simulator/rpc_client_base.cpp
+  src/runtime_simulator/rpc_server.cpp
+  src/runtime_simulator/rpc_service_base.cpp
+  src/runtime_simulator/impl/world.cpp
+  src/runtime_simulator/impl/host.cpp)
+
+target_link_libraries(runtime_simulator
+  libprotobuf
+  Boost::fiber)
+
+target_include_directories(runtime_simulator PUBLIC src)
+
+# ------------------------------------------------------------------------------
 # store
 # ------------------------------------------------------------------------------
 

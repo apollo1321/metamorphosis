@@ -10,6 +10,8 @@
 
 #include "rpc_service_base.h"
 
+namespace runtime {
+
 struct RunConfig {
   size_t queue_count{};
   size_t threads_per_queue{};
@@ -52,3 +54,5 @@ class RpcServer {
   std::atomic<bool> running_ = false;
   std::atomic<bool> finished_ = false;
 };
+
+}  // namespace runtime
