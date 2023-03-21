@@ -2,7 +2,7 @@
 
 #include <CLI/CLI.hpp>
 
-#include <proto/queue_service.client.h>
+#include <queue/queue_service.client.h>
 
 int main(int argc, char** argv) {
   CLI::App app{"Queue service client"};

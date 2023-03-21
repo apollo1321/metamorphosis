@@ -6,7 +6,7 @@
 #include <rocksdb/db.h>
 #include <CLI/CLI.hpp>
 
-#include <proto/queue_service.service.h>
+#include <queue/queue_service.service.h>
 
 #include <runtime/rpc_server.h>
 #include <util/condition_check.h>

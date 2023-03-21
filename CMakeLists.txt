@@ -13,7 +13,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_compile_options(-frtti)
 
 include(cmake/third_party.cmake)
-include(cmake/library.cmake)
 include(cmake/code_generation.cmake)
-include(cmake/executables.cmake)
-include(cmake/tests.cmake)
+
+add_subdirectory(src)

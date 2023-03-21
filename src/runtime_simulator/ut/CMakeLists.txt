@@ -1,0 +1,2 @@
+add_executable(runtime_simulator_sleep_test clock.cpp)
+target_link_libraries(runtime_simulator_sleep_test runtime_simulator GTest::gtest_main)
