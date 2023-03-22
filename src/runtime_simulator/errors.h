@@ -17,11 +17,11 @@ struct RpcError {
 
   explicit RpcError(ErrorType error_type = ErrorType::Internal,
                     const std::string& message = "") noexcept
-      : status_message{std::move(message)} {
+      : error_type{error_type}, status_message{std::move(message)} {
   }
 
-  std::string status_message;
   ErrorType error_type;
+  std::string status_message;
 };
 
 }  // namespace runtime_simulation
