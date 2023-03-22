@@ -10,7 +10,7 @@ using runtime_simulation::Timestamp;
 
 TEST(Clock, SimpleOneHost) {
   struct Host final : public runtime_simulation::IHostRunnable {
-    void operator()() override {
+    void Main() noexcept override {
       EXPECT_EQ(runtime_simulation::now(), Timestamp(0h));
       runtime_simulation::sleep_for(runtime_simulation::Duration(24h));
       EXPECT_EQ(runtime_simulation::now(), Timestamp(24h));
@@ -28,7 +28,7 @@ TEST(Clock, SimpleOneHost) {
 
 TEST(Clock, WorldInitialization) {
   struct Host final : public runtime_simulation::IHostRunnable {
-    void operator()() override {
+    void Main() noexcept override {
     }
   };
 
@@ -46,7 +46,7 @@ TEST(Clock, HostOrdering) {
     explicit Host1(std::vector<int>& ids) : ids{ids} {
     }
 
-    void operator()() override {
+    void Main() noexcept override {
       auto start = runtime_simulation::now();
       runtime_simulation::sleep_until(start + 2s);
       ids.push_back(1);
@@ -61,7 +61,7 @@ TEST(Clock, HostOrdering) {
     explicit Host2(std::vector<int>& ids) : ids{ids} {
     }
 
-    void operator()() override {
+    void Main() noexcept override {
       auto start = runtime_simulation::now();
       runtime_simulation::sleep_until(start + 1s);
       ids.push_back(2);
@@ -95,7 +95,7 @@ TEST(Clock, Loop) {
         : prev{prev}, start_sleep{start_sleep}, id{id} {
     }
 
-    void operator()() override {
+    void Main() noexcept override {
       auto end_time = runtime_simulation::now() + 10h;
       runtime_simulation::sleep_for(start_sleep);
       while (runtime_simulation::now() < end_time) {
@@ -130,7 +130,7 @@ TEST(Clock, Drift) {
         : prev{prev}, inconsistency_count{inconsistency_count}, start_sleep{start_sleep}, id{id} {
     }
 
-    void operator()() override {
+    void Main() noexcept override {
       auto end_time = runtime_simulation::now() + 10h;
       runtime_simulation::sleep_for(start_sleep);
       while (runtime_simulation::now() < end_time) {
@@ -169,7 +169,7 @@ TEST(Clock, SleepLag) {
         : prev{prev}, inconsistency_count{inconsistency_count}, start_sleep{start_sleep}, id{id} {
     }
 
-    void operator()() override {
+    void Main() noexcept override {
       auto end_time = runtime_simulation::now() + 10h;
       runtime_simulation::sleep_for(start_sleep);
       while (runtime_simulation::now() < end_time) {
@@ -204,10 +204,11 @@ TEST(Clock, SleepLag) {
 
 TEST(Clock, AwaitFiberInHost) {
   struct Host final : public runtime_simulation::IHostRunnable {
-    Host(Duration first_dur, Duration second_dur, Duration& last) : first_dur{first_dur}, second_dur{second_dur}, last{last} {
+    Host(Duration first_dur, Duration second_dur, Duration& last)
+        : first_dur{first_dur}, second_dur{second_dur}, last{last} {
     }
 
-    void operator()() override {
+    void Main() noexcept override {
       {
         boost::fibers::fiber handle(boost::fibers::launch::post, [&]() {
           runtime_simulation::sleep_for(first_dur);
@@ -226,7 +227,7 @@ TEST(Clock, AwaitFiberInHost) {
         handle.join();
       }
 
-      auto current =runtime_simulation::now().time_since_epoch() ;
+      auto current = runtime_simulation::now().time_since_epoch();
       EXPECT_EQ(current, first_dur + second_dur);
 
       EXPECT_TRUE(last <= current);
