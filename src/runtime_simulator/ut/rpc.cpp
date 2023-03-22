@@ -29,7 +29,7 @@ struct EchoService final : public runtime_simulation::EchoServiceStub {
 
 TEST(Rpc, SimplyWorks) {
   struct Host final : public runtime_simulation::IHostRunnable {
-    void operator()() override {
+    void Main() noexcept override {
       RpcServer server;
 
       EchoService service;
@@ -42,7 +42,7 @@ TEST(Rpc, SimplyWorks) {
   };
 
   struct Client final : public runtime_simulation::IHostRunnable {
-    void operator()() override {
+    void Main() noexcept override {
       runtime_simulation::sleep_for(1s);  // Wait for server to start up
       runtime_simulation::EchoServiceClient client("addr1", 42);
 
@@ -66,9 +66,9 @@ TEST(Rpc, SimplyWorks) {
   runtime_simulation::RunSimulation();
 }
 
-TEST(Rpc, DeliveryTimeOverhead) {
+TEST(Rpc, DeliveryTime) {
   struct Host final : public runtime_simulation::IHostRunnable {
-    void operator()() override {
+    void Main() noexcept override {
       RpcServer server;
 
       EchoService service;
@@ -81,7 +81,7 @@ TEST(Rpc, DeliveryTimeOverhead) {
   };
 
   struct Client final : public runtime_simulation::IHostRunnable {
-    void operator()() override {
+    void Main() noexcept override {
       runtime_simulation::sleep_for(1s);  // Wait for server to start up
       runtime_simulation::EchoServiceClient client("addr1", 42);
 
@@ -121,7 +121,7 @@ TEST(Rpc, DeliveryTimeOverhead) {
 
 TEST(Rpc, NetworkErrorProba) {
   struct Host final : public runtime_simulation::IHostRunnable {
-    void operator()() override {
+    void Main() noexcept override {
       RpcServer server;
 
       EchoService service;
@@ -134,7 +134,7 @@ TEST(Rpc, NetworkErrorProba) {
   };
 
   struct Client final : public runtime_simulation::IHostRunnable {
-    void operator()() override {
+    void Main() noexcept override {
       runtime_simulation::sleep_for(1s);  // Wait for server to start up
       runtime_simulation::EchoServiceClient client("addr1", 42);
 

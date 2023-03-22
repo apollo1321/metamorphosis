@@ -14,7 +14,7 @@ void sleep_until(Timestamp timestamp) noexcept;  // NOLINT
 
 struct IHostRunnable {
   // Will be runned in fiber
-  virtual void operator()() = 0;
+  virtual void Main() noexcept = 0;
 };
 
 struct HostOptions {

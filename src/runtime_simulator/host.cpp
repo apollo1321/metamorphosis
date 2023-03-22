@@ -46,7 +46,7 @@ void Host::SleepUntil(Timestamp local_time) noexcept {
 void Host::RunMain(IHostRunnable* host_main) noexcept {
   current_host = this;
   SleepUntil(start_time_);
-  (*host_main)();
+  host_main->Main();
   current_host = nullptr;
 
   GetWorld()->NotifyHostFinish();
