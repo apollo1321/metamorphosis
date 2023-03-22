@@ -167,3 +167,52 @@ TEST(Rpc, NetworkErrorProba) {
   runtime_simulation::AddHost("addr2", &client);
   runtime_simulation::RunSimulation();
 }
+
+TEST(Rpc, StressTest) {
+  struct Host final : public runtime_simulation::IHostRunnable {
+    void Main() noexcept override {
+      RpcServer server;
+
+      EchoService service;
+
+      server.Register(&service);
+      server.Run(42);
+
+      runtime_simulation::sleep_for(10h);
+    }
+  };
+
+  struct Client final : public runtime_simulation::IHostRunnable {
+    void Main() noexcept override {
+      runtime_simulation::sleep_for(1s);  // Wait for server to start up
+      runtime_simulation::EchoServiceClient client("addr1", 42);
+
+      size_t error_count = 0;
+      for (size_t i = 0; i < 10000; ++i) {
+        EchoRequest request;
+        request.set_msg("Client");
+        auto result = client.Echo(request);
+        if (result.HasError()) {
+          EXPECT_EQ(result.ExpectError().error_type,
+                    runtime_simulation::RpcError::ErrorType::NetworkError);
+          ++error_count;
+        } else {
+          EXPECT_EQ(result.ExpectValue().msg(), "Hello, Client");
+        }
+      }
+
+      EXPECT_GE(error_count, 2500);
+      EXPECT_LE(error_count, 3500);
+    }
+  };
+
+  Host host;
+  Client client;
+
+  runtime_simulation::InitWorld(
+      3, WorldOptions{
+             .min_delivery_time = 5ms, .max_delivery_time = 10ms, .network_error_proba = 0.3});
+  runtime_simulation::AddHost("addr1", &host);
+  runtime_simulation::AddHost("addr2", &client);
+  runtime_simulation::RunSimulation();
+}

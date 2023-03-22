@@ -26,7 +26,7 @@ class World {
   void AddHost(const Address& address, HostPtr host) noexcept;
   void NotifyHostFinish() noexcept;
 
-  void AddEvent(Timestamp wake_up_time, Event& event) noexcept;
+  void SleepUntil(Timestamp wake_up_time) noexcept;
 
   void RunSimulation() noexcept;
 
