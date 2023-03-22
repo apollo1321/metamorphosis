@@ -7,7 +7,8 @@
 
 namespace runtime_simulation {
 
-void World::Initialize(uint64_t seed) noexcept {
+void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
+  options_ = options;
   generator_ = std::mt19937(seed);
   current_time_ = Timestamp(static_cast<Duration>(0));
   events_queue_.clear();
@@ -57,6 +58,32 @@ void World::RunSimulation() noexcept {
     // this fiber will be resumes after all other fibers are executed
     boost::this_fiber::yield();
   }
+}
+
+RpcResult World::MakeRequest(const Address& address, Port port, const SerializedData& data,
+                             const ServiceName& service_name,
+                             const HandlerName& handler_name) noexcept {
+  using Result = Result<SerializedData, RpcError>;
+
+  std::uniform_int_distribution<Duration::rep> delay_dist(options_.min_delivery_time.count(),
+                                                          options_.max_delivery_time.count());
+  std::uniform_int_distribution<double> prob_dist(0., 1.);
+
+  sleep_for(Duration(delay_dist(GetGenerator())));
+
+  if (!hosts_.contains(address)) {
+    return RpcResult::Err(RpcError::ErrorType::HostNotFound);
+  }
+
+  auto result = hosts_[address]->ProcessRequest(port, data, service_name, handler_name);
+
+  sleep_for(Duration(delay_dist(GetGenerator())));
+
+  if (prob_dist(GetGenerator()) < options_.network_error_proba) {
+    return Result::Err(RpcError::ErrorType::NetworkError);
+  }
+
+  return result;
 }
 
 World* GetWorld() noexcept {
