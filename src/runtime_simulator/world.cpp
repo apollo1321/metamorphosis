@@ -34,9 +34,16 @@ void World::NotifyHostFinish() noexcept {
   --running_count_;
 }
 
-void World::AddEvent(Timestamp wake_up_time, Event& event) noexcept {
+void World::SleepUntil(Timestamp wake_up_time) noexcept {
+  VERIFY(current_host, "system function is called outside host context");
+
+  auto prev_host = std::exchange(current_host, nullptr);
+
+  Event event;
   events_queue_.emplace_back(std::make_pair(wake_up_time, &event));
   std::push_heap(events_queue_.begin(), events_queue_.end(), std::greater<>{});
+  event.Await();
+  current_host = prev_host;
 }
 
 void World::RunSimulation() noexcept {
@@ -69,7 +76,7 @@ RpcResult World::MakeRequest(const Address& address, Port port, const Serialized
                                                           options_.max_delivery_time.count());
   std::uniform_real_distribution<double> prob_dist(0., 1.);
 
-  sleep_for(Duration(delay_dist(GetGenerator())));
+  SleepUntil(GlobalTime() + Duration(delay_dist(GetGenerator())));
 
   if (!hosts_.contains(address)) {
     return RpcResult::Err(RpcError::ErrorType::HostNotFound);
@@ -77,7 +84,7 @@ RpcResult World::MakeRequest(const Address& address, Port port, const Serialized
 
   auto result = hosts_[address]->ProcessRequest(port, data, service_name, handler_name);
 
-  sleep_for(Duration(delay_dist(GetGenerator())));
+  SleepUntil(GlobalTime() + Duration(delay_dist(GetGenerator())));
 
   if (prob_dist(GetGenerator()) < options_.network_error_proba) {
     return Result::Err(RpcError::ErrorType::NetworkError);

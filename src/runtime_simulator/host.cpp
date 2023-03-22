@@ -34,11 +34,7 @@ void Host::SleepUntil(Timestamp local_time) noexcept {
   auto global_timestamp = ToGlobalTime(local_time);
   VERIFY(global_timestamp >= GetWorld()->GlobalTime(), "invalid timestamp for sleep");
 
-  current_host = nullptr;
-  Event event;
-  GetWorld()->AddEvent(global_timestamp, event);
-  event.Await();
-  current_host = this;
+  GetWorld()->SleepUntil(global_timestamp);
 
   VERIFY(GetWorld()->GlobalTime() == global_timestamp, "SleepUntil error");
 }
