@@ -67,7 +67,7 @@ RpcResult World::MakeRequest(const Address& address, Port port, const Serialized
 
   std::uniform_int_distribution<Duration::rep> delay_dist(options_.min_delivery_time.count(),
                                                           options_.max_delivery_time.count());
-  std::uniform_int_distribution<double> prob_dist(0., 1.);
+  std::uniform_real_distribution<double> prob_dist(0., 1.);
 
   sleep_for(Duration(delay_dist(GetGenerator())));
 
