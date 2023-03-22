@@ -4,14 +4,9 @@
 #include <random>
 #include <string>
 
+#include "common.h"
+
 namespace runtime_simulation {
-
-using Address = std::string;
-
-using Duration = std::chrono::microseconds;
-using Timestamp = std::chrono::time_point<Duration>;
-
-// API
 
 Timestamp now() noexcept;                        // NOLINT
 void sleep_for(Duration duration) noexcept;      // NOLINT
@@ -23,18 +18,29 @@ struct IHostRunnable {
 };
 
 struct HostOptions {
-  // clock skew
+  /// Clock options
+  // skew
   Duration min_start_time = Duration::zero();
   Duration max_start_time = Duration::zero();
 
-  // clock drift per mcs
+  // drift per mcs
   double min_drift = 0.;
   double max_drift = 0.;
 
   Duration max_sleep_lag = Duration::zero();
 };
 
-void InitWorld(uint64_t seed) noexcept;
+struct WorldOptions {
+  /// Network options
+  // delivery time
+  Duration min_delivery_time = Duration::zero();
+  Duration max_delivery_time = Duration::zero();
+
+  // network errors
+  double network_error_proba = 0.;
+};
+
+void InitWorld(uint64_t seed, WorldOptions options = WorldOptions{}) noexcept;
 
 std::mt19937& GetGenerator() noexcept;
 

@@ -2,7 +2,7 @@
 
 #include <util/condition_check.h>
 
-#include "impl/world.h"
+#include "world.h"
 
 namespace runtime_simulation {
 
@@ -25,8 +25,8 @@ void sleep_until(Timestamp timestamp) noexcept {
   current_host->SleepUntil(timestamp);
 }
 
-void InitWorld(uint64_t seed) noexcept {
-  GetWorld()->Initialize(seed);
+void InitWorld(uint64_t seed, WorldOptions options) noexcept {
+  GetWorld()->Initialize(seed, options);
 }
 
 std::mt19937& GetGenerator() noexcept {
@@ -35,7 +35,7 @@ std::mt19937& GetGenerator() noexcept {
 
 void AddHost(const Address& address, IHostRunnable* host_main,
              const HostOptions& options) noexcept {
-  GetWorld()->AddHost(address, std::make_unique<Host>(host_main, address, options));
+  GetWorld()->AddHost(address, std::make_unique<Host>(host_main, options));
 }
 
 void RunSimulation() noexcept {

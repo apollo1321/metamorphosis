@@ -8,6 +8,7 @@
 #include <boost/fiber/all.hpp>
 
 #include <runtime_simulator/api.h>
+#include <runtime_simulator/rpc_client_base.h>
 
 #include "event.h"
 #include "host.h"
@@ -16,7 +17,7 @@ namespace runtime_simulation {
 
 class World {
  public:
-  void Initialize(uint64_t seed) noexcept;
+  void Initialize(uint64_t seed, WorldOptions options) noexcept;
 
   std::mt19937& GetGenerator() noexcept;
 
@@ -28,6 +29,9 @@ class World {
   void AddEvent(Timestamp wake_up_time, Event& event) noexcept;
 
   void RunSimulation() noexcept;
+
+  RpcResult MakeRequest(const Address& address, Port port, const SerializedData& data,
+                        const ServiceName& service_name, const HandlerName& handler_name) noexcept;
 
  private:
   std::unordered_map<Address, HostPtr> hosts_;
@@ -41,6 +45,8 @@ class World {
   size_t running_count_ = 0;
 
   std::mt19937 generator_;
+
+  WorldOptions options_;
 };
 
 World* GetWorld() noexcept;

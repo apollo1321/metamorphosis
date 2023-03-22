@@ -7,8 +7,7 @@
 
 namespace runtime_simulation {
 
-Host::Host(IHostRunnable* host_main, const Address& address, const HostOptions& options) noexcept
-    : address_{address} {
+Host::Host(IHostRunnable* host_main, const HostOptions& options) noexcept {
   std::uniform_real_distribution<double> drift_dist{options.min_drift, options.max_drift};
   std::uniform_int_distribution<Duration::rep> skew_dist{0, options.max_start_time.count()};
 
@@ -71,6 +70,30 @@ Timestamp Host::ToGlobalTime(Timestamp local_time) const noexcept {
   VERIFY(ToLocalTime(global_time) >= local_time, "ToGlobalTime error");
 
   return global_time;
+}
+
+void Host::RegisterServer(RpcServer* server, uint16_t port) noexcept {
+  VERIFY(!servers_.contains(port), "port is already used");
+  servers_[port] = server;
+}
+
+void Host::UnregisterServer(uint16_t port) noexcept {
+  VERIFY(servers_.contains(port), "server was not registered");
+  servers_.erase(port);
+}
+
+RpcResult Host::ProcessRequest(uint16_t port, const SerializedData& data,
+                               const ServiceName& service_name,
+                               const HandlerName& handler_name) noexcept {
+  if (!servers_.contains(port)) {
+    return RpcResult::Err(RpcError::ErrorType::ConnectionRefused);
+  }
+
+  auto prev_host = std::exchange(current_host, this);
+  auto result = servers_[port]->ProcessRequest(data, service_name, handler_name);
+  current_host = prev_host;
+
+  return result;
 }
 
 Host::~Host() {

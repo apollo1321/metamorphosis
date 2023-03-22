@@ -1,18 +1,27 @@
 #pragma once
 
-#include <memory>
+#include <unordered_map>
 
+#include <util/result.h>
 #include <boost/fiber/fiber.hpp>
 
-#include <runtime_simulator/api.h>
+#include "api.h"
+#include "rpc_server.h"
 
 namespace runtime_simulation {
 
 struct Host {
-  Host(IHostRunnable* host_main, const Address& address, const HostOptions& options) noexcept;
+  Host(IHostRunnable* host_main, const HostOptions& options) noexcept;
 
   Timestamp GetLocalTime() const noexcept;
   void SleepUntil(Timestamp local_time) noexcept;
+
+  RpcResult ProcessRequest(uint16_t port, const SerializedData& data,
+                           const ServiceName& service_name,
+                           const HandlerName& handler_name) noexcept;
+
+  void RegisterServer(RpcServer* server, uint16_t port) noexcept;
+  void UnregisterServer(uint16_t port) noexcept;
 
   ~Host();
 
@@ -29,7 +38,7 @@ struct Host {
 
   boost::fibers::fiber main_fiber_;
 
-  const Address address_;
+  std::unordered_map<uint16_t, RpcServer*> servers_;
 };
 
 extern Host* current_host;
