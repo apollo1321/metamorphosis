@@ -11,6 +11,7 @@
 using namespace std::chrono_literals;
 
 using runtime_simulation::Duration;
+using runtime_simulation::EchoServiceClient;
 using runtime_simulation::RpcError;
 using runtime_simulation::RpcServer;
 using runtime_simulation::Timestamp;
@@ -168,51 +169,96 @@ TEST(Rpc, NetworkErrorProba) {
   runtime_simulation::RunSimulation();
 }
 
-TEST(Rpc, StressTest) {
+TEST(Rpc, ManyClientsManyServers) {
   struct Host final : public runtime_simulation::IHostRunnable {
     void Main() noexcept override {
-      RpcServer server;
+      RpcServer server1;
+      RpcServer server2;
 
-      EchoService service;
+      auto handle = boost::fibers::async([]() {
+        RpcServer server3;
+        EchoService service3;
 
-      server.Register(&service);
-      server.Run(42);
+        server3.Register(&service3);
+        server3.Run(3);
+
+        runtime_simulation::sleep_for(10h);
+      });
+
+      EchoService service1;
+      EchoService service2;
+
+      server1.Register(&service1);
+      server1.Run(1);
+
+      server2.Register(&service2);
+      server2.Run(2);
 
       runtime_simulation::sleep_for(10h);
+
+      handle.wait();
     }
   };
 
   struct Client final : public runtime_simulation::IHostRunnable {
     void Main() noexcept override {
-      runtime_simulation::sleep_for(1s);  // Wait for server to start up
-      runtime_simulation::EchoServiceClient client("addr1", 42);
+      runtime_simulation::sleep_for(1s);
 
-      size_t error_count = 0;
-      for (size_t i = 0; i < 10000; ++i) {
-        EchoRequest request;
-        request.set_msg("Client");
-        auto result = client.Echo(request);
-        if (result.HasError()) {
-          EXPECT_EQ(result.ExpectError().error_type,
-                    runtime_simulation::RpcError::ErrorType::NetworkError);
-          ++error_count;
-        } else {
-          EXPECT_EQ(result.ExpectValue().msg(), "Hello, Client");
+      EchoServiceClient host1client1("addr1", 1);
+      EchoServiceClient host1client2("addr1", 2);
+      EchoServiceClient host1client3("addr1", 3);
+
+      EchoServiceClient host2client1("addr2", 1);
+      EchoServiceClient host2client2("addr2", 2);
+      EchoServiceClient host2client3("addr2", 3);
+
+      auto start_time = runtime_simulation::now();
+
+      constexpr size_t kIterCount = 100;
+
+      for (size_t i = 0; i < kIterCount; ++i) {
+        std::vector<boost::fibers::future<void>> requests;
+        auto start_request = [&](auto& client, std::string msg) {
+          requests.emplace_back(boost::fibers::async([&client, msg]() {
+            EchoRequest request;
+            request.set_msg(msg);
+            auto result = client.Echo(request);
+            EXPECT_FALSE(result.HasError()) << result.ExpectError().Message();
+            EXPECT_EQ(result.ExpectValue().msg(), "Hello, " + msg);
+          }));
+        };
+
+        start_request(host1client1, "host1port1");
+        start_request(host1client2, "host1port2");
+        start_request(host1client3, "host1port3");
+
+        start_request(host2client1, "host2port1");
+        start_request(host2client2, "host2port2");
+        start_request(host2client3, "host2port3");
+
+        for (auto& request : requests) {
+          request.wait();
         }
       }
 
-      EXPECT_GE(error_count, 2500);
-      EXPECT_LE(error_count, 3500);
+      auto duration = runtime_simulation::now() - start_time;
+
+      EXPECT_LT(duration, 20ms * kIterCount);
+      EXPECT_GT(duration, 10ms * kIterCount);
     }
   };
 
   Host host;
   Client client;
 
-  runtime_simulation::InitWorld(
-      3, WorldOptions{
-             .min_delivery_time = 5ms, .max_delivery_time = 10ms, .network_error_proba = 0.3});
+  runtime_simulation::InitWorld(42,
+                                WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
   runtime_simulation::AddHost("addr1", &host);
-  runtime_simulation::AddHost("addr2", &client);
+  runtime_simulation::AddHost("addr2", &host);
+
+  for (size_t i = 0; i < 50; ++i) {
+    runtime_simulation::AddHost("client" + std::to_string(i), &client);
+  }
+
   runtime_simulation::RunSimulation();
 }

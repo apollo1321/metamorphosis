@@ -41,7 +41,7 @@ struct Host {
   std::unordered_map<uint16_t, RpcServer*> servers_;
 };
 
-extern Host* current_host;
+Host* GetCurrentHost() noexcept;
 
 using HostPtr = std::unique_ptr<Host>;
 

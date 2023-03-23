@@ -13,14 +13,14 @@ void RpcServer::Register(RpcServiceBase* service) noexcept {
 void RpcServer::Run(uint16_t port) noexcept {
   VERIFY(!std::exchange(running_, true), "RpcServer is already running");
   port_ = port;
-  current_host->RegisterServer(this, port);
+  GetCurrentHost()->RegisterServer(this, port);
 }
 
 void RpcServer::ShutDown() noexcept {
   VERIFY(running_, "RpcServer is not running");
   VERIFY(!std::exchange(finished_, true), "RpcServer is already finished");
 
-  current_host->UnregisterServer(port_);
+  GetCurrentHost()->UnregisterServer(port_);
 
   std::unique_lock guard(shutdown_mutex_);
   shutdown_cv_.wait(guard, [&]() {

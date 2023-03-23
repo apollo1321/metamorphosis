@@ -4,6 +4,8 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "backtrace.h"
+
 #define ENSURE_STATUS(STATUS)                       \
   do {                                              \
     auto _status = (STATUS);                        \
@@ -23,6 +25,7 @@
   do {                                                          \
     if (!(CONDIDITION)) {                                       \
       std::cerr << "VERIFY failed: " << (MESSAGE) << std::endl; \
+      PrintBackTrace(std::cerr);                                \
       std::abort();                                             \
     }                                                           \
   } while (false)

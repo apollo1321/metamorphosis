@@ -4,6 +4,8 @@
 
 #include <boost/fiber/all.hpp>
 
+#include "host.h"
+
 namespace runtime_simulation {
 
 class RuntimeSimulationProps : public boost::fibers::fiber_properties {
@@ -12,8 +14,15 @@ class RuntimeSimulationProps : public boost::fibers::fiber_properties {
   void MarkAsMainFiber();
   bool IsMainFiber() const;
 
+  bool HostIsInitialized() noexcept;
+  Host* GetCurrentHost() noexcept;
+  void SetCurrentHost(Host* host) noexcept;
+
  private:
   bool is_main_ = false;
+
+  bool host_initialized_ = false;
+  Host* current_host_ = nullptr;
 };
 
 class RuntimeSimulationScheduler
@@ -37,6 +46,8 @@ class RuntimeSimulationScheduler
   std::mutex mtx_{};
   std::condition_variable cnd_{};
   bool flag_{false};
+
+  Host* last_host_ = nullptr;
 };
 
 }  // namespace runtime_simulation

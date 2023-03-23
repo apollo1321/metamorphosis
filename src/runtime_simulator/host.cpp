@@ -5,6 +5,8 @@
 #include <util/binary_search.h>
 #include <util/condition_check.h>
 
+#include "scheduler.h"
+
 namespace runtime_simulation {
 
 Host::Host(IHostRunnable* host_main, const HostOptions& options) noexcept {
@@ -25,7 +27,7 @@ Timestamp Host::GetLocalTime() const noexcept {
 }
 
 void Host::SleepUntil(Timestamp local_time) noexcept {
-  VERIFY(current_host == this, "invalid current_host");
+  VERIFY(GetCurrentHost() == this, "invalid current_host");
 
   std::uniform_int_distribution<Duration::rep> lag_dist{0, max_sleep_lag_.count()};
   auto val = lag_dist(GetGenerator());
@@ -40,11 +42,9 @@ void Host::SleepUntil(Timestamp local_time) noexcept {
 }
 
 void Host::RunMain(IHostRunnable* host_main) noexcept {
-  current_host = this;
+  boost::this_fiber::properties<RuntimeSimulationProps>().SetCurrentHost(this);
   SleepUntil(start_time_);
   host_main->Main();
-  current_host = nullptr;
-
   GetWorld()->NotifyHostFinish();
 }
 
@@ -85,9 +85,7 @@ RpcResult Host::ProcessRequest(uint16_t port, const SerializedData& data,
     return RpcResult::Err(RpcError::ErrorType::ConnectionRefused);
   }
 
-  auto prev_host = std::exchange(current_host, this);
   auto result = servers_[port]->ProcessRequest(data, service_name, handler_name);
-  current_host = prev_host;
 
   return result;
 }
@@ -96,6 +94,12 @@ Host::~Host() {
   main_fiber_.join();
 }
 
-Host* current_host = nullptr;
+Host* GetCurrentHost() noexcept {
+  VERIFY(boost::this_fiber::properties<RuntimeSimulationProps>().HostIsInitialized(),
+         "current host is not initialized");
+  Host* result = boost::this_fiber::properties<RuntimeSimulationProps>().GetCurrentHost();
+  VERIFY(result != nullptr, "system function is called outside server context");
+  return result;
+}
 
 }  // namespace runtime_simulation

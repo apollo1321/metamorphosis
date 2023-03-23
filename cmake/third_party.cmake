@@ -111,7 +111,8 @@ set(BOOST_LIBRARIES
   type_traits container_hash move core integer detail intrusive predef smart_ptr
   array bind concept_check exception function iterator mpl range regex tuple
   unordered algorithm conversion io function_types fusion utility optional
-  system align atomic type_index typeof variant2 filesystem format fiber)
+  system align atomic type_index typeof variant2 filesystem format stacktrace
+  fiber)
 set(BOOST_VERSION boost-1.80.0)
 
 foreach(lib ${BOOST_LIBRARIES})

@@ -8,6 +8,7 @@
 namespace runtime_simulation {
 
 void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
+  boost::fibers::use_scheduling_algorithm<RuntimeSimulationScheduler>();
   options_ = options;
   generator_ = std::mt19937(seed);
   current_time_ = Timestamp(static_cast<Duration>(0));
@@ -35,20 +36,14 @@ void World::NotifyHostFinish() noexcept {
 }
 
 void World::SleepUntil(Timestamp wake_up_time) noexcept {
-  VERIFY(current_host, "system function is called outside host context");
-
-  auto prev_host = std::exchange(current_host, nullptr);
-
   Event event;
   events_queue_.emplace_back(std::make_pair(wake_up_time, &event));
   std::push_heap(events_queue_.begin(), events_queue_.end(), std::greater<>{});
   event.Await();
-  current_host = prev_host;
 }
 
 void World::RunSimulation() noexcept {
   VERIFY(std::exchange(initialized_, false), "world in unitialized");
-  boost::fibers::use_scheduling_algorithm<RuntimeSimulationScheduler>();
   boost::this_fiber::properties<RuntimeSimulationProps>().MarkAsMainFiber();
 
   while (running_count_ > 0) {

@@ -5,6 +5,7 @@ add_library(runtime
 
 target_link_libraries(runtime 
   ceq_lib
+  ceq_util
   libprotobuf
   grpc++_reflection
   grpc++
