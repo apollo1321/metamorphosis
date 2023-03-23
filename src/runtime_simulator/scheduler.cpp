@@ -17,8 +17,25 @@ bool RuntimeSimulationProps::IsMainFiber() const {
   return is_main_;
 }
 
+Host* RuntimeSimulationProps::GetCurrentHost() noexcept {
+  return current_host_;
+}
+
+void RuntimeSimulationProps::SetCurrentHost(Host* host) noexcept {
+  host_initialized_ = true;
+  current_host_ = host;
+}
+
+bool RuntimeSimulationProps::HostIsInitialized() noexcept {
+  return host_initialized_;
+}
+
 void RuntimeSimulationScheduler::awakened(boost::fibers::context* ctx,
                                           RuntimeSimulationProps& props) noexcept {
+  if (!props.HostIsInitialized()) {
+    props.SetCurrentHost(last_host_);
+  }
+
   if (props.IsMainFiber() || rqueue_.empty()) {
     rqueue_.insert(rqueue_.end(), *ctx);
   } else {
@@ -32,6 +49,7 @@ boost::fibers::context* RuntimeSimulationScheduler::pick_next() noexcept {
   }
   boost::fibers::context* ctx(&rqueue_.front());
   rqueue_.pop_front();
+  last_host_ = properties(ctx).GetCurrentHost();
   return ctx;
 }
 

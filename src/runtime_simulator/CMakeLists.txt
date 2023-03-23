@@ -6,10 +6,12 @@ add_library(runtime_simulator
   world.cpp
   host.cpp
   event.cpp
-  scheduler.cpp)
+  scheduler.cpp
+  errors.cpp)
 
 target_link_libraries(runtime_simulator
   ceq_lib
+  ceq_util
   libprotobuf
   Boost::fiber)
 

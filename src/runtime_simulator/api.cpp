@@ -6,23 +6,16 @@
 
 namespace runtime_simulation {
 
-void VerifyHost() noexcept {
-  VERIFY(current_host, "system function is called outside server context");
-}
-
 Timestamp now() noexcept {
-  VerifyHost();
-  return current_host->GetLocalTime();
+  return GetCurrentHost()->GetLocalTime();
 }
 
 void sleep_for(Duration duration) noexcept {
-  VerifyHost();
   sleep_until(now() + duration);
 }
 
 void sleep_until(Timestamp timestamp) noexcept {
-  VerifyHost();
-  current_host->SleepUntil(timestamp);
+  GetCurrentHost()->SleepUntil(timestamp);
 }
 
 void InitWorld(uint64_t seed, WorldOptions options) noexcept {
