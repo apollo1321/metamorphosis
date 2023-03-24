@@ -1,7 +1,5 @@
 #pragma once
 
-#include <mutex>
-
 #include <boost/fiber/all.hpp>
 
 #include "host.h"
@@ -43,8 +41,6 @@ class RuntimeSimulationScheduler
 
  private:
   boost::fibers::scheduler::ready_queue_type rqueue_;
-  std::mutex mtx_{};
-  std::condition_variable cnd_{};
   bool flag_{false};
 
   Host* last_host_ = nullptr;

@@ -10,22 +10,32 @@
 
 using namespace std::chrono_literals;
 
+using runtime_simulation::Address;
 using runtime_simulation::Duration;
 using runtime_simulation::EchoServiceClient;
+using runtime_simulation::Port;
 using runtime_simulation::RpcError;
 using runtime_simulation::RpcServer;
 using runtime_simulation::Timestamp;
 using runtime_simulation::WorldOptions;
 
 struct EchoService final : public runtime_simulation::EchoServiceStub {
+  explicit EchoService(std::string msg = "") : msg{msg} {
+  }
+
   Result<EchoReply, RpcError> Echo(const EchoRequest& request) noexcept override {
     using Result = Result<EchoReply, RpcError>;
 
     EchoReply reply;
     reply.set_msg("Hello, " + request.msg());
+    if (!msg.empty()) {
+      *reply.mutable_msg() += msg;
+    }
 
     return Result::Ok(std::move(reply));
   }
+
+  std::string msg;
 };
 
 TEST(Rpc, SimplyWorks) {
@@ -258,6 +268,130 @@ TEST(Rpc, ManyClientsManyServers) {
 
   for (size_t i = 0; i < 50; ++i) {
     runtime_simulation::AddHost("client" + std::to_string(i), &client);
+  }
+
+  runtime_simulation::RunSimulation();
+}
+
+TEST(Rpc, EchoProxy) {
+  struct ProxyService final : public runtime_simulation::EchoProxyStub {
+    Result<EchoReply, RpcError> Forward1(const EchoRequest& request) noexcept override {
+      runtime_simulation::EchoServiceClient client("addr1", 1);
+      auto reply = client.Echo(request);
+      *reply.ExpectValue().mutable_msg() += " Forward1";
+      return reply;
+    }
+
+    Result<EchoReply, RpcError> Forward2(const EchoRequest& request) noexcept override {
+      runtime_simulation::EchoServiceClient client("addr2", 2);
+      auto reply = client.Echo(request);
+      *reply.ExpectValue().mutable_msg() += " Forward2";
+      return reply;
+    }
+  };
+
+  struct ProxyHost final : public runtime_simulation::IHostRunnable {
+    void Main() noexcept override {
+      RpcServer server;
+      ProxyService service;
+      server.Register(&service);
+      server.Run(42);
+      runtime_simulation::sleep_for(10h);
+    }
+  };
+
+  struct EchoHost1 final : public runtime_simulation::IHostRunnable {
+    void Main() noexcept override {
+      RpcServer server;
+      EchoService service("host1");
+      server.Register(&service);
+      server.Run(1);
+      runtime_simulation::sleep_for(10h);
+    }
+  };
+
+  struct EchoHost2 final : public runtime_simulation::IHostRunnable {
+    void Main() noexcept override {
+      RpcServer server;
+      EchoService service("host2");
+      server.Register(&service);
+      server.Run(2);
+      runtime_simulation::sleep_for(10h);
+    }
+  };
+
+  struct Client final : public runtime_simulation::IHostRunnable {
+    void Main() noexcept override {
+      runtime_simulation::sleep_for(1s);
+
+      runtime_simulation::EchoProxyClient client("proxy_addr", 42);
+
+      auto start_time = runtime_simulation::now();
+
+      constexpr size_t kIterCount = 100;
+
+      boost::fibers::fiber f;
+      auto handle1 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
+        for (size_t i = 0; i < kIterCount; ++i) {
+          runtime_simulation::sleep_for(10ms);
+          auto h = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
+            runtime_simulation::sleep_for(1ms);
+            EchoRequest request;
+            request.set_msg("m=1;client=" + std::to_string(client_ind) +
+                            ";ind=" + std::to_string(i));
+            auto res = client.Forward1(request);
+            EXPECT_FALSE(res.HasError()) << res.ExpectError().Message();
+            EXPECT_EQ(res.ExpectValue().msg(), "Hello, m=1;client=" + std::to_string(client_ind) +
+                                                   ";ind=" + std::to_string(i) + "host1 Forward1");
+            runtime_simulation::sleep_for(1ms);
+          });
+          runtime_simulation::sleep_for(10ms);
+          h.wait();
+        }
+      });
+
+
+      auto handle2 = boost::fibers::async([&]() {
+        for (size_t i = 0; i < kIterCount; ++i) {
+          runtime_simulation::sleep_for(10ms);
+          EchoRequest request;
+          request.set_msg("m=2;client=" + std::to_string(client_ind) + ";ind=" + std::to_string(i));
+          auto res = client.Forward2(request);
+          EXPECT_FALSE(res.HasError()) << res.ExpectError().Message();
+          EXPECT_EQ(res.ExpectValue().msg(), "Hello, m=2;client=" + std::to_string(client_ind) +
+                                                 ";ind=" + std::to_string(i) + "host2 Forward2");
+          runtime_simulation::sleep_for(10ms);
+        }
+      });
+
+      handle1.wait();
+      handle2.wait();
+
+      auto duration = runtime_simulation::now() - start_time;
+
+      EXPECT_LT(duration, (40ms + 22ms) * kIterCount);
+      EXPECT_GT(duration, (20ms + 22ms) * kIterCount);
+    }
+
+    size_t client_ind = 0;
+  };
+
+  EchoHost1 host1;
+  EchoHost2 host2;
+  ProxyHost proxy_host;
+
+  std::vector<std::unique_ptr<Client>> clients;
+
+  runtime_simulation::InitWorld(42,
+                                WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
+  runtime_simulation::AddHost("addr1", &host1);
+  runtime_simulation::AddHost("addr2", &host2);
+  runtime_simulation::AddHost("proxy_addr", &proxy_host);
+
+  for (size_t i = 0; i < 50; ++i) {
+    clients.emplace_back(std::make_unique<Client>());
+    clients.back()->client_ind = i;
+    runtime_simulation::AddHost("client" + std::to_string(i), clients.back().get());
   }
 
   runtime_simulation::RunSimulation();

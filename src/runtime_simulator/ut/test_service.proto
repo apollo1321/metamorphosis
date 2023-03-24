@@ -2,27 +2,6 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 
-message AppendRequest {
-  string data = 1;
-}
-
-message AppendReply {
-  uint64 id = 1;
-}
-
-message ReadRequest {
-  uint64 id = 1;
-}
-
-message ReadReply {
-  string data = 1;
-}
-
-service QueueService {
-  rpc Append(AppendRequest) returns (AppendReply) {}
-  rpc Read(ReadRequest) returns (ReadReply) {}
-}
-
 message EchoRequest {
   string msg = 1;
 }
@@ -33,4 +12,9 @@ message EchoReply {
 
 service EchoService {
   rpc Echo(EchoRequest) returns (EchoReply) {}
+}
+
+service EchoProxy {
+  rpc Forward1(EchoRequest) returns (EchoReply) {}
+  rpc Forward2(EchoRequest) returns (EchoReply) {}
 }
