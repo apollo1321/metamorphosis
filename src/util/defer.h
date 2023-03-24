@@ -1,5 +1,7 @@
 #include <utility>
 
+namespace ceq::internal {
+
 template <class Callback>
 struct OnScopeExit {
   explicit OnScopeExit(Callback callback) noexcept : callback(std::move(callback)) {
@@ -19,4 +21,6 @@ struct OnScopeExit {
   Callback callback;
 };
 
-#define DEFER auto defer_##__LINE__ = OnScopeExit<int>::MacroHelper{} | [&]()
+}  // namespace ceq::internal
+
+#define DEFER auto defer_##__LINE__ = ceq::internal::OnScopeExit<int>::MacroHelper{} | [&]()

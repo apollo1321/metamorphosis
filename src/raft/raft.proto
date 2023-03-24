@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+message LogEntry {
+  uint64 data = 1;
+}
+
+message AppendEntriesRequest {
+  uint64 term = 1;
+  uint64 leader_id = 2;
+  uint64 prev_log_index = 3;
+  uint64 prev_log_term = 4;
+  repeated LogEntry entries = 5;
+  uint64 leader_commit = 6;
+}
+
+message AppendEntriesResult {
+  uint64 term = 1;
+  bool success = 2;
+}
+
+message RequestVoteRequest {
+  uint64 term = 1;
+  uint64 candidata_id = 2;
+  uint64 last_log_index = 3;
+  uint64 last_log_term = 4;
+}
+
+message RequestVoteResult {
+  uint64 term = 1;
+  bool vote_granted = 2;
+}
+
+service RaftNode {
+  rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResult) {}
+  rpc RequestVote(RequestVoteRequest) returns (RequestVoteResult) {}
+}

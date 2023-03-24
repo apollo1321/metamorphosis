@@ -4,6 +4,8 @@
 
 #include <boost/stacktrace.hpp>
 
+namespace ceq {
+
 void PrintBackTrace(std::ostream& os) {
   auto bt = boost::stacktrace::stacktrace();
   for (size_t ind = 0; ind < bt.size(); ++ind) {
@@ -19,3 +21,5 @@ void PrintBackTrace(std::ostream& os) {
   }
   os << std::flush;
 }
+
+}  // namespace ceq

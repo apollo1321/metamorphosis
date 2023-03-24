@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   CLI11_PARSE(app, argc, argv);
 
   try {
-    QueueServiceClient client(address);
+    ceq::rt::QueueServiceClient client(address);
 
     if (*shutdown) {
       client.ShutDown(google::protobuf::Empty{});

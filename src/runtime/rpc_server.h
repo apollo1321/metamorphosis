@@ -1,58 +1,45 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
-#include <thread>
 
-#include <boost/fiber/buffered_channel.hpp>
+namespace ceq::rt {
 
-#include <grpcpp/grpcpp.h>
+using Port = uint16_t;
+using Address = std::string;
 
-#include "rpc_service_base.h"
+struct Endpoint {
+  Address address;
+  Port port;
+};
 
-namespace runtime {
+struct ServerRunConfig {
+  ServerRunConfig() noexcept;
 
-struct RunConfig {
   size_t queue_count{};
   size_t threads_per_queue{};
   size_t worker_threads_count{};
-
-  static RunConfig MakeDefaultRunConfig() noexcept;
 };
-
-using FiberTaskChannel = boost::fibers::buffered_channel<FiberTask*>;
 
 class RpcServer {
  public:
-  void Register(RpcServiceBase* service) noexcept;
+  class RpcService;
+  class RpcServerImpl;
 
-  void Run(const std::string& address,
-           const RunConfig& config = RunConfig::MakeDefaultRunConfig()) noexcept;
+ public:
+  RpcServer() noexcept;
+
+  void Register(RpcService* service) noexcept;
+
+  void Run(Port port, ServerRunConfig run_config = ServerRunConfig()) noexcept;
 
   void ShutDown() noexcept;
 
-  bool IsRunning() const noexcept;
+  ~RpcServer();
 
  private:
-  static constexpr size_t kQueueSize = 1 << 10;
-
- private:
-  void RunDispatchingWorker(grpc::ServerCompletionQueue& queue) noexcept;
-  void RunWorker() noexcept;
-
- private:
-  std::unique_ptr<grpc::Server> server_;
-
-  std::vector<std::thread> worker_threads_;
-  std::vector<std::thread> dispatching_threads_;
-  std::vector<std::unique_ptr<grpc::ServerCompletionQueue>> queues_;
-
-  std::optional<FiberTaskChannel> channel_;
-
-  std::vector<RpcServiceBase*> services_;
-
-  std::atomic<bool> running_ = false;
-  std::atomic<bool> finished_ = false;
+  RpcServerImpl* impl_;
 };
 
-}  // namespace runtime
+}  // namespace ceq::rt

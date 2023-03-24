@@ -25,7 +25,7 @@
   do {                                                          \
     if (!(CONDIDITION)) {                                       \
       std::cerr << "VERIFY failed: " << (MESSAGE) << std::endl; \
-      PrintBackTrace(std::cerr);                                \
+      ceq::PrintBackTrace(std::cerr);                           \
       std::abort();                                             \
     }                                                           \
   } while (false)
