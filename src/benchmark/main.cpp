@@ -12,10 +12,10 @@
 #include <CLI/CLI.hpp>
 
 using namespace std::chrono_literals;
-using runtime::RunConfig;
-using runtime::RpcServer;
 
-class EchoService final : public EchoServiceStub {
+using ceq::rt::ServerRunConfig;
+
+class EchoService final : public ceq::rt::EchoServiceStub {
   EchoReply SayHello(const EchoRequest& request) override {
     EchoReply reply;
     reply.set_message("Hello from async server " + request.name());
@@ -28,7 +28,7 @@ struct ClientConfig {
   size_t thread_count;
 };
 
-void BenchEchoService(RunConfig server_config, ClientConfig client_config, uint16_t port) {
+void BenchEchoService(ServerRunConfig server_config, ClientConfig client_config, uint16_t port) {
   std::cout << "=================================\n";
   std::cout << "Server config: \n";
   std::cout << "\tqueue_count = " << server_config.queue_count << '\n';
@@ -39,23 +39,23 @@ void BenchEchoService(RunConfig server_config, ClientConfig client_config, uint1
   std::cout << "\tthread_count = " << client_config.thread_count << '\n';
 
   EchoService service;
-  RpcServer server;
+  ceq::rt::RpcServer server;
   server.Register(&service);
 
-  server.Run("127.0.0.1:" + std::to_string(port), server_config);
+  server.Run(port, server_config);
 
   std::atomic<bool> running{true};
   std::atomic<size_t> count{};
 
-  EchoServiceClient client("127.0.0.1:" + std::to_string(port));
+  ceq::rt::EchoServiceClient client("127.0.0.1:" + std::to_string(port));
 
   std::vector<std::thread> threads;
   for (size_t thread_id = 0; thread_id < client_config.thread_count; ++thread_id) {
-    threads.emplace_back([&]() {
+    threads.emplace_back([&, thread_id]() {
       std::vector<boost::fibers::fiber> fibers;
 
       for (size_t fiber_id = 0; fiber_id < client_config.fiber_count; ++fiber_id) {
-        fibers.emplace_back(boost::fibers::launch::post, [&]() {
+        fibers.emplace_back(boost::fibers::launch::post, [&, fiber_id, thread_id]() {
           while (running) {
             EchoRequest request;
             request.set_name(std::to_string(thread_id) + ":" + std::to_string(fiber_id));
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
   app.add_option("-p,--port", port, "free port")->default_val(10050);
 
   auto server = app.add_subcommand("server", "server config");
-  RunConfig server_config{};
+  ServerRunConfig server_config{};
 
   server->add_option("-q,--queues", server_config.queue_count, "completion queue count")
       ->default_val(1);

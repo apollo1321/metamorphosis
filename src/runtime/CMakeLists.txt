@@ -1,9 +1,16 @@
-add_library(runtime 
-  rpc_client_base.cpp
-  rpc_server.cpp
-  rpc_service_base.cpp)
+# ------------------------------------------------------------------------------
+# grpc runtime
+# ------------------------------------------------------------------------------
 
-target_link_libraries(runtime 
+add_library(runtime_grpc
+  rpc_error.cpp
+  rpc_server.cpp
+  grpc/api.cpp
+  grpc/rpc_client_base.cpp
+  grpc/rpc_server.cpp
+  grpc/rpc_service_base.cpp)
+
+target_link_libraries(runtime_grpc
   ceq_lib
   ceq_util
   libprotobuf
@@ -11,4 +18,30 @@ target_link_libraries(runtime
   grpc++
   Boost::fiber)
 
-add_subdirectory(rpc_generator)
+add_subdirectory(grpc)
+
+# ------------------------------------------------------------------------------
+# runtime simulator
+# ------------------------------------------------------------------------------
+
+add_library(runtime_simulator
+  rpc_error.cpp
+  rpc_server.cpp
+  simulator/api.cpp
+  simulator/rpc_client_base.cpp
+  simulator/rpc_server.cpp
+  simulator/rpc_service_base.cpp
+  simulator/world.cpp
+  simulator/host.cpp
+  simulator/event.cpp
+  simulator/scheduler.cpp)
+
+target_link_libraries(runtime_simulator
+  ceq_lib
+  ceq_util
+  libprotobuf
+  Boost::fiber)
+
+target_compile_definitions(runtime_simulator PUBLIC RT_SIMULATION)
+
+add_subdirectory(simulator)

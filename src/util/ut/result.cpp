@@ -12,7 +12,7 @@ struct SimpleErr {
 };
 
 TEST(Result, SimpleOk) {
-  auto result = Result<int, SimpleErr>::Ok(1);
+  auto result = ceq::Result<int, SimpleErr>::Ok(1);
   EXPECT_TRUE(result.HasValue());
   EXPECT_FALSE(result.HasError());
   EXPECT_TRUE(result.IsOk());
@@ -22,7 +22,7 @@ TEST(Result, SimpleOk) {
 }
 
 TEST(Result, SimpleErr) {
-  auto result = Result<int, SimpleErr>::Err(1);
+  auto result = ceq::Result<int, SimpleErr>::Err(1);
   EXPECT_TRUE(result.HasError());
   EXPECT_FALSE(result.HasValue());
   EXPECT_FALSE(result.IsOk());
@@ -42,7 +42,7 @@ TEST(Result, OnlyMovable) {
     int val{};
   };
 
-  auto result1 = Result<Val, SimpleErr>::Ok(1);
+  auto result1 = ceq::Result<Val, SimpleErr>::Ok(1);
   auto result2 = std::move(result1);
   EXPECT_EQ(result2.ExpectValue().val, 1);
 }
@@ -58,7 +58,7 @@ TEST(Result, CopyableAndAssignable) {
     int val{};
   };
 
-  auto result1 = Result<Val, SimpleErr>::Ok(1);
+  auto result1 = ceq::Result<Val, SimpleErr>::Ok(1);
   auto result2 = result1;
   auto result3 = result1;
   EXPECT_EQ(result2.ExpectValue().val, 1);
@@ -67,13 +67,14 @@ TEST(Result, CopyableAndAssignable) {
 }
 
 TEST(Result, SameType) {
-  using Result = Result<int, int>;
+  using Result = ceq::Result<int, int>;
   EXPECT_EQ(Result::Ok(1).ExpectValue(), 1);
   EXPECT_EQ(Result::Err(1).ExpectError(), 1);
 }
 
 TEST(Result, ThrowsStdError) {
-  auto result = Status<std::error_code>::Err(std::make_error_code(std::errc::host_unreachable));
+  auto result =
+      ceq::Status<std::error_code>::Err(std::make_error_code(std::errc::host_unreachable));
   try {
     result.ThrowIfError();
   } catch (std::system_error& e) {
@@ -90,7 +91,7 @@ TEST(Result, RethowsError) {
   } catch (std::exception&) {
     exc = std::current_exception();
   }
-  auto result = Status<std::exception_ptr>::Err(exc);
+  auto result = ceq::Status<std::exception_ptr>::Err(exc);
   try {
     result.ThrowIfError();
   } catch (std::runtime_error& e) {

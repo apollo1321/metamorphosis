@@ -6,6 +6,8 @@
 
 #include "condition_check.h"
 
+namespace ceq {
+
 // Simple wrapper over std::variant
 
 template <class T, class E>
@@ -171,9 +173,12 @@ class [[nodiscard]] Result<void, E> : public Result<std::monostate, E> {
 
  private:
   template <class Index, class... Args>
-  explicit Result(Index index, Args&&... arguments) : Base(index, std::forward<Args>(arguments)...) {
+  explicit Result(Index index, Args&&... arguments)
+      : Base(index, std::forward<Args>(arguments)...) {
   }
 };
 
 template <class E>
 using Status = Result<void, E>;
+
+}  // namespace ceq

@@ -1,3 +1,5 @@
+namespace ceq {
+
 template <class Integral, class Predicate>
 Integral BinarySearch(Integral begin, Integral end, Predicate predicate) {
   while (begin < end) {
@@ -10,3 +12,5 @@ Integral BinarySearch(Integral begin, Integral end, Predicate predicate) {
   }
   return begin;
 }
+
+}  // namespace ceq

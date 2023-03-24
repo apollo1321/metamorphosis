@@ -11,7 +11,7 @@
 #include <runtime/rpc_server.h>
 #include <util/condition_check.h>
 
-class QueueService final : public QueueServiceStub {
+class QueueService final : public ceq::rt::QueueServiceStub {
  public:
   struct U64Comparator final : rocksdb::Comparator {
     int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const {
@@ -144,9 +144,8 @@ class QueueService final : public QueueServiceStub {
 int main(int argc, char** argv) {
   CLI::App app{"Queue service"};
 
-  std::string address;
-  app.add_option("-a,--address", address, "service ip address, addr:port")
-      ->default_val("127.0.0.1:10050");
+  uint16_t port;
+  app.add_option("-p,--port", port, "service port")->default_val("10050");
 
   std::string db_path;
   app.add_option("-p,--path", db_path, "path to database directory")->default_val("/tmp/queue_db");
@@ -155,11 +154,11 @@ int main(int argc, char** argv) {
 
   QueueService service(db_path);
 
-  runtime::RpcServer server;
+  ceq::rt::RpcServer server;
   server.Register(&service);
 
-  server.Run(address);
-  std::cout << "Running queue service at " << address << std::endl;
+  server.Run(port);
+  std::cout << "Running queue service at 127.0.0.1:" << port << std::endl;
   service.WaitShutDown();
   std::cout << "Shut down" << std::endl;
   server.ShutDown();

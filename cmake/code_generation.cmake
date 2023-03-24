@@ -9,18 +9,16 @@ function(generate_proto TARGET PROTO SIMULATION)
   set(PROTO_HDR "${PROTO_DIR}/${PROTO_NAME}.pb.h")
 
   if (SIMULATION)
-    set(PREFIX "sim.")
     set(RPC_GENERATOR_EXE "sim_rpc_generator")
   else()
-    set(PREFIX "")
     set(RPC_GENERATOR_EXE "rpc_generator")
   endif()
 
-  set(CLIENT_SRC "${PROTO_DIR}/${PROTO_NAME}.${PREFIX}client.cc")
-  set(CLIENT_HDR "${PROTO_DIR}/${PROTO_NAME}.${PREFIX}client.h")
+  set(CLIENT_SRC "${PROTO_DIR}/${PROTO_NAME}.client.cc")
+  set(CLIENT_HDR "${PROTO_DIR}/${PROTO_NAME}.client.h")
 
-  set(SERVICE_SRC "${PROTO_DIR}/${PROTO_NAME}.${PREFIX}service.cc")
-  set(SERVICE_HDR "${PROTO_DIR}/${PROTO_NAME}.${PREFIX}service.h")
+  set(SERVICE_SRC "${PROTO_DIR}/${PROTO_NAME}.service.cc")
+  set(SERVICE_HDR "${PROTO_DIR}/${PROTO_NAME}.service.h")
 
   add_custom_command(
     OUTPUT ${PROTO_SRC} ${PROTO_HDR} ${CLIENT_SRC} ${CLIENT_HDR} ${SERVICE_SRC} ${SERVICE_HDR}
@@ -47,6 +45,6 @@ function(generate_proto TARGET PROTO SIMULATION)
   if (SIMULATION)
     target_link_libraries(${TARGET} runtime_simulator)
   else()
-    target_link_libraries(${TARGET} runtime)
+    target_link_libraries(${TARGET} runtime_grpc)
   endif()
 endfunction()
