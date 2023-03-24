@@ -45,9 +45,11 @@ void World::SleepUntil(Timestamp wake_up_time) noexcept {
 void World::RunSimulation() noexcept {
   VERIFY(std::exchange(initialized_, false), "world in unitialized");
   boost::this_fiber::properties<RuntimeSimulationProps>().MarkAsMainFiber();
+  boost::this_fiber::yield();
 
   while (running_count_ > 0) {
-    VERIFY(!events_queue_.empty(), "unexpected state: no active tasks (possible deadlock)");
+    VERIFY(!events_queue_.empty(),
+           "unexpected state: no active tasks (deadlock or real sleep_for is called)");
 
     std::pop_heap(events_queue_.begin(), events_queue_.end(), std::greater<>{});
     auto [ts, event] = events_queue_.back();

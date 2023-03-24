@@ -255,3 +255,88 @@ TEST(Clock, AwaitFiberInHost) {
   runtime_simulation::AddHost("addr5", &host5);
   runtime_simulation::RunSimulation();
 }
+
+TEST(Clock, Dispatch) {
+  struct Host final : public runtime_simulation::IHostRunnable {
+    void Main() noexcept override {
+      auto start_time = runtime_simulation::now();
+
+      auto h1 = boost::fibers::async(boost::fibers::launch::dispatch, []() {
+        runtime_simulation::sleep_for(1h);
+        auto h1 = boost::fibers::async(boost::fibers::launch::dispatch, []() {
+          runtime_simulation::sleep_for(1h);
+          boost::fibers::async(boost::fibers::launch::dispatch, []() {
+            runtime_simulation::sleep_for(1h);
+          }).wait();
+          runtime_simulation::sleep_for(1h);
+        });
+
+        auto h2 = boost::fibers::async(boost::fibers::launch::dispatch, []() {
+          runtime_simulation::sleep_for(1h);
+          boost::fibers::async(boost::fibers::launch::dispatch, []() {
+            runtime_simulation::sleep_for(1h);
+          }).wait();
+          runtime_simulation::sleep_for(1h);
+        });
+
+        runtime_simulation::sleep_for(1h);
+        h1.wait();
+        runtime_simulation::sleep_for(1h);
+        h2.wait();
+        runtime_simulation::sleep_for(1h);
+      });
+
+      auto h2 = boost::fibers::async(boost::fibers::launch::dispatch, []() {
+        runtime_simulation::sleep_for(1h);
+        auto h1 = boost::fibers::async(boost::fibers::launch::post, []() {
+          runtime_simulation::sleep_for(1h);
+          boost::fibers::async(boost::fibers::launch::dispatch, []() {
+            runtime_simulation::sleep_for(1h);
+          }).wait();
+          runtime_simulation::sleep_for(1h);
+        });
+
+        auto h2 = boost::fibers::async(boost::fibers::launch::post, []() {
+          runtime_simulation::sleep_for(1h);
+          boost::fibers::async(boost::fibers::launch::post, []() {
+            runtime_simulation::sleep_for(1h);
+          }).wait();
+          runtime_simulation::sleep_for(1h);
+        });
+
+        runtime_simulation::sleep_for(1h);
+        h1.wait();
+        runtime_simulation::sleep_for(1h);
+        h2.wait();
+        runtime_simulation::sleep_for(1h);
+      });
+
+      boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
+        runtime_simulation::sleep_for(1h);
+        h1.wait();
+        runtime_simulation::sleep_for(1h);
+        h2.wait();
+        runtime_simulation::sleep_for(1h);
+      }).wait();
+
+      auto duration = runtime_simulation::now() - start_time;
+      EXPECT_EQ(duration, 8h);
+    }
+  };
+
+  Host host;
+
+  runtime_simulation::HostOptions options{
+      .min_start_time = 1h,
+      .max_start_time = 2h,
+      .min_drift = 0.001,
+      .max_drift = 0.002,
+  };
+  for (uint64_t seed = 0; seed < 100; ++seed) {
+    runtime_simulation::InitWorld(42);
+    for (size_t i = 0; i < 10; ++i) {
+      runtime_simulation::AddHost("addr" + std::to_string(i), &host, options);
+    }
+    runtime_simulation::RunSimulation();
+  }
+}
