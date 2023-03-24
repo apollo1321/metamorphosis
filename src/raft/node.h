@@ -2,14 +2,15 @@
 
 #include <vector>
 
-#include <common/defs.h>
+#include <runtime/rpc_server.h>
 
 namespace ceq::raft {
 
 struct StartConfig {
-  std::vector<Endpoint> cluster;
+  rt::Port port;
+  std::vector<rt::Endpoint> cluster;
 };
 
-void RunMain(const StartConfig& config) noexcept;
+void RunMain(StartConfig config) noexcept;
 
 }  // namespace ceq::raft

@@ -2,8 +2,31 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 
-message LogEntry {
+// Client API for RSM
+
+message Command {
   uint64 data = 1;
+}
+
+message Response {
+  enum Status {
+    NotALeader = 0;
+    Commited = 1;
+  };
+
+  Status status = 1;
+  uint64 rsm_response = 2;
+}
+
+service RaftApi {
+  rpc Execute(Command) returns (Response) {}
+}
+
+// Raft internal rpc's
+
+message LogEntry {
+  uint64 term = 1;
+  uint64 data = 2;
 }
 
 message AppendEntriesRequest {
@@ -32,7 +55,7 @@ message RequestVoteResult {
   bool vote_granted = 2;
 }
 
-service RaftNode {
+service RaftInternals {
   rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResult) {}
   rpc RequestVote(RequestVoteRequest) returns (RequestVoteResult) {}
 }
