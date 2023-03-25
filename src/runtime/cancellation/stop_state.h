@@ -1,7 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <thread>
+#include <atomic>
 
 #include <util/spin_lock.h>
 
@@ -18,7 +17,6 @@ struct StopState {
   std::atomic_bool cancelled = false;
   SpinLock lock;
   uint64_t ref_count = 0;
-  /* std::thread::id stop_request_tid{}; */
 };
 
 }  // namespace ceq::rt::impl

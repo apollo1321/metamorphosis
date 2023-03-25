@@ -145,6 +145,7 @@ set(WITH_GFLAGS          OFF CACHE INTERNAL "")
 set(WITH_TESTS           OFF CACHE INTERNAL "")
 set(WITH_BENCHMARK_TOOLS OFF CACHE INTERNAL "")
 set(WITH_TOOLS           OFF CACHE INTERNAL "")
+set(FAIL_ON_WARNINGS     OFF CACHE INTERNAL "")
 FetchContent_MakeAvailable(rocksdb)
 
 add_library(store INTERFACE)
