@@ -3,6 +3,7 @@
 
 #include <algorithm>
 
+#include <runtime/cancellation/stop_callback.h>
 #include <util/condition_check.h>
 
 namespace ceq::rt {
@@ -35,10 +36,13 @@ void World::NotifyHostFinish() noexcept {
   --running_count_;
 }
 
-void World::SleepUntil(Timestamp wake_up_time) noexcept {
+void World::SleepUntil(Timestamp wake_up_time, StopToken stop_token) noexcept {
   Event event;
-  events_queue_.emplace_back(std::make_pair(wake_up_time, &event));
-  std::push_heap(events_queue_.begin(), events_queue_.end(), std::greater<>{});
+  auto it = events_queue_.insert(std::make_pair(wake_up_time, &event));
+  StopCallback stop_guard(stop_token, [&]() {
+    events_queue_.erase(it);
+    event.Signal();
+  });
   event.Await();
 }
 
@@ -51,15 +55,14 @@ void World::RunSimulation() noexcept {
     VERIFY(!events_queue_.empty(),
            "unexpected state: no active tasks (deadlock or real sleep_for is called)");
 
-    std::pop_heap(events_queue_.begin(), events_queue_.end(), std::greater<>{});
-    auto [ts, event] = events_queue_.back();
-    events_queue_.pop_back();
+    auto [ts, event] = *events_queue_.begin();
+    events_queue_.erase(events_queue_.begin());
 
     VERIFY(current_time_ <= ts, "invalid event timestamp");
     current_time_ = ts;
     event->Signal();
 
-    // this fiber will be resumes after all other fibers are executed
+    // this fiber will be resumed after all other fibers are executed
     boost::this_fiber::yield();
   }
 }

@@ -1,0 +1,2 @@
+add_executable(grpc_runtime_cancellation cancellation.cpp)
+target_link_libraries(grpc_runtime_cancellation runtime_grpc GTest::gtest_main)

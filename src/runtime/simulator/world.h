@@ -1,9 +1,9 @@
 #pragma once
 
 #include <chrono>
+#include <map>
 #include <random>
 #include <unordered_map>
-#include <vector>
 
 #include <boost/fiber/all.hpp>
 
@@ -25,7 +25,7 @@ class World {
   void AddHost(const Address& address, HostPtr host) noexcept;
   void NotifyHostFinish() noexcept;
 
-  void SleepUntil(Timestamp wake_up_time) noexcept;
+  void SleepUntil(Timestamp wake_up_time, StopToken stop_token = StopToken{}) noexcept;
 
   void RunSimulation() noexcept;
 
@@ -37,7 +37,7 @@ class World {
 
   bool initialized_ = false;
 
-  std::vector<std::pair<Timestamp, Event*>> events_queue_;
+  std::multimap<Timestamp, Event*> events_queue_;
 
   Timestamp current_time_{};
 

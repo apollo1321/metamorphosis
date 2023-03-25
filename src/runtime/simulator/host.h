@@ -14,7 +14,7 @@ struct Host {
   Host(IHostRunnable* host_main, const HostOptions& options) noexcept;
 
   Timestamp GetLocalTime() const noexcept;
-  void SleepUntil(Timestamp local_time) noexcept;
+  void SleepUntil(Timestamp local_time, StopToken stop_token = StopToken{}) noexcept;
 
   RpcResult ProcessRequest(uint16_t port, const SerializedData& data,
                            const ServiceName& service_name,

@@ -21,11 +21,11 @@
     }                                    \
   } while (false)
 
-#define VERIFY(CONDIDITION, MESSAGE)                            \
-  do {                                                          \
-    if (!(CONDIDITION)) {                                       \
-      std::cerr << "VERIFY failed: " << (MESSAGE) << std::endl; \
-      ceq::PrintBackTrace(std::cerr);                           \
-      std::abort();                                             \
-    }                                                           \
+#define VERIFY(CONDIDITION, MESSAGE)                                                             \
+  do {                                                                                           \
+    if (!(CONDIDITION)) {                                                                        \
+      std::cerr << __FILE__ << ":" << __LINE__ << ": VERIFY failed: " << (MESSAGE) << std::endl; \
+      ceq::PrintBackTrace(std::cerr);                                                            \
+      std::abort();                                                                              \
+    }                                                                                            \
   } while (false)

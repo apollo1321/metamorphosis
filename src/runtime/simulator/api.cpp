@@ -10,12 +10,12 @@ Timestamp Now() noexcept {
   return GetCurrentHost()->GetLocalTime();
 }
 
-void SleepFor(Duration duration) noexcept {
-  SleepUntil(Now() + duration);
+void SleepFor(Duration duration, StopToken stop_token) noexcept {
+  SleepUntil(Now() + duration, std::move(stop_token));
 }
 
-void SleepUntil(Timestamp timestamp) noexcept {
-  GetCurrentHost()->SleepUntil(timestamp);
+void SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
+  GetCurrentHost()->SleepUntil(timestamp, std::move(stop_token));
 }
 
 void InitWorld(uint64_t seed, WorldOptions options) noexcept {

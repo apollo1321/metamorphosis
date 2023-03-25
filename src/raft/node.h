@@ -2,15 +2,18 @@
 
 #include <vector>
 
+#include <runtime/api.h>
 #include <runtime/rpc_server.h>
 
 namespace ceq::raft {
 
-struct StartConfig {
+struct RaftConfig {
   rt::Port port;
   std::vector<rt::Endpoint> cluster;
+
+  rt::Duration election_timeout;
 };
 
-void RunMain(StartConfig config) noexcept;
+void RunMain(RaftConfig config) noexcept;
 
 }  // namespace ceq::raft
