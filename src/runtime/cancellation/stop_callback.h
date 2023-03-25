@@ -1,6 +1,6 @@
 #pragma once
 
-#include <algorithm>
+#include <mutex>
 
 #include "stop_token.h"
 

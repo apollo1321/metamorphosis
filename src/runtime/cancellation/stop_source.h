@@ -1,11 +1,7 @@
 #pragma once
 
-#include <memory>
-#include <thread>
-
-#include <util/spin_lock.h>
-
 #include "stop_callback.h"
+#include "stop_state.h"
 #include "stop_token.h"
 
 namespace ceq::rt {

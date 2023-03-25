@@ -1,5 +1,4 @@
 add_library(ceq_cancellation
-  stop_callback.cpp
   stop_source.cpp
   stop_state.cpp
   stop_token.cpp)

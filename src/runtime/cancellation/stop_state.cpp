@@ -1,5 +1,7 @@
 #include "stop_state.h"
 
+#include <mutex>
+
 namespace ceq::rt::impl {
 
 void StopState::UnRef() noexcept {

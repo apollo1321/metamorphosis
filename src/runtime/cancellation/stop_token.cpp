@@ -1,5 +1,7 @@
 #include "stop_token.h"
 
+#include <mutex>
+
 namespace ceq::rt {
 
 StopToken::StopToken(const StopToken& other) noexcept : StopToken(other.state_) {
