@@ -44,7 +44,7 @@ void RuntimeSimulationScheduler::awakened(boost::fibers::context* ctx,
 }
 
 boost::fibers::context* RuntimeSimulationScheduler::pick_next() noexcept {
-  VERIFY(!rqueue_.empty(), "unexpected schedule state");
+  VERIFY(!rqueue_.empty(), "unexpected schedule state (maybe some of fibers are not joined)");
   boost::fibers::context* ctx(&rqueue_.front());
   rqueue_.pop_front();
   auto current_host = properties(ctx).GetCurrentHost();

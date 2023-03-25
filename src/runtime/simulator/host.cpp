@@ -26,7 +26,7 @@ Timestamp Host::GetLocalTime() const noexcept {
   return ToLocalTime(GetWorld()->GlobalTime());
 }
 
-void Host::SleepUntil(Timestamp local_time) noexcept {
+void Host::SleepUntil(Timestamp local_time, StopToken stop_token) noexcept {
   VERIFY(GetCurrentHost() == this, "invalid current_host");
 
   std::uniform_int_distribution<Duration::rep> lag_dist{0, max_sleep_lag_.count()};
@@ -36,14 +36,15 @@ void Host::SleepUntil(Timestamp local_time) noexcept {
   auto global_timestamp = ToGlobalTime(local_time);
   VERIFY(global_timestamp >= GetWorld()->GlobalTime(), "invalid timestamp for sleep");
 
-  GetWorld()->SleepUntil(global_timestamp);
+  GetWorld()->SleepUntil(global_timestamp, stop_token);
 
-  VERIFY(GetWorld()->GlobalTime() == global_timestamp, "SleepUntil error");
+  VERIFY(GetWorld()->GlobalTime() == global_timestamp || stop_token.StopRequested(),
+         "SleepUntil error");
 }
 
 void Host::RunMain(IHostRunnable* host_main) noexcept {
   boost::this_fiber::properties<RuntimeSimulationProps>().SetCurrentHost(this);
-  SleepUntil(start_time_);
+  SleepUntil(start_time_, StopToken{});
   host_main->Main();
   GetWorld()->NotifyHostFinish();
 }

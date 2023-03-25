@@ -1,3 +1,5 @@
+add_subdirectory(cancellation)
+
 # ------------------------------------------------------------------------------
 # grpc runtime
 # ------------------------------------------------------------------------------
@@ -13,6 +15,7 @@ add_library(runtime_grpc
 target_link_libraries(runtime_grpc
   ceq_lib
   ceq_util
+  ceq_cancellation
   libprotobuf
   grpc++_reflection
   grpc++
@@ -39,6 +42,7 @@ add_library(runtime_simulator
 target_link_libraries(runtime_simulator
   ceq_lib
   ceq_util
+  ceq_cancellation
   libprotobuf
   Boost::fiber)
 

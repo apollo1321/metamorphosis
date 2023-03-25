@@ -18,7 +18,7 @@ enum class State {
 };
 
 struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
-  explicit RaftNode(StartConfig config) : config{std::move(config)} {
+  explicit RaftNode(RaftConfig config) : config{std::move(config)} {
     for (auto& endpoint : config.cluster) {
       cluster.emplace_back(endpoint);
     }
@@ -35,9 +35,9 @@ struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
   void StartNode() noexcept {
   }
 
-  State state = State::Candidate;
+  State state = State::Follower;
 
-  StartConfig config;
+  RaftConfig config;
   std::vector<rt::RaftInternalsClient> cluster;
 
   // Persistent state
@@ -54,7 +54,7 @@ struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
   std::vector<uint64_t> match_index;
 };
 
-void RunMain(StartConfig config) noexcept {
+void RunMain(RaftConfig config) noexcept {
   RaftNode node(config);
 
   rt::RpcServer server;
