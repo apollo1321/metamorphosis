@@ -40,6 +40,8 @@ void InitWorld(uint64_t seed, WorldOptions options = WorldOptions{}) noexcept;
 
 std::mt19937& GetGenerator() noexcept;
 
+uint64_t GetHostUniqueId() noexcept;
+
 void AddHost(const Address& address, IHostRunnable* server_main,
              const HostOptions& options = HostOptions{}) noexcept;
 

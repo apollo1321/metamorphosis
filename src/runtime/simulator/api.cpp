@@ -10,12 +10,12 @@ Timestamp Now() noexcept {
   return GetCurrentHost()->GetLocalTime();
 }
 
-void SleepFor(Duration duration, StopToken stop_token) noexcept {
-  SleepUntil(Now() + duration, std::move(stop_token));
+bool SleepFor(Duration duration, StopToken stop_token) noexcept {
+  return SleepUntil(Now() + duration, std::move(stop_token));
 }
 
-void SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
-  GetCurrentHost()->SleepUntil(timestamp, std::move(stop_token));
+bool SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
+  return GetCurrentHost()->SleepUntil(timestamp, std::move(stop_token));
 }
 
 void InitWorld(uint64_t seed, WorldOptions options) noexcept {
@@ -33,6 +33,10 @@ void AddHost(const Address& address, IHostRunnable* host_main,
 
 void RunSimulation() noexcept {
   GetWorld()->RunSimulation();
+}
+
+uint64_t GetHostUniqueId() noexcept {
+  return reinterpret_cast<uint64_t>(GetCurrentHost());
 }
 
 }  // namespace ceq::rt
