@@ -12,6 +12,11 @@
 #include <boost/fiber/condition_variable.hpp>
 #include <boost/fiber/mutex.hpp>
 
+#include <runtime/cancellation/stop_callback.h>
+#include <runtime/cancellation/stop_token.h>
+#include <runtime/rpc_error.h>
+#include <util/result.h>
+
 namespace ceq::rt {
 
 class RpcClientBase {
@@ -22,7 +27,8 @@ class RpcClientBase {
 
  protected:
   template <class Request, class Response>
-  Response MethodImpl(const Request& request, const char* method_name) {
+  Result<Response, RpcError> MakeRequest(const Request& request, const char* method_name,
+                                         StopToken stop_token = {}) noexcept {
     using namespace grpc;            // NOLINT
     using namespace grpc::internal;  // NOLINT
 
@@ -30,7 +36,7 @@ class RpcClientBase {
 
     RpcMethod method{method_name, RpcMethod::RpcType::NORMAL_RPC};
     ClientContext context;
-    Status status;
+    grpc::Status status;
     Response reply;
 
     std::unique_ptr<ClientAsyncResponseReader<Response>> response_reader(
@@ -40,16 +46,30 @@ class RpcClientBase {
     response_reader->StartCall();
     response_reader->Finish(&reply, &status, static_cast<void*>(&call));
 
+    StopCallback stop_callback(stop_token, [&]() {
+      context.TryCancel();
+    });
+
     std::unique_lock guard(call.mutex);
     call.is_ready.wait(guard, [&call]() {
       return call.is_set;
     });
 
     if (!status.ok()) {
-      throw std::runtime_error("RPC Failed: " + status.error_message());
+      if (status.error_message().find("Connection refused") != std::string::npos) {
+        return Err(RpcError::ErrorType::ConnectionRefused, status.error_message());
+      }
+      switch (status.error_code()) {
+        case grpc::CANCELLED:
+          return Err(RpcError::ErrorType::Cancelled, status.error_message());
+        case grpc::UNIMPLEMENTED:
+          return Err(RpcError::ErrorType::HandlerNotFound, status.error_message());
+        default:
+          return Err(RpcError::ErrorType::Internal, status.error_message());
+      }
     }
 
-    return std::move(reply);
+    return Ok(std::move(reply));
   }
 
  private:

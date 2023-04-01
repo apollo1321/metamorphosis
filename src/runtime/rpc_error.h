@@ -6,10 +6,8 @@ namespace ceq::rt {
 
 struct RpcError {
   enum class ErrorType {
-    HostNotFound,
     NetworkError,
     ConnectionRefused,
-    ServiceNotFound,
     HandlerNotFound,
     Internal,
     ParseError,

@@ -44,16 +44,14 @@ RpcResult RpcServer::RpcServerImpl::ProcessRequest(const SerializedData& data,
   };
 
   if (!services_.contains(service_name)) {
-    return Err(RpcError::ErrorType::ServiceNotFound, "Unknown service: " + service_name);
+    return Err(RpcError::ErrorType::HandlerNotFound, "Unknown service: " + service_name);
   }
 
   return services_[service_name]->ProcessRequest(data, handler_name);
 }
 
 RpcServer::RpcServerImpl::~RpcServerImpl() {
-  if (!finished_) {
-    ShutDown();
-  }
+  VERIFY(finished_, "Destruction of running server");
 }
 
 }  // namespace ceq::rt

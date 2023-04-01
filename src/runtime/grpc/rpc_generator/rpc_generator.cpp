@@ -44,7 +44,9 @@ void GenerateClientHeader(GeneratorContext* generator_context,
     // Methods
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
-      printer.Print(vars, "$output_type$ $method_name$(const $input_type$& input);\n");
+      printer.Print(vars,
+                    "Result<$output_type$, RpcError> $method_name$(const $input_type$& input, "
+                    "StopToken stop_token = {}) noexcept;\n");
     }
 
     printer.Outdent();
@@ -81,11 +83,12 @@ void GenerateClientSource(GeneratorContext* generator_context,
 
       printer.Print("\n");
       printer.Print(vars,
-                    "$output_type$ $service_class$::$method_name$(const $input_type$& input) {\n");
+                    "Result<$output_type$, RpcError> $service_class$::$method_name$(const "
+                    "$input_type$& input, StopToken stop_token) noexcept {\n");
       printer.Indent();
       printer.Print(vars,
-                    "return MethodImpl<$input_type$, $output_type$>(input, "
-                    "\"/$service_name$/$method_name$\");\n");
+                    "return MakeRequest<$input_type$, $output_type$>(input, "
+                    "\"/$service_name$/$method_name$\", std::move(stop_token));\n");
       printer.Outdent();
       printer.Print("}\n");
     }
@@ -104,7 +107,8 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
   printer.Print("#pragma once\n\n");
   printer.Print("#include \"$name$.pb.h\"\n\n", "name", file_name);
   AddDependencyHeaders(printer, file);
-  printer.Print("#include <runtime/grpc/rpc_service_base.h>\n\n");
+  printer.Print("#include <runtime/grpc/rpc_service_base.h>\n");
+  printer.Print("#include <util/result.h>\n\n");
 
   printer.Print("namespace ceq::rt {\n");
 
@@ -122,14 +126,15 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
     printer.Indent();
 
     // Constructor
-    printer.Print(vars, "$service_class$();\n");
+    printer.Print(vars, "$service_class$();\n\n");
 
     // Placeholders for services
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
 
       printer.Print(vars,
-                    "virtual $output_type$ $method_name$(const $input_type$& request) = 0;\n");
+                    "virtual Result<$output_type$, RpcError> $method_name$(const $input_type$& "
+                    "request) noexcept = 0;\n");
     }
     printer.Print("\n");
 
@@ -251,7 +256,7 @@ void GenerateServiceSource(GeneratorContext* generator_context, const FileDescri
       printer.Print(vars, "void $service_class$::RpcCall$method_name$::operator()() noexcept {\n");
       printer.Indent();
       printer.Print(vars,
-                    "RunImpl([this](auto request) { return handler->$method_name$(request); });\n");
+                    "RunImpl([this](const auto& request) { return handler->$method_name$(request); });\n");
       printer.Outdent();
       printer.Print("}\n");
 

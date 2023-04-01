@@ -2,10 +2,10 @@ add_executable(runtime_simulator_sleep_test clock.cpp)
 target_link_libraries(runtime_simulator_sleep_test runtime_simulator GTest::gtest_main)
 gtest_discover_tests(runtime_simulator_sleep_test)
 
-generate_proto(rpc_test_proto test_service.proto TRUE)
+generate_proto(simulator_rpc_test_proto test_service.proto TRUE)
 
 add_executable(runtime_simulator_rpc_test rpc.cpp)
-target_link_libraries(runtime_simulator_rpc_test rpc_test_proto runtime_simulator GTest::gtest_main)
+target_link_libraries(runtime_simulator_rpc_test simulator_rpc_test_proto runtime_simulator GTest::gtest_main)
 gtest_discover_tests(runtime_simulator_rpc_test)
 
 add_executable(runtime_simulator_cancellation cancellation.cpp)
