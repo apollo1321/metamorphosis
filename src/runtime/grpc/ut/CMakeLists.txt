@@ -1,4 +1,9 @@
 add_executable(grpc_runtime_cancellation cancellation.cpp)
 target_link_libraries(grpc_runtime_cancellation runtime_grpc GTest::gtest_main)
-
 gtest_discover_tests(grpc_runtime_cancellation)
+
+generate_proto(grpc_rpc_test_proto test_service.proto FALSE)
+
+add_executable(runtime_grpc_rpc_test rpc.cpp)
+target_link_libraries(runtime_grpc_rpc_test grpc_rpc_test_proto runtime_grpc GTest::gtest_main)
+gtest_discover_tests(runtime_grpc_rpc_test)

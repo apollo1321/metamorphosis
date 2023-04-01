@@ -11,14 +11,10 @@ RpcError::RpcError(ErrorType error_type, const std::string& message) noexcept
 std::string RpcError::Message() noexcept {
   std::string result = [&] {
     switch (error_type) {
-      case ErrorType::HostNotFound:
-        return "HostNotFound";
       case ErrorType::NetworkError:
         return "NetworkError";
       case ErrorType::ConnectionRefused:
         return "ConnectionRefused";
-      case ErrorType::ServiceNotFound:
-        return "ServiceNotFound";
       case ErrorType::HandlerNotFound:
         return "HandlerNotFound";
       case ErrorType::Internal:

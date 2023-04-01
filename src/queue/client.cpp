@@ -29,26 +29,40 @@ int main(int argc, char** argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  try {
-    ceq::rt::QueueServiceClient client(address);
+  ceq::rt::QueueServiceClient client(address);
 
-    if (*shutdown) {
-      client.ShutDown(google::protobuf::Empty{});
-      std::cout << "shutting down service" << std::endl;
+  auto handle_error = [](ceq::rt::RpcError error) {
+    std::cerr << "RPC Error: " << error.Message() << std::endl;
+  };
+
+  if (*shutdown) {
+    auto result = client.ShutDown(google::protobuf::Empty{});
+    if (result.HasError()) {
+      handle_error(result.GetError());
+    } else {
+      std::cout << "shut down service" << std::endl;
     }
-    if (*store) {
-      AppendRequest message;
-      message.set_data(data);
-      auto result = client.Append(message);
-      std::cout << "append message id: " << result.id() << std::endl;
+  }
+  if (*store) {
+    AppendRequest message;
+    message.set_data(data);
+    auto result = client.Append(message);
+    if (result.HasError()) {
+      handle_error(result.GetError());
+    } else {
+      std::cout << "append message id: " << result.GetValue().id() << std::endl;
     }
-    if (*read) {
-      ReadRequest request;
-      request.set_id(read_id);
-      auto result = client.Read(request);
-      switch (result.status()) {
+  }
+  if (*read) {
+    ReadRequest request;
+    request.set_id(read_id);
+    auto result = client.Read(request);
+    if (result.HasError()) {
+      handle_error(result.GetError());
+    } else {
+      switch (result.GetValue().status()) {
         case OK:
-          std::cout << "Message: " << result.data() << std::endl;
+          std::cout << "Message: " << result.GetValue().data() << std::endl;
           break;
         case NO_DATA:
           std::cout << "No data for this id" << std::endl;
@@ -57,13 +71,15 @@ int main(int argc, char** argv) {
           abort();
       }
     }
-    if (*trim) {
-      TrimRequest request;
-      request.set_id(trim_id);
-      auto result = client.Trim(request);
+  }
+  if (*trim) {
+    TrimRequest request;
+    request.set_id(trim_id);
+    auto result = client.Trim(request);
+    if (result.HasError()) {
+      handle_error(result.GetError());
+    } else {
       std::cout << "Successfully trimmed queue" << std::endl;
     }
-  } catch (std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
   }
 }

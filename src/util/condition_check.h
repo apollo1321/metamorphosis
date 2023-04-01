@@ -6,14 +6,6 @@
 
 #include "backtrace.h"
 
-#define ENSURE_STATUS(STATUS)                       \
-  do {                                              \
-    auto _status = (STATUS);                        \
-    if (!_status.ok()) {                            \
-      throw std::runtime_error(_status.ToString()); \
-    }                                               \
-  } while (false)
-
 #define ENSURE(CONDIDITION, MESSAGE)     \
   do {                                   \
     if (!(CONDIDITION)) {                \

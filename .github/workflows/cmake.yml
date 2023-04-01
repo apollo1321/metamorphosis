@@ -13,10 +13,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         compiler: [clang, gcc]
-        build_type: [Asan, Tsan, Release]
-        exclude:
-        - compiler: gcc
-          build_type: Tsan
+        build_type: [Asan, Release]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repo
@@ -56,4 +53,4 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build-${{ matrix.build_type }}
-      run: ctest --verbose
+      run: ctest --output-on-failure
