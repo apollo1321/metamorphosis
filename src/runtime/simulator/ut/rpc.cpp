@@ -8,6 +8,8 @@
 #include <runtime/simulator/ut/test_service.pb.h>
 #include <runtime/simulator/ut/test_service.service.h>
 
+#include <runtime/cancellation/stop_source.h>
+
 using namespace std::chrono_literals;
 
 using namespace ceq::rt;  // NOLINT
@@ -25,7 +27,7 @@ struct EchoService final : public ceq::rt::EchoServiceStub {
       *reply.mutable_msg() += msg;
     }
 
-    return Result::Ok(std::move(reply));
+    return ceq::Ok(std::move(reply));
   }
 
   std::string msg;
@@ -53,11 +55,11 @@ TEST(Rpc, SimplyWorks) {
       EchoRequest request;
       request.set_msg("Client");
       auto result = client.Echo(request);
-      EXPECT_EQ(result.ExpectValue().msg(), "Hello, Client");
+      EXPECT_EQ(result.GetValue().msg(), "Hello, Client");
 
       request.set_msg("Again Client");
       result = client.Echo(request);
-      EXPECT_EQ(result.ExpectValue().msg(), "Hello, Again Client");
+      EXPECT_EQ(result.GetValue().msg(), "Hello, Again Client");
     }
   };
 
@@ -94,7 +96,7 @@ TEST(Rpc, DeliveryTime) {
       EchoRequest request;
       request.set_msg("Client");
       auto result = client.Echo(request);
-      EXPECT_EQ(result.ExpectValue().msg(), "Hello, Client");
+      EXPECT_EQ(result.GetValue().msg(), "Hello, Client");
 
       auto duration1 = ceq::rt::Now() - start;
       EXPECT_LE(duration1, 20ms);
@@ -104,7 +106,7 @@ TEST(Rpc, DeliveryTime) {
 
       request.set_msg("Again Client");
       result = client.Echo(request);
-      EXPECT_EQ(result.ExpectValue().msg(), "Hello, Again Client");
+      EXPECT_EQ(result.GetValue().msg(), "Hello, Again Client");
 
       auto duration2 = ceq::rt::Now() - start;
       EXPECT_LE(duration2, 20ms);
@@ -116,8 +118,7 @@ TEST(Rpc, DeliveryTime) {
   Host host;
   Client client;
 
-  ceq::rt::InitWorld(42,
-                                WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
+  ceq::rt::InitWorld(42, WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
   ceq::rt::AddHost("addr1", &host);
   ceq::rt::AddHost("addr2", &client);
   ceq::rt::RunSimulation();
@@ -148,11 +149,10 @@ TEST(Rpc, NetworkErrorProba) {
         request.set_msg("Client");
         auto result = client.Echo(request);
         if (result.HasError()) {
-          EXPECT_EQ(result.ExpectError().error_type,
-                    ceq::rt::RpcError::ErrorType::NetworkError);
+          EXPECT_EQ(result.GetError().error_type, ceq::rt::RpcError::ErrorType::NetworkError);
           ++error_count;
         } else {
-          EXPECT_EQ(result.ExpectValue().msg(), "Hello, Client");
+          EXPECT_EQ(result.GetValue().msg(), "Hello, Client");
         }
       }
 
@@ -226,8 +226,8 @@ TEST(Rpc, ManyClientsManyServers) {
             EchoRequest request;
             request.set_msg(msg);
             auto result = client.Echo(request);
-            EXPECT_FALSE(result.HasError()) << result.ExpectError().Message();
-            EXPECT_EQ(result.ExpectValue().msg(), "Hello, " + msg);
+            EXPECT_FALSE(result.HasError()) << result.GetError().Message();
+            EXPECT_EQ(result.GetValue().msg(), "Hello, " + msg);
           }));
         };
 
@@ -254,8 +254,7 @@ TEST(Rpc, ManyClientsManyServers) {
   Host host;
   Client client;
 
-  ceq::rt::InitWorld(42,
-                                WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
+  ceq::rt::InitWorld(42, WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
   ceq::rt::AddHost("addr1", &host);
   ceq::rt::AddHost("addr2", &host);
 
@@ -267,30 +266,34 @@ TEST(Rpc, ManyClientsManyServers) {
 }
 
 TEST(Rpc, EchoProxy) {
-  struct ProxyService final : public ceq::rt::EchoProxyStub {
+  struct ProxyHost final : public ceq::rt::IHostRunnable, public ceq::rt::EchoProxyStub {
+    void Main() noexcept override {
+      host_id = GetHostUniqueId();
+      RpcServer server;
+      server.Register(this);
+      server.Run(42);
+      ceq::rt::SleepFor(10h);
+    }
+
     ceq::Result<EchoReply, RpcError> Forward1(const EchoRequest& request) noexcept override {
+      EXPECT_EQ(host_id, GetHostUniqueId());
       ceq::rt::EchoServiceClient client(Endpoint{"addr1", 1});
       auto reply = client.Echo(request);
-      *reply.ExpectValue().mutable_msg() += " Forward1";
+      EXPECT_EQ(host_id, GetHostUniqueId());
+      *reply.GetValue().mutable_msg() += " Forward1";
       return reply;
     }
 
     ceq::Result<EchoReply, RpcError> Forward2(const EchoRequest& request) noexcept override {
+      EXPECT_EQ(host_id, GetHostUniqueId());
       ceq::rt::EchoServiceClient client(Endpoint{"addr2", 2});
       auto reply = client.Echo(request);
-      *reply.ExpectValue().mutable_msg() += " Forward2";
+      EXPECT_EQ(host_id, GetHostUniqueId());
+      *reply.GetValue().mutable_msg() += " Forward2";
       return reply;
     }
-  };
 
-  struct ProxyHost final : public ceq::rt::IHostRunnable {
-    void Main() noexcept override {
-      RpcServer server;
-      ProxyService service;
-      server.Register(&service);
-      server.Run(42);
-      ceq::rt::SleepFor(10h);
-    }
+    uint64_t host_id{};
   };
 
   struct EchoHost1 final : public ceq::rt::IHostRunnable {
@@ -333,9 +336,9 @@ TEST(Rpc, EchoProxy) {
             request.set_msg("m=1;client=" + std::to_string(client_ind) +
                             ";ind=" + std::to_string(i));
             auto res = client.Forward1(request);
-            EXPECT_FALSE(res.HasError()) << res.ExpectError().Message();
-            EXPECT_EQ(res.ExpectValue().msg(), "Hello, m=1;client=" + std::to_string(client_ind) +
-                                                   ";ind=" + std::to_string(i) + "host1 Forward1");
+            EXPECT_FALSE(res.HasError()) << res.GetError().Message();
+            EXPECT_EQ(res.GetValue().msg(), "Hello, m=1;client=" + std::to_string(client_ind) +
+                                                ";ind=" + std::to_string(i) + "host1 Forward1");
             ceq::rt::SleepFor(1ms);
           });
           ceq::rt::SleepFor(10ms);
@@ -349,9 +352,9 @@ TEST(Rpc, EchoProxy) {
           EchoRequest request;
           request.set_msg("m=2;client=" + std::to_string(client_ind) + ";ind=" + std::to_string(i));
           auto res = client.Forward2(request);
-          EXPECT_FALSE(res.HasError()) << res.ExpectError().Message();
-          EXPECT_EQ(res.ExpectValue().msg(), "Hello, m=2;client=" + std::to_string(client_ind) +
-                                                 ";ind=" + std::to_string(i) + "host2 Forward2");
+          EXPECT_FALSE(res.HasError()) << res.GetError().Message();
+          EXPECT_EQ(res.GetValue().msg(), "Hello, m=2;client=" + std::to_string(client_ind) +
+                                              ";ind=" + std::to_string(i) + "host2 Forward2");
           ceq::rt::SleepFor(10ms);
         }
       });
@@ -374,8 +377,7 @@ TEST(Rpc, EchoProxy) {
 
   std::vector<std::unique_ptr<Client>> clients;
 
-  ceq::rt::InitWorld(42,
-                                WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
+  ceq::rt::InitWorld(42, WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
   ceq::rt::AddHost("addr1", &host1);
   ceq::rt::AddHost("addr2", &host2);
   ceq::rt::AddHost("proxy_addr", &proxy_host);
@@ -386,5 +388,52 @@ TEST(Rpc, EchoProxy) {
     ceq::rt::AddHost("client" + std::to_string(i), clients.back().get());
   }
 
+  ceq::rt::RunSimulation();
+}
+
+TEST(Rpc, CancelSimplyWorks) {
+  struct Host final : public ceq::rt::IHostRunnable, public ceq::rt::EchoServiceStub {
+    void Main() noexcept override {
+      RpcServer server;
+
+      server.Register(this);
+      server.Run(42);
+
+      ceq::rt::SleepFor(1h);
+    }
+
+    ceq::Result<EchoReply, RpcError> Echo(const EchoRequest& request) noexcept override {
+      ceq::rt::SleepFor(5s);
+      return ceq::Err(RpcError(RpcError::ErrorType::Internal));
+    }
+  };
+
+  struct Client final : public ceq::rt::IHostRunnable {
+    void Main() noexcept override {
+      ceq::rt::SleepFor(1s);  // Wait for server to start up
+      ceq::rt::EchoServiceClient client(Endpoint{"addr1", 42});
+
+      StopSource source;
+
+      auto cancel_task = boost::fibers::async([&]() {
+        SleepFor(1s);
+        source.Stop();
+      });
+
+      EchoRequest request;
+      request.set_msg("Client");
+      auto result = client.Echo(request, source.GetToken());
+      EXPECT_EQ(result.GetError().error_type, RpcError::ErrorType::Cancelled);
+
+      cancel_task.wait();
+    }
+  };
+
+  Host host;
+  Client client;
+
+  ceq::rt::InitWorld(42);
+  ceq::rt::AddHost("addr1", &host);
+  ceq::rt::AddHost("addr2", &client);
   ceq::rt::RunSimulation();
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <runtime/cancellation/stop_token.h>
 #include <runtime/rpc_server.h>
 #include <util/result.h>
 
@@ -12,29 +13,29 @@ class RpcClientBase {
   explicit RpcClientBase(const Endpoint& endpoint) noexcept;
 
   template <class Request, class Response>
-  Result<Response, RpcError> MakeRequest(const Request& request, const ServiceName& service_name,
-                                         const HandlerName& handler_name) noexcept {
-    using ProtoResult = Result<Response, RpcError>;
-
+  Result<Response, RpcError> MakeRequest(const Request& request, ServiceName service_name,
+                                         HandlerName handler_name,
+                                         StopToken stop_token = {}) noexcept {
     SerializedData data;
     data.resize(request.ByteSizeLong());
     VERIFY(request.SerializeToArray(data.data(), data.size()), "serialization error");
 
-    auto result = MakeRequest(data, service_name, handler_name);
+    auto result = MakeRequest(std::move(data), std::move(service_name), std::move(handler_name),
+                              std::move(stop_token));
     if (result.HasError()) {
-      return ProtoResult::Err(std::move(result).ExpectError());
+      return Err(std::move(result).GetError());
     }
 
     Response proto_result;
-    if (!proto_result.ParseFromArray(result.ExpectValue().data(), result.ExpectValue().size())) {
-      return ProtoResult::Err(RpcError::ErrorType::ParseError);
+    if (!proto_result.ParseFromArray(result.GetValue().data(), result.GetValue().size())) {
+      return Err(RpcError::ErrorType::ParseError);
     }
-    return ProtoResult::Ok(std::move(proto_result));
+    return Ok(std::move(proto_result));
   }
 
  private:
-  RpcResult MakeRequest(const SerializedData& data, const ServiceName& service_name,
-                        const HandlerName& handler_name) noexcept;
+  RpcResult MakeRequest(SerializedData data, ServiceName service_name, HandlerName handler_name,
+                        StopToken stop_token = {}) noexcept;
 
  private:
   Endpoint endpoint_;

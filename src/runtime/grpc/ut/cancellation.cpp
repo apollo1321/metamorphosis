@@ -9,6 +9,21 @@ using namespace std::chrono_literals;
 using ceq::rt::Duration;
 using ceq::rt::Timestamp;
 
+TEST(Cancellation, SimplyWorks) {
+  auto start = ceq::rt::Now();
+
+  ceq::rt::StopSource source;
+
+  ceq::rt::SleepFor(1s, source.GetToken());
+
+  auto duration = ceq::rt::Now() - start;
+
+  source.Stop();
+
+  EXPECT_LT(duration, 1500ms);
+  EXPECT_GE(duration, 1000ms);
+}
+
 TEST(Cancellation, CancelSleepSimplyWorks) {
   auto start = ceq::rt::Now();
 

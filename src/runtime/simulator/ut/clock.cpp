@@ -1,8 +1,10 @@
+#include <unordered_set>
+
 #include <gtest/gtest.h>
 #include <boost/fiber/all.hpp>
 
-#include <runtime/simulator/api.h>
 #include <runtime/api.h>
+#include <runtime/simulator/api.h>
 
 using namespace std::chrono_literals;
 
@@ -81,9 +83,8 @@ TEST(Clock, HostOrdering) {
   Host2 host2(ids);
 
   ceq::rt::InitWorld(42);
-  ceq::rt::AddHost(
-      "addr1", &host1,
-      ceq::rt::HostOptions{.min_start_time = 10s, .max_start_time = 20s});
+  ceq::rt::AddHost("addr1", &host1,
+                   ceq::rt::HostOptions{.min_start_time = 10s, .max_start_time = 20s});
   ceq::rt::AddHost("addr2", &host2);
   ceq::rt::RunSimulation();
 
@@ -157,8 +158,7 @@ TEST(Clock, Drift) {
 
   ceq::rt::InitWorld(42);
   ceq::rt::AddHost("addr1", &host1);
-  ceq::rt::AddHost(
-      "addr2", &host2, ceq::rt::HostOptions{.min_drift = 0.001, .max_drift = 0.002});
+  ceq::rt::AddHost("addr2", &host2, ceq::rt::HostOptions{.min_drift = 0.001, .max_drift = 0.002});
   ceq::rt::RunSimulation();
 
   EXPECT_GE(inconsistency_count, 5);
@@ -196,8 +196,7 @@ TEST(Clock, SleepLag) {
 
   ceq::rt::InitWorld(42);
   ceq::rt::AddHost("addr1", &host1);
-  ceq::rt::AddHost("addr2", &host2,
-                              ceq::rt::HostOptions{.max_sleep_lag = 1ms});
+  ceq::rt::AddHost("addr2", &host2, ceq::rt::HostOptions{.max_sleep_lag = 1ms});
   ceq::rt::RunSimulation();
 
   EXPECT_GE(inconsistency_count, 5);
@@ -259,41 +258,58 @@ TEST(Clock, AwaitFiberInHost) {
 
 TEST(Clock, Dispatch) {
   struct Host final : public ceq::rt::IHostRunnable {
+    explicit Host(std::unordered_set<uint64_t>& hosts) : hosts{hosts} {
+    }
+
     void Main() noexcept override {
       auto start_time = ceq::rt::Now();
 
-      auto h1 = boost::fibers::async(boost::fibers::launch::dispatch, []() {
+      const auto host_id = ceq::rt::GetHostUniqueId();
+      EXPECT_FALSE(hosts.contains(host_id));
+      hosts.insert(host_id);
+
+      auto h1 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
         ceq::rt::SleepFor(1h);
-        auto h1 = boost::fibers::async(boost::fibers::launch::dispatch, []() {
+        EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
+        auto h1 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
+          EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
           ceq::rt::SleepFor(1h);
+          EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
           boost::fibers::async(boost::fibers::launch::dispatch, []() {
             ceq::rt::SleepFor(1h);
           }).wait();
           ceq::rt::SleepFor(1h);
+          EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
         });
 
-        auto h2 = boost::fibers::async(boost::fibers::launch::dispatch, []() {
+        auto h2 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
           ceq::rt::SleepFor(1h);
+          EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
           boost::fibers::async(boost::fibers::launch::dispatch, []() {
             ceq::rt::SleepFor(1h);
           }).wait();
           ceq::rt::SleepFor(1h);
         });
+        EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
 
         ceq::rt::SleepFor(1h);
         h1.wait();
         ceq::rt::SleepFor(1h);
         h2.wait();
         ceq::rt::SleepFor(1h);
+        EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
       });
 
-      auto h2 = boost::fibers::async(boost::fibers::launch::dispatch, []() {
+      auto h2 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
+        EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
         ceq::rt::SleepFor(1h);
-        auto h1 = boost::fibers::async(boost::fibers::launch::post, []() {
+        EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
+        auto h1 = boost::fibers::async(boost::fibers::launch::post, [&]() {
           ceq::rt::SleepFor(1h);
           boost::fibers::async(boost::fibers::launch::dispatch, []() {
             ceq::rt::SleepFor(1h);
           }).wait();
+          EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
           ceq::rt::SleepFor(1h);
         });
 
@@ -314,26 +330,34 @@ TEST(Clock, Dispatch) {
 
       boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
         ceq::rt::SleepFor(1h);
+        EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
         h1.wait();
         ceq::rt::SleepFor(1h);
+        EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
         h2.wait();
         ceq::rt::SleepFor(1h);
+        EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
       }).wait();
 
       auto duration = ceq::rt::Now() - start_time;
       EXPECT_EQ(duration, 8h);
+      EXPECT_EQ(host_id, ceq::rt::GetHostUniqueId());
     }
+
+    std::unordered_set<uint64_t>& hosts;
   };
 
-  Host host;
-
-  ceq::rt::HostOptions options{
-      .min_start_time = 1h,
-      .max_start_time = 2h,
-      .min_drift = 0.001,
-      .max_drift = 0.002,
-  };
   for (uint64_t seed = 0; seed < 100; ++seed) {
+    std::unordered_set<uint64_t> hosts;
+    Host host(hosts);
+
+    ceq::rt::HostOptions options{
+        .min_start_time = 1h,
+        .max_start_time = 2h,
+        .min_drift = 0.001,
+        .max_drift = 0.002,
+    };
+
     ceq::rt::InitWorld(42);
     for (size_t i = 0; i < 10; ++i) {
       ceq::rt::AddHost("addr" + std::to_string(i), &host, options);

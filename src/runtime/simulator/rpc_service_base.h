@@ -22,18 +22,18 @@ class RpcServer::RpcService {
   RpcResult ProcessRequestWrapper(const SerializedData& data, Handler handler) noexcept {
     Request request;
     if (!request.ParseFromArray(data.data(), data.size())) {
-      return RpcResult::Err(RpcError::ErrorType::ParseError);
+      return Err(RpcError::ErrorType::ParseError);
     }
     auto result = handler(request);
     if (result.HasError()) {
-      return RpcResult::Err(std::move(result).ExpectError());
+      return Err(std::move(result).GetError());
     }
     SerializedData serialized_result;
-    serialized_result.resize(result.ExpectValue().ByteSizeLong());
+    serialized_result.resize(result.GetValue().ByteSizeLong());
     VERIFY(
-        result.ExpectValue().SerializeToArray(serialized_result.data(), serialized_result.size()),
+        result.GetValue().SerializeToArray(serialized_result.data(), serialized_result.size()),
         "serialization error");
-    return RpcResult::Ok(std::move(serialized_result));
+    return Ok(std::move(serialized_result));
   }
 
  private:

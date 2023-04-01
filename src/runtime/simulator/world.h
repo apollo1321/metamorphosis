@@ -7,9 +7,9 @@
 
 #include <boost/fiber/all.hpp>
 
+#include <runtime/event.h>
 #include <runtime/simulator/rpc_client_base.h>
 
-#include "event.h"
 #include "host.h"
 
 namespace ceq::rt {
@@ -20,7 +20,7 @@ class World {
 
   std::mt19937& GetGenerator() noexcept;
 
-  Timestamp GlobalTime() const noexcept;
+  Timestamp GetGlobalTime() const noexcept;
 
   void AddHost(const Address& address, HostPtr host) noexcept;
   void NotifyHostFinish() noexcept;
@@ -29,8 +29,12 @@ class World {
 
   void RunSimulation() noexcept;
 
-  RpcResult MakeRequest(const Endpoint& endpint, const SerializedData& data,
-                        const ServiceName& service_name, const HandlerName& handler_name) noexcept;
+  RpcResult MakeRequest(Endpoint endpint, SerializedData data, ServiceName service_name,
+                        HandlerName handler_name, StopToken stop_token) noexcept;
+
+ private:
+  Duration GetRpcDelay() noexcept;
+  bool ShouldMakeNetworkError() noexcept;
 
  private:
   std::unordered_map<Address, HostPtr> hosts_;

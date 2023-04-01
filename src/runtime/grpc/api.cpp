@@ -10,11 +10,11 @@ Timestamp Now() noexcept {
   return std::chrono::time_point_cast<Duration>(std::chrono::steady_clock::now());
 }
 
-void SleepFor(Duration duration, StopToken stop_token) noexcept {
-  SleepUntil(Now() + duration, std::move(stop_token));
+bool SleepFor(Duration duration, StopToken stop_token) noexcept {
+  return SleepUntil(Now() + duration, std::move(stop_token));
 }
 
-void SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
+bool SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
   boost::fibers::condition_variable cv;
   boost::fibers::mutex lock;
 
@@ -27,7 +27,7 @@ void SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
   });
 
   std::unique_lock guard(lock);
-  cv.wait_until(guard, timestamp, [&]() {
+  return cv.wait_until(guard, timestamp, [&]() {
     return cancelled;
   });
 }
