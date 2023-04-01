@@ -7,6 +7,7 @@ add_subdirectory(cancellation)
 add_library(runtime_grpc
   rpc_error.cpp
   rpc_server.cpp
+  event.cpp
   grpc/api.cpp
   grpc/rpc_client_base.cpp
   grpc/rpc_server.cpp
@@ -30,13 +31,13 @@ add_subdirectory(grpc)
 add_library(runtime_simulator
   rpc_error.cpp
   rpc_server.cpp
+  event.cpp
   simulator/api.cpp
   simulator/rpc_client_base.cpp
   simulator/rpc_server.cpp
   simulator/rpc_service_base.cpp
   simulator/world.cpp
   simulator/host.cpp
-  simulator/event.cpp
   simulator/scheduler.cpp)
 
 target_link_libraries(runtime_simulator

@@ -23,10 +23,10 @@ Host::Host(IHostRunnable* host_main, const HostOptions& options) noexcept {
 }
 
 Timestamp Host::GetLocalTime() const noexcept {
-  return ToLocalTime(GetWorld()->GlobalTime());
+  return ToLocalTime(GetWorld()->GetGlobalTime());
 }
 
-void Host::SleepUntil(Timestamp local_time, StopToken stop_token) noexcept {
+bool Host::SleepUntil(Timestamp local_time, StopToken stop_token) noexcept {
   VERIFY(GetCurrentHost() == this, "invalid current_host");
 
   std::uniform_int_distribution<Duration::rep> lag_dist{0, max_sleep_lag_.count()};
@@ -34,12 +34,14 @@ void Host::SleepUntil(Timestamp local_time, StopToken stop_token) noexcept {
   local_time += Duration(val);
 
   auto global_timestamp = ToGlobalTime(local_time);
-  VERIFY(global_timestamp >= GetWorld()->GlobalTime(), "invalid timestamp for sleep");
+  VERIFY(global_timestamp >= GetWorld()->GetGlobalTime(), "invalid timestamp for sleep");
 
   GetWorld()->SleepUntil(global_timestamp, stop_token);
 
-  VERIFY(GetWorld()->GlobalTime() == global_timestamp || stop_token.StopRequested(),
+  VERIFY(GetWorld()->GetGlobalTime() == global_timestamp || stop_token.StopRequested(),
          "SleepUntil error");
+
+  return stop_token.StopRequested();
 }
 
 void Host::RunMain(IHostRunnable* host_main) noexcept {
@@ -82,13 +84,13 @@ void Host::UnregisterServer(uint16_t port) noexcept {
 RpcResult Host::ProcessRequest(uint16_t port, const SerializedData& data,
                                const ServiceName& service_name,
                                const HandlerName& handler_name) noexcept {
+  VERIFY(GetCurrentHost() == this, "invalid current_host");
+
   if (!servers_.contains(port)) {
-    return RpcResult::Err(RpcError::ErrorType::ConnectionRefused);
+    return Err(RpcError::ErrorType::ConnectionRefused);
   }
 
-  auto result = servers_[port]->ProcessRequest(data, service_name, handler_name);
-
-  return result;
+  return servers_[port]->ProcessRequest(data, service_name, handler_name);
 }
 
 Host::~Host() {

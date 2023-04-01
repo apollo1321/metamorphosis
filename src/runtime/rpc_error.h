@@ -13,6 +13,7 @@ struct RpcError {
     HandlerNotFound,
     Internal,
     ParseError,
+    Cancelled,
   };
 
   explicit RpcError(ErrorType error_type = ErrorType::Internal,

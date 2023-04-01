@@ -22,7 +22,7 @@ std::mt19937& World::GetGenerator() noexcept {
   return generator_;
 }
 
-Timestamp World::GlobalTime() const noexcept {
+Timestamp World::GetGlobalTime() const noexcept {
   return current_time_;
 }
 
@@ -67,31 +67,63 @@ void World::RunSimulation() noexcept {
   }
 }
 
-RpcResult World::MakeRequest(const Endpoint& endpoint, const SerializedData& data,
-                             const ServiceName& service_name,
-                             const HandlerName& handler_name) noexcept {
-  using Result = Result<SerializedData, RpcError>;
-
+Duration World::GetRpcDelay() noexcept {
   std::uniform_int_distribution<Duration::rep> delay_dist(options_.min_delivery_time.count(),
                                                           options_.max_delivery_time.count());
+  return Duration(delay_dist(GetGenerator()));
+}
+
+bool World::ShouldMakeNetworkError() noexcept {
   std::uniform_real_distribution<double> prob_dist(0., 1.);
 
-  SleepUntil(GlobalTime() + Duration(delay_dist(GetGenerator())));
+  return prob_dist(GetGenerator()) < options_.network_error_proba;
+}
 
-  if (!hosts_.contains(endpoint.address)) {
-    return RpcResult::Err(RpcError::ErrorType::HostNotFound);
-  }
+RpcResult World::MakeRequest(Endpoint endpoint, SerializedData data, ServiceName service_name,
+                             HandlerName handler_name, StopToken stop_token) noexcept {
+  struct State {
+    RpcResult result = Err(RpcError::ErrorType::Cancelled);
+    Event event;
+  };
 
-  auto result =
-      hosts_[endpoint.address]->ProcessRequest(endpoint.port, data, service_name, handler_name);
+  auto state = std::make_shared<State>();
 
-  SleepUntil(GlobalTime() + Duration(delay_dist(GetGenerator())));
+  StopCallback stop_callback(stop_token, [&]() {
+    state->event.Signal();
+  });
 
-  if (prob_dist(GetGenerator()) < options_.network_error_proba) {
-    return Result::Err(RpcError::ErrorType::NetworkError);
-  }
+  boost::fibers::fiber([this, endpoint = std::move(endpoint), data = std::move(data),
+                        service_name = std::move(service_name),
+                        handler_name = std::move(handler_name), state, stop_token]() {
+    SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
 
-  return result;
+    if (!hosts_.contains(endpoint.address)) {
+      state->result = Err(RpcError::ErrorType::HostNotFound);
+    }
+
+    auto target_host = hosts_[endpoint.address].get();
+
+    boost::this_fiber::properties<RuntimeSimulationProps>().SetCurrentHost(target_host);
+
+    if (stop_token.StopRequested()) {
+      return;
+    }
+
+    auto result = target_host->ProcessRequest(endpoint.port, data, service_name, handler_name);
+
+    SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
+
+    if (ShouldMakeNetworkError()) {
+      state->result = Err(RpcError::ErrorType::NetworkError);
+    } else {
+      state->result = std::move(result);
+    }
+    state->event.Signal();
+  }).detach();
+
+  state->event.Await();
+
+  return std::move(state->result);
 }
 
 World* GetWorld() noexcept {

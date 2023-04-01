@@ -8,7 +8,22 @@
 
 namespace ceq {
 
-// Simple wrapper over std::variant
+namespace impl {
+
+struct OkTag {};
+struct ErrTag {};
+
+}  // namespace impl
+
+template <class... Args>
+auto Ok(Args&&... args) {
+  return std::tuple<impl::OkTag, Args&&...>(impl::OkTag{}, std::forward<Args>(args)...);
+}
+
+template <class... Args>
+auto Err(Args&&... args) {
+  return std::tuple<impl::ErrTag, Args&&...>(impl::ErrTag{}, std::forward<Args>(args)...);
+}
 
 template <class T, class E>
 class [[nodiscard]] Result {
@@ -22,16 +37,16 @@ class [[nodiscard]] Result {
   static_assert(!std::is_void<Error>::value, "void error type is now allowed");
 
  public:
-  // Static constructors
-
   template <class... Args>
-  static Result Ok(Args&&... arguments) {
-    return Result(std::in_place_index<0>, std::forward<Args>(arguments)...);
+  Result(std::tuple<impl::OkTag, Args...>&& args)  // NOLINT
+      : Result(std::in_place_index<0>, std::move(args),
+               std::make_index_sequence<sizeof...(Args) + 1>{}) {
   }
 
   template <class... Args>
-  static Result Err(Args&&... arguments) {
-    return Result(std::in_place_index<1>, std::forward<Args>(arguments)...);
+  Result(std::tuple<impl::ErrTag, Args...>&& args)  // NOLINT
+      : Result(std::in_place_index<1>, std::move(args),
+               std::make_index_sequence<sizeof...(Args) + 1>{}) {
   }
 
   // Moving
@@ -64,10 +79,6 @@ class [[nodiscard]] Result {
     return !HasValue();
   }
 
-  [[nodiscard]] bool IsOk() const noexcept {
-    return HasValue();
-  }
-
   // Value accessors
 
   Value& ValueOrThrow() & {
@@ -85,17 +96,17 @@ class [[nodiscard]] Result {
     return std::move(std::get<0>(data_));
   }
 
-  Value& ExpectValue() & noexcept {
+  Value& GetValue() & noexcept {
     ExpectOk();
     return std::get<0>(data_);
   }
 
-  const Value& ExpectValue() const& noexcept {
+  const Value& GetValue() const& noexcept {
     ExpectOk();
     return std::get<0>(data_);
   }
 
-  Value&& ExpectValue() && noexcept {
+  Value&& GetValue() && noexcept {
     ExpectOk();
     return std::move(std::get<0>(data_));
   }
@@ -117,17 +128,17 @@ class [[nodiscard]] Result {
     }
   }
 
-  Error& ExpectError() & noexcept {
+  Error& GetError() & noexcept {
     ExpectFail();
     return std::get<1>(data_);
   }
 
-  const Error& ExpectError() const& noexcept {
+  const Error& GetError() const& noexcept {
     ExpectFail();
     return std::get<1>(data_);
   }
 
-  Error&& ExpectError() && noexcept {
+  Error&& GetError() && noexcept {
     ExpectFail();
     return std::move(std::get<1>(data_));
   }
@@ -139,9 +150,9 @@ class [[nodiscard]] Result {
   }
 
  protected:
-  template <class Index, class... Args>
-  explicit Result(Index index, Args&&... arguments)
-      : data_(index, std::forward<Args>(arguments)...) {
+  template <class Index, class... Args, size_t Ind1, size_t... Is>
+  explicit Result(Index index, std::tuple<Args...>&& args, std::index_sequence<Ind1, Is...>)
+      : data_(index, std::get<Is>(args)...) {
   }
 
  private:
@@ -151,31 +162,22 @@ class [[nodiscard]] Result {
 template <class E>
 class [[nodiscard]] Result<void, E> : public Result<std::monostate, E> {
  public:
-  // Static constructors
-
-  static Result Ok() {
-    return Result(std::in_place_index<0>);
+  Result(std::tuple<impl::OkTag>&& args)  // NOLINT
+      : Result(std::in_place_index<0>, std::move(args), std::make_index_sequence<1>{}) {
   }
 
-  template <class... TArgs>
-  static Result Err(TArgs&&... arguments) {
-    return Result(std::in_place_index<1>, std::forward<TArgs>(arguments)...);
+  template <class... Args>
+  Result(std::tuple<impl::ErrTag, Args...>&& args)  // NOLINT
+      : Base::Result(std::in_place_index<1>, std::move(args),
+               std::make_index_sequence<sizeof...(Args) + 1>{}) {
   }
 
  private:
   using Base = Result<std::monostate, E>;
 
-  using Base::Err;
-  using Base::ExpectValue;
+  using Base::GetValue;
   using Base::HasValue;
-  using Base::Ok;
   using Base::ValueOrThrow;
-
- private:
-  template <class Index, class... Args>
-  explicit Result(Index index, Args&&... arguments)
-      : Base(index, std::forward<Args>(arguments)...) {
-  }
 };
 
 template <class E>
