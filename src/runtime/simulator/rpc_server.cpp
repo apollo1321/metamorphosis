@@ -44,7 +44,7 @@ RpcResult RpcServer::RpcServerImpl::ProcessRequest(const SerializedData& data,
   };
 
   if (!services_.contains(service_name)) {
-    return RpcResult::Err(RpcError::ErrorType::ServiceNotFound, "Unknown service: " + service_name);
+    return Err(RpcError::ErrorType::ServiceNotFound, "Unknown service: " + service_name);
   }
 
   return services_[service_name]->ProcessRequest(data, handler_name);

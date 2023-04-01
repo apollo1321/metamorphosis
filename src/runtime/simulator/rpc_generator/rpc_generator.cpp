@@ -16,8 +16,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
                           const FileDescriptor* file) noexcept {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(
-      generator_context->Open(file_name + ".client.h"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".client.h"));
   Printer printer(stream.get(), '$');
 
   // Includes
@@ -45,9 +44,9 @@ void GenerateClientHeader(GeneratorContext* generator_context,
     // Methods
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
-      printer.Print(
-          vars,
-          "Result<$output_type$, RpcError> $method_name$(const $input_type$& input) noexcept;\n");
+      printer.Print(vars,
+                    "Result<$output_type$, RpcError> $method_name$(const $input_type$& input, "
+                    "StopToken stop_token = {}) noexcept;\n");
     }
 
     printer.Outdent();
@@ -61,8 +60,7 @@ void GenerateClientSource(GeneratorContext* generator_context,
                           const FileDescriptor* file) noexcept {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(
-      generator_context->Open(file_name + ".client.cc"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".client.cc"));
   Printer printer(stream.get(), '$');
 
   // Includes
@@ -86,11 +84,11 @@ void GenerateClientSource(GeneratorContext* generator_context,
       printer.Print("\n");
       printer.Print(vars,
                     "Result<$output_type$, RpcError> $service_class$::$method_name$(const "
-                    "$input_type$& input) noexcept {\n");
+                    "$input_type$& input, StopToken stop_token) noexcept {\n");
       printer.Indent();
       printer.Print(vars,
                     "return MakeRequest<$input_type$, $output_type$>(input, "
-                    "\"$service_name$\", \"$method_name$\");\n");
+                    "\"$service_name$\", \"$method_name$\", std::move(stop_token));\n");
       printer.Outdent();
       printer.Print("}\n");
     }
@@ -102,8 +100,7 @@ void GenerateClientSource(GeneratorContext* generator_context,
 void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescriptor* file) {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(
-      generator_context->Open(file_name + ".service.h"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".service.h"));
   Printer printer(stream.get(), '$');
 
   // Includes
@@ -159,8 +156,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
 void GenerateServiceSource(GeneratorContext* generator_context, const FileDescriptor* file) {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(
-      generator_context->Open(file_name + ".service.cc"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".service.cc"));
   Printer printer(stream.get(), '$');
 
   // Includes
@@ -179,9 +175,9 @@ void GenerateServiceSource(GeneratorContext* generator_context, const FileDescri
     printer.Print("\n");
 
     // Constructor
-    printer.Print(
-        vars,
-        "$service_class$::$service_class$() noexcept : RpcServer::RpcService{\"$service_name$\"} {}\n\n");
+    printer.Print(vars,
+                  "$service_class$::$service_class$() noexcept : "
+                  "RpcServer::RpcService{\"$service_name$\"} {}\n\n");
 
     printer.Print(
         vars,
@@ -199,7 +195,7 @@ void GenerateServiceSource(GeneratorContext* generator_context, const FileDescri
       printer.Outdent();
       printer.Print(vars, "}\n");
     }
-    printer.Print(vars, "return RpcResult::Err(RpcError::ErrorType::HandlerNotFound);\n");
+    printer.Print(vars, "return Err(RpcError::ErrorType::HandlerNotFound);\n");
     printer.Outdent();
     printer.Print("}\n");
   }

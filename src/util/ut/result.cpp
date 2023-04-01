@@ -12,23 +12,21 @@ struct SimpleErr {
 };
 
 TEST(Result, SimpleOk) {
-  auto result = ceq::Result<int, SimpleErr>::Ok(1);
+  ceq::Result<int, SimpleErr> result = ceq::Ok(1);
   EXPECT_TRUE(result.HasValue());
   EXPECT_FALSE(result.HasError());
-  EXPECT_TRUE(result.IsOk());
   EXPECT_NO_THROW(result.ValueOrThrow());  // NOLINT
   EXPECT_NO_THROW(result.ThrowIfError());  // NOLINT
-  EXPECT_EQ(result.ExpectValue(), 1);
+  EXPECT_EQ(result.GetValue(), 1);
 }
 
 TEST(Result, SimpleErr) {
-  auto result = ceq::Result<int, SimpleErr>::Err(1);
+  ceq::Result<int, SimpleErr> result = ceq::Err(1);
   EXPECT_TRUE(result.HasError());
   EXPECT_FALSE(result.HasValue());
-  EXPECT_FALSE(result.IsOk());
   EXPECT_THROW(result.ValueOrThrow(), std::exception);  // NOLINT
   EXPECT_THROW(result.ThrowIfError(), std::exception);  // NOLINT
-  EXPECT_EQ(result.ExpectError().val, 1);
+  EXPECT_EQ(result.GetError().val, 1);
 }
 
 TEST(Result, OnlyMovable) {
@@ -42,9 +40,9 @@ TEST(Result, OnlyMovable) {
     int val{};
   };
 
-  auto result1 = ceq::Result<Val, SimpleErr>::Ok(1);
+  ceq::Result<Val, SimpleErr> result1 = ceq::Ok(1);
   auto result2 = std::move(result1);
-  EXPECT_EQ(result2.ExpectValue().val, 1);
+  EXPECT_EQ(result2.GetValue().val, 1);
 }
 
 TEST(Result, CopyableAndAssignable) {
@@ -58,23 +56,22 @@ TEST(Result, CopyableAndAssignable) {
     int val{};
   };
 
-  auto result1 = ceq::Result<Val, SimpleErr>::Ok(1);
+  ceq::Result<Val, SimpleErr> result1 = ceq::Ok(1);
   auto result2 = result1;
   auto result3 = result1;
-  EXPECT_EQ(result2.ExpectValue().val, 1);
-  EXPECT_EQ(result3.ExpectValue().val, 1);
+  EXPECT_EQ(result2.GetValue().val, 1);
+  EXPECT_EQ(result3.GetValue().val, 1);
   EXPECT_NO_THROW(result3.ThrowIfError());  // NOLINT
 }
 
 TEST(Result, SameType) {
-  using Result = ceq::Result<int, int>;
-  EXPECT_EQ(Result::Ok(1).ExpectValue(), 1);
-  EXPECT_EQ(Result::Err(1).ExpectError(), 1);
+  EXPECT_EQ((ceq::Result<int, int>(ceq::Ok(1)).GetValue()), 1);
+  EXPECT_EQ((ceq::Result<int, int>(ceq::Err(1)).GetError()), 1);
 }
 
 TEST(Result, ThrowsStdError) {
-  auto result =
-      ceq::Status<std::error_code>::Err(std::make_error_code(std::errc::host_unreachable));
+  ceq::Status<std::error_code> result = ceq::Err(std::make_error_code(std::errc::host_unreachable));
+
   try {
     result.ThrowIfError();
   } catch (std::system_error& e) {
@@ -91,7 +88,7 @@ TEST(Result, RethowsError) {
   } catch (std::exception&) {
     exc = std::current_exception();
   }
-  auto result = ceq::Status<std::exception_ptr>::Err(exc);
+  ceq::Status<std::exception_ptr> result = ceq::Err(exc);
   try {
     result.ThrowIfError();
   } catch (std::runtime_error& e) {
