@@ -8,6 +8,7 @@
 #include <grpcpp/support/async_unary_call.h>
 #include <grpcpp/support/method_handler.h>
 
+#include <runtime/rpc_error.h>
 #include <runtime/rpc_server.h>
 
 namespace ceq::rt {
@@ -33,17 +34,14 @@ class RpcServer::RpcService : public grpc::Service {
     void RunImpl(Handler handler) noexcept {
       finished = true;
 
-      try {
-        auto reply = handler(request);
-        responder.Finish(reply, grpc::Status(), this);
-      } catch (std::exception& e) {
-        responder.FinishWithError(grpc::Status(grpc::StatusCode::INTERNAL,
-                                               std::string("exception is thrown: ") + e.what()),
-                                  this);
-      } catch (...) {
+      auto reply = handler(request);
+
+      RpcError err;
+      if (reply.HasValue()) {
+        responder.Finish(reply.GetValue(), grpc::Status(), this);
+      } else {
         responder.FinishWithError(
-            grpc::Status(grpc::StatusCode::INTERNAL, std::string("unknown exception is thrown")),
-            this);
+            grpc::Status(grpc::StatusCode::INTERNAL, reply.GetError().status_message), this);
       }
     }
 
