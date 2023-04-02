@@ -98,7 +98,9 @@ RpcResult World::MakeRequest(Endpoint endpoint, SerializedData data, ServiceName
     SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
 
     if (!hosts_.contains(endpoint.address)) {
-      state->result = Err(RpcError::ErrorType::HostNotFound);
+      state->result = Err(RpcError::ErrorType::ConnectionRefused);
+      state->event.Signal();
+      return;
     }
 
     auto target_host = hosts_[endpoint.address].get();
