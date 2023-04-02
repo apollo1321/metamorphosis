@@ -28,7 +28,7 @@ std::mt19937& GetGenerator() noexcept {
 
 void AddHost(const Address& address, IHostRunnable* host_main,
              const HostOptions& options) noexcept {
-  GetWorld()->AddHost(address, std::make_unique<Host>(host_main, options));
+  GetWorld()->AddHost(address, std::make_unique<Host>(address, host_main, options));
 }
 
 void RunSimulation() noexcept {
@@ -37,6 +37,10 @@ void RunSimulation() noexcept {
 
 uint64_t GetHostUniqueId() noexcept {
   return reinterpret_cast<uint64_t>(GetCurrentHost());
+}
+
+std::shared_ptr<spdlog::logger> GetLogger() noexcept {
+  return GetCurrentHost()->GetLogger();
 }
 
 }  // namespace ceq::rt

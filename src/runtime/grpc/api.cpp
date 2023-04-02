@@ -37,4 +37,8 @@ std::mt19937& GetGenerator() noexcept {
   return generator;
 }
 
+std::shared_ptr<spdlog::logger> GetLogger() noexcept {
+  return spdlog::default_logger();
+}
+
 }  // namespace ceq::rt

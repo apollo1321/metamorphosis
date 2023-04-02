@@ -1,6 +1,6 @@
 #include "rpc_server.h"
 
-#include <boost/fiber/fiber.hpp>
+#include <boost/fiber/all.hpp>
 
 #include <util/condition_check.h>
 
@@ -56,7 +56,7 @@ void RpcServer::RpcServerImpl::RunDispatchingWorker(grpc::ServerCompletionQueue&
   bool ok = false;
   while (queue.Next(&tag, &ok)) {
     auto rpc_call = static_cast<RpcServer::RpcService::RpcCallBase*>(tag);
-    if (rpc_call->finished || !ok) {
+    if (rpc_call->finished || !ok || !running_) {
       delete rpc_call;
     } else {
       rpc_call->PutNewCallInQueue(queue);
@@ -83,17 +83,22 @@ void RpcServer::RpcServerImpl::RunWorker() noexcept {
 void RpcServer::RpcServerImpl::ShutDown() noexcept {
   VERIFY(running_.exchange(false) && !finished_.exchange(true), "server is not running");
 
-  server_->Shutdown();
-  for (auto& queue : queues_) {
-    queue->Shutdown();
-  }
   channel_->close();
   for (auto& thread : worker_threads_) {
     thread.join();
   }
+
+  server_->Shutdown();
+  for (auto& queue : queues_) {
+    queue->Shutdown();
+  }
   for (auto& thread : dispatching_threads_) {
     thread.join();
   }
+}
+
+RpcServer::RpcServerImpl::~RpcServerImpl() {
+  VERIFY(finished_, "Destruction of running server");
 }
 
 }  // namespace ceq::rt

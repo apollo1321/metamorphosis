@@ -3,7 +3,7 @@ project(cost_effective_queue)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_FLAGS_ASAN "-g -O2 -fsanitize=address -fno-omit-frame-pointer") 
+set(CMAKE_CXX_FLAGS_ASAN "-g -O0 -fsanitize=address -fno-omit-frame-pointer") 
 set(CMAKE_CXX_FLAGS_TSAN "-g -O2 -fsanitize=thread -fno-omit-frame-pointer") 
 
 # For clangd to work

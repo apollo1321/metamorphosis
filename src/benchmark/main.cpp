@@ -13,13 +13,15 @@
 
 using namespace std::chrono_literals;
 
+using ceq::Result;
+using ceq::rt::RpcError;
 using ceq::rt::ServerRunConfig;
 
 class EchoService final : public ceq::rt::EchoServiceStub {
-  EchoReply SayHello(const EchoRequest& request) override {
+  Result<EchoReply, RpcError> SayHello(const EchoRequest& request) noexcept override {
     EchoReply reply;
     reply.set_message("Hello from async server " + request.name());
-    return reply;
+    return ceq::Ok(reply);
   }
 };
 
@@ -59,7 +61,7 @@ void BenchEchoService(ServerRunConfig server_config, ClientConfig client_config,
           while (running) {
             EchoRequest request;
             request.set_name(std::to_string(thread_id) + ":" + std::to_string(fiber_id));
-            client.SayHello(request).message();
+            client.SayHello(request).GetValue().message();
             count.fetch_add(1);
           }
         });

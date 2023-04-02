@@ -19,8 +19,6 @@ struct EchoService final : public ceq::rt::EchoServiceStub {
   }
 
   ceq::Result<EchoReply, RpcError> Echo(const EchoRequest& request) noexcept override {
-    using Result = ceq::Result<EchoReply, RpcError>;
-
     EchoReply reply;
     reply.set_msg("Hello, " + request.msg());
     if (!msg.empty()) {
@@ -44,6 +42,7 @@ TEST(Rpc, SimplyWorks) {
       server.Run(42);
 
       ceq::rt::SleepFor(1h);
+      server.ShutDown();
     }
   };
 
@@ -83,6 +82,8 @@ TEST(Rpc, DeliveryTime) {
       server.Run(42);
 
       ceq::rt::SleepFor(1h);
+
+      server.ShutDown();
     }
   };
 
@@ -135,6 +136,8 @@ TEST(Rpc, NetworkErrorProba) {
       server.Run(42);
 
       ceq::rt::SleepFor(10h);
+
+      server.ShutDown();
     }
   };
 
@@ -175,21 +178,23 @@ TEST(Rpc, NetworkErrorProba) {
 TEST(Rpc, ManyClientsManyServers) {
   struct Host final : public ceq::rt::IHostRunnable {
     void Main() noexcept override {
+      EchoService service1;
+      EchoService service2;
+
       RpcServer server1;
       RpcServer server2;
 
       auto handle = boost::fibers::async([]() {
-        RpcServer server3;
         EchoService service3;
+        RpcServer server3;
 
         server3.Register(&service3);
         server3.Run(3);
 
         ceq::rt::SleepFor(10h);
-      });
 
-      EchoService service1;
-      EchoService service2;
+        server3.ShutDown();
+      });
 
       server1.Register(&service1);
       server1.Run(1);
@@ -200,6 +205,9 @@ TEST(Rpc, ManyClientsManyServers) {
       ceq::rt::SleepFor(10h);
 
       handle.wait();
+
+      server1.ShutDown();
+      server2.ShutDown();
     }
   };
 
@@ -273,6 +281,7 @@ TEST(Rpc, EchoProxy) {
       server.Register(this);
       server.Run(42);
       ceq::rt::SleepFor(10h);
+      server.ShutDown();
     }
 
     ceq::Result<EchoReply, RpcError> Forward1(const EchoRequest& request) noexcept override {
@@ -303,6 +312,7 @@ TEST(Rpc, EchoProxy) {
       server.Register(&service);
       server.Run(1);
       ceq::rt::SleepFor(10h);
+      server.ShutDown();
     }
   };
 
@@ -313,6 +323,7 @@ TEST(Rpc, EchoProxy) {
       server.Register(&service);
       server.Run(2);
       ceq::rt::SleepFor(10h);
+      server.ShutDown();
     }
   };
 
@@ -400,6 +411,7 @@ TEST(Rpc, CancelSimplyWorks) {
       server.Run(42);
 
       ceq::rt::SleepFor(1h);
+      server.ShutDown();
     }
 
     ceq::Result<EchoReply, RpcError> Echo(const EchoRequest& request) noexcept override {
@@ -434,6 +446,55 @@ TEST(Rpc, CancelSimplyWorks) {
 
   ceq::rt::InitWorld(42);
   ceq::rt::AddHost("addr1", &host);
+  ceq::rt::AddHost("addr2", &client);
+  ceq::rt::RunSimulation();
+}
+
+TEST(Rpc, HandlerNotFound) {
+  struct Host final : public IHostRunnable {
+    void Main() noexcept override {
+      RpcServer server;
+      server.Run(42);
+      ceq::rt::SleepFor(1h);
+      server.ShutDown();
+    }
+  };
+
+  struct Client final : public IHostRunnable {
+    void Main() noexcept override {
+      EchoServiceClient client(Endpoint{"addr1", 42});
+      EchoRequest request;
+      request.set_msg("Client");
+      auto result = client.Echo(request);
+      EXPECT_TRUE(result.HasError());
+      EXPECT_EQ(result.GetError().error_type, RpcError::ErrorType::HandlerNotFound);
+    }
+  };
+
+  Host host;
+  Client client;
+
+  ceq::rt::InitWorld(42);
+  ceq::rt::AddHost("addr1", &host);
+  ceq::rt::AddHost("addr2", &client);
+  ceq::rt::RunSimulation();
+}
+
+TEST(Rpc, ConnectionRefused) {
+  struct Client final : public IHostRunnable {
+    void Main() noexcept override {
+      EchoServiceClient client(Endpoint{"addr1", 43});
+      EchoRequest request;
+      request.set_msg("Client");
+      auto result = client.Echo(request);
+      EXPECT_TRUE(result.HasError());
+      EXPECT_EQ(result.GetError().error_type, RpcError::ErrorType::ConnectionRefused);
+    }
+  };
+
+  Client client;
+
+  ceq::rt::InitWorld(42);
   ceq::rt::AddHost("addr2", &client);
   ceq::rt::RunSimulation();
 }
