@@ -20,7 +20,8 @@ target_link_libraries(runtime_grpc
   libprotobuf
   grpc++_reflection
   grpc++
-  Boost::fiber)
+  Boost::fiber
+  spdlog)
 
 add_subdirectory(grpc)
 
@@ -38,6 +39,7 @@ add_library(runtime_simulator
   simulator/rpc_service_base.cpp
   simulator/world.cpp
   simulator/host.cpp
+  simulator/logger.cpp
   simulator/scheduler.cpp)
 
 target_link_libraries(runtime_simulator
@@ -45,7 +47,8 @@ target_link_libraries(runtime_simulator
   ceq_util
   ceq_cancellation
   libprotobuf
-  Boost::fiber)
+  Boost::fiber
+  spdlog)
 
 target_compile_definitions(runtime_simulator PUBLIC RT_SIMULATION)
 

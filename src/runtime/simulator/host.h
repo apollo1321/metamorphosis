@@ -11,7 +11,7 @@
 namespace ceq::rt {
 
 struct Host {
-  Host(IHostRunnable* host_main, const HostOptions& options) noexcept;
+  Host(const Address& address, IHostRunnable* host_main, const HostOptions& options) noexcept;
 
   Timestamp GetLocalTime() const noexcept;
   bool SleepUntil(Timestamp local_time, StopToken stop_token = StopToken{}) noexcept;
@@ -23,10 +23,13 @@ struct Host {
   void RegisterServer(RpcServer::RpcServerImpl* server, uint16_t port) noexcept;
   void UnregisterServer(uint16_t port) noexcept;
 
+  std::shared_ptr<spdlog::logger> GetLogger() noexcept;
+
   ~Host();
 
  private:
   void RunMain(IHostRunnable* host_main) noexcept;
+
 
   Timestamp ToLocalTime(Timestamp global_time) const noexcept;
   Timestamp ToGlobalTime(Timestamp local_time) const noexcept;
@@ -39,6 +42,8 @@ struct Host {
   boost::fibers::fiber main_fiber_;
 
   std::unordered_map<uint16_t, RpcServer::RpcServerImpl*> servers_;
+
+  std::shared_ptr<spdlog::logger> logger_;
 };
 
 Host* GetCurrentHost() noexcept;
