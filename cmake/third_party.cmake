@@ -151,3 +151,13 @@ FetchContent_MakeAvailable(rocksdb)
 add_library(store INTERFACE)
 target_link_libraries(store INTERFACE rocksdb)
 target_include_directories(store INTERFACE src ${rocksdb_SOURCE_DIR}/include)
+
+# ------------------------------------------------------------------------------
+# spdlog
+# ------------------------------------------------------------------------------
+
+FetchContent_Declare(
+  spdlog
+  URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz
+)
+FetchContent_MakeAvailable(spdlog)
