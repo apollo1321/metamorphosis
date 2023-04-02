@@ -1,9 +1,11 @@
 #pragma once
 
 #include <chrono>
+#include <memory>
 #include <random>
 
-#include "cancellation/stop_token.h"
+#include <runtime/cancellation/stop_token.h>
+#include <spdlog/spdlog.h>
 
 namespace ceq::rt {
 
@@ -15,5 +17,7 @@ bool SleepFor(Duration duration, StopToken stop_token = StopToken{}) noexcept;
 bool SleepUntil(Timestamp timestamp, StopToken stop_token = StopToken{}) noexcept;
 
 std::mt19937& GetGenerator() noexcept;
+
+std::shared_ptr<spdlog::logger> GetLogger() noexcept;
 
 }  // namespace ceq::rt

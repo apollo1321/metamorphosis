@@ -1,15 +1,15 @@
 #include "host.h"
-
+#include "logger.h"
+#include "scheduler.h"
 #include "world.h"
 
 #include <util/binary_search.h>
 #include <util/condition_check.h>
 
-#include "scheduler.h"
-
 namespace ceq::rt {
 
-Host::Host(IHostRunnable* host_main, const HostOptions& options) noexcept {
+Host::Host(const Address& address, IHostRunnable* host_main, const HostOptions& options) noexcept
+    : logger_{CreateLogger(address)} {
   std::uniform_real_distribution<double> drift_dist{options.min_drift, options.max_drift};
   std::uniform_int_distribution<Duration::rep> skew_dist{0, options.max_start_time.count()};
 
@@ -91,6 +91,10 @@ RpcResult Host::ProcessRequest(uint16_t port, const SerializedData& data,
   }
 
   return servers_[port]->ProcessRequest(data, service_name, handler_name);
+}
+
+std::shared_ptr<spdlog::logger> Host::GetLogger() noexcept {
+  return logger_;
 }
 
 Host::~Host() {

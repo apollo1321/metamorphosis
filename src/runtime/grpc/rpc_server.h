@@ -21,6 +21,8 @@ class RpcServer::RpcServerImpl {
 
   void ShutDown() noexcept;
 
+  ~RpcServerImpl();
+
  private:
   static constexpr size_t kQueueSize = 1 << 10;
 
