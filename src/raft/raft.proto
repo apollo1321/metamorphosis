@@ -4,8 +4,12 @@ import "google/protobuf/empty.proto";
 
 // Client API for RSM
 
-message Command {
+message RsmCommand {
   uint64 data = 1;
+}
+
+message RsmResponse {
+  repeated uint64 log_entries = 1;
 }
 
 message Response {
@@ -15,11 +19,11 @@ message Response {
   };
 
   Status status = 1;
-  uint64 rsm_response = 2;
+  RsmResponse rsm_response = 2;
 }
 
 service RaftApi {
-  rpc Execute(Command) returns (Response) {}
+  rpc Execute(RsmCommand) returns (Response) {}
 }
 
 // Raft internal rpc's

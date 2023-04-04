@@ -81,7 +81,7 @@ std::shared_ptr<spdlog::logger> CreateLogger(std::string host_name) noexcept {
   auto logger = std::make_shared<spdlog::logger>(host_name);
 
   auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_st>(host_name + ".host.log",
-                                                                          1024 * 1024, 2, true);
+                                                                          1024 * 1024, 1, true);
   file_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
       "G:[%H:%M:%S.%E.%F] L:[%h:%m:%s.%e.%f] [%^%L%$] %v", spdlog::pattern_time_type::local,
       spdlog::details::os::default_eol, MakeFlags()));

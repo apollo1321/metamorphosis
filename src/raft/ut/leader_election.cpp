@@ -33,20 +33,26 @@ TEST(RaftElection, SimplyWorks) {
       .node_id = 0,
       .cluster = cluster,
       .election_timeout_interval = election_timeout_interval,
+      .heart_beat_period = heart_beat_period,
+      .rpc_timeout = rpc_timeout,
   });
   RaftNode node2(raft::RaftConfig{
       .node_id = 1,
       .cluster = cluster,
       .election_timeout_interval = election_timeout_interval,
+      .heart_beat_period = heart_beat_period,
+      .rpc_timeout = rpc_timeout,
   });
   RaftNode node3(raft::RaftConfig{
       .node_id = 2,
       .cluster = cluster,
       .election_timeout_interval = election_timeout_interval,
+      .heart_beat_period = heart_beat_period,
+      .rpc_timeout = rpc_timeout,
   });
 
   WorldOptions world_options{
-      .delivery_time_interval = {5ms, 1s},
+      .delivery_time_interval = {5ms, 350ms},
   };
   ceq::rt::InitWorld(42, world_options);
 
