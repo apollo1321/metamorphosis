@@ -20,7 +20,7 @@ TEST(Cancellation, CancelSleepSimplyWorks) {
         source.Stop();
       });
 
-      ceq::rt::SleepFor(1h, source.GetToken());
+      EXPECT_TRUE(ceq::rt::SleepFor(1h, source.GetToken()));
 
       EXPECT_EQ(ceq::rt::Now(), Timestamp(1s));
 

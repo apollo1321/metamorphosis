@@ -83,8 +83,7 @@ TEST(Clock, HostOrdering) {
   Host2 host2(ids);
 
   ceq::rt::InitWorld(42);
-  ceq::rt::AddHost("addr1", &host1,
-                   ceq::rt::HostOptions{.min_start_time = 10s, .max_start_time = 20s});
+  ceq::rt::AddHost("addr1", &host1, ceq::rt::HostOptions{.start_time_interval = {10s, 20s}});
   ceq::rt::AddHost("addr2", &host2);
   ceq::rt::RunSimulation();
 
@@ -158,7 +157,7 @@ TEST(Clock, Drift) {
 
   ceq::rt::InitWorld(42);
   ceq::rt::AddHost("addr1", &host1);
-  ceq::rt::AddHost("addr2", &host2, ceq::rt::HostOptions{.min_drift = 0.001, .max_drift = 0.002});
+  ceq::rt::AddHost("addr2", &host2, ceq::rt::HostOptions{.drift_interval = {0.001, 0.002}});
   ceq::rt::RunSimulation();
 
   EXPECT_GE(inconsistency_count, 5);
@@ -352,10 +351,8 @@ TEST(Clock, Dispatch) {
     Host host(hosts);
 
     ceq::rt::HostOptions options{
-        .min_start_time = 1h,
-        .max_start_time = 2h,
-        .min_drift = 0.001,
-        .max_drift = 0.002,
+        .start_time_interval = {1h, 2h},
+        .drift_interval = {0.001, 0.002},
     };
 
     ceq::rt::InitWorld(42);

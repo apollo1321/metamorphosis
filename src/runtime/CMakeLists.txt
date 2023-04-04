@@ -5,6 +5,7 @@ add_subdirectory(cancellation)
 # ------------------------------------------------------------------------------
 
 add_library(runtime_grpc
+  api.cpp
   rpc_error.cpp
   rpc_server.cpp
   event.cpp
@@ -30,6 +31,7 @@ add_subdirectory(grpc)
 # ------------------------------------------------------------------------------
 
 add_library(runtime_simulator
+  api.cpp
   rpc_error.cpp
   rpc_server.cpp
   event.cpp
@@ -50,6 +52,8 @@ target_link_libraries(runtime_simulator
   Boost::fiber
   spdlog)
 
-target_compile_definitions(runtime_simulator PUBLIC RT_SIMULATION)
+target_compile_definitions(runtime_simulator PUBLIC 
+  RT_SIMULATION 
+  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 add_subdirectory(simulator)

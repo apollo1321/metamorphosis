@@ -10,8 +10,10 @@ namespace ceq::rt {
 
 Host::Host(const Address& address, IHostRunnable* host_main, const HostOptions& options) noexcept
     : logger_{CreateLogger(address)} {
-  std::uniform_real_distribution<double> drift_dist{options.min_drift, options.max_drift};
-  std::uniform_int_distribution<Duration::rep> skew_dist{0, options.max_start_time.count()};
+  std::uniform_real_distribution<double> drift_dist{options.drift_interval.first,
+                                                    options.drift_interval.second};
+  std::uniform_int_distribution<Duration::rep> skew_dist{
+      options.start_time_interval.first.count(), options.start_time_interval.second.count()};
 
   drift_ = drift_dist(GetGenerator());
   start_time_ = Timestamp(static_cast<Duration>(skew_dist(GetGenerator())));
