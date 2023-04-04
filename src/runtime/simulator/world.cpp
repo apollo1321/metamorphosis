@@ -46,12 +46,12 @@ void World::SleepUntil(Timestamp wake_up_time, StopToken stop_token) noexcept {
   event.Await();
 }
 
-void World::RunSimulation() noexcept {
+void World::RunSimulation(size_t iteration_count) noexcept {
   VERIFY(std::exchange(initialized_, false), "world in unitialized");
   boost::this_fiber::properties<RuntimeSimulationProps>().MarkAsMainFiber();
   boost::this_fiber::yield();
 
-  while (running_count_ > 0) {
+  while (running_count_ > 0 && iteration_count > 0) {
     VERIFY(!events_queue_.empty(),
            "unexpected state: no active tasks (deadlock or real sleep_for is called)");
 
@@ -64,12 +64,15 @@ void World::RunSimulation() noexcept {
 
     // this fiber will be resumed after all other fibers are executed
     boost::this_fiber::yield();
+
+    --iteration_count;
   }
 }
 
 Duration World::GetRpcDelay() noexcept {
-  std::uniform_int_distribution<Duration::rep> delay_dist(options_.min_delivery_time.count(),
-                                                          options_.max_delivery_time.count());
+  std::uniform_int_distribution<Duration::rep> delay_dist(
+      options_.delivery_time_interval.first.count(),
+      options_.delivery_time_interval.second.count());
   return Duration(delay_dist(GetGenerator()));
 }
 

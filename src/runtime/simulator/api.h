@@ -17,20 +17,17 @@ struct IHostRunnable {
 
 struct HostOptions {
   // skew
-  Duration min_start_time = Duration::zero();
-  Duration max_start_time = Duration::zero();
+  std::pair<Duration, Duration> start_time_interval;
 
   // drift per mcs
-  double min_drift = 0.;
-  double max_drift = 0.;
+  std::pair<double, double> drift_interval;
 
   Duration max_sleep_lag = Duration::zero();
 };
 
 struct WorldOptions {
   // delivery time
-  Duration min_delivery_time = Duration::zero();
-  Duration max_delivery_time = Duration::zero();
+  std::pair<Duration, Duration> delivery_time_interval;
 
   // network errors
   double network_error_proba = 0.;
@@ -45,6 +42,6 @@ uint64_t GetHostUniqueId() noexcept;
 void AddHost(const Address& address, IHostRunnable* server_main,
              const HostOptions& options = HostOptions{}) noexcept;
 
-void RunSimulation() noexcept;
+void RunSimulation(size_t iteration_count = std::numeric_limits<size_t>::max()) noexcept;
 
 }  // namespace ceq::rt

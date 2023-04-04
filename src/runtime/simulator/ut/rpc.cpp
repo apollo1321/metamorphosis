@@ -119,7 +119,7 @@ TEST(Rpc, DeliveryTime) {
   Host host;
   Client client;
 
-  ceq::rt::InitWorld(42, WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
+  ceq::rt::InitWorld(42, WorldOptions{.delivery_time_interval = {5ms, 10ms}});
   ceq::rt::AddHost("addr1", &host);
   ceq::rt::AddHost("addr2", &client);
   ceq::rt::RunSimulation();
@@ -168,8 +168,7 @@ TEST(Rpc, NetworkErrorProba) {
   Client client;
 
   ceq::rt::InitWorld(
-      3, WorldOptions{
-             .min_delivery_time = 5ms, .max_delivery_time = 10ms, .network_error_proba = 0.3});
+      3, WorldOptions{.delivery_time_interval = {5ms, 10ms}, .network_error_proba = 0.3});
   ceq::rt::AddHost("addr1", &host);
   ceq::rt::AddHost("addr2", &client);
   ceq::rt::RunSimulation();
@@ -262,7 +261,7 @@ TEST(Rpc, ManyClientsManyServers) {
   Host host;
   Client client;
 
-  ceq::rt::InitWorld(42, WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
+  ceq::rt::InitWorld(42, WorldOptions{.delivery_time_interval = {5ms, 10ms}});
   ceq::rt::AddHost("addr1", &host);
   ceq::rt::AddHost("addr2", &host);
 
@@ -388,7 +387,7 @@ TEST(Rpc, EchoProxy) {
 
   std::vector<std::unique_ptr<Client>> clients;
 
-  ceq::rt::InitWorld(42, WorldOptions{.min_delivery_time = 5ms, .max_delivery_time = 10ms});
+  ceq::rt::InitWorld(42, WorldOptions{.delivery_time_interval = {5ms, 10ms}});
   ceq::rt::AddHost("addr1", &host1);
   ceq::rt::AddHost("addr2", &host2);
   ceq::rt::AddHost("proxy_addr", &proxy_host);
