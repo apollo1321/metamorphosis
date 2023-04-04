@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 
 #include <runtime/api.h>
@@ -8,10 +9,12 @@
 namespace ceq::raft {
 
 struct RaftConfig {
-  rt::Port port;
+  size_t node_id{};
   std::vector<rt::Endpoint> cluster;
 
-  rt::Duration election_timeout;
+  std::pair<rt::Duration, rt::Duration> election_timeout_interval;
+  rt::Duration heart_beat_period;
+  rt::Duration rpc_timeout;
 };
 
 void RunMain(RaftConfig config) noexcept;

@@ -45,7 +45,7 @@ message AppendEntriesResult {
 
 message RequestVoteRequest {
   uint64 term = 1;
-  uint64 candidata_id = 2;
+  uint64 candidate_id = 2;
   uint64 last_log_index = 3;
   uint64 last_log_term = 4;
 }
