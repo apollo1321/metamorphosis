@@ -21,6 +21,8 @@ std::string RpcError::Message() noexcept {
         return "Internal";
       case ErrorType::ParseError:
         return "ParseError";
+      case ErrorType::Cancelled:
+        return "Cancelled";
       default:
         VERIFY(false, "invalid error type");
     }

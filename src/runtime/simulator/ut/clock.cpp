@@ -352,7 +352,7 @@ TEST(Clock, Dispatch) {
 
     ceq::rt::HostOptions options{
         .start_time_interval = {1h, 2h},
-        .drift_interval = {0.001, 0.02},
+        .drift_interval = {0.001, 0.002},
     };
 
     ceq::rt::InitWorld(42);
