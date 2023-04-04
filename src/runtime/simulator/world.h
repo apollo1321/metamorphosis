@@ -27,7 +27,7 @@ class World {
 
   void SleepUntil(Timestamp wake_up_time, StopToken stop_token = StopToken{}) noexcept;
 
-  void RunSimulation() noexcept;
+  void RunSimulation(size_t iteration_count) noexcept;
 
   RpcResult MakeRequest(Endpoint endpint, SerializedData data, ServiceName service_name,
                         HandlerName handler_name, StopToken stop_token) noexcept;
