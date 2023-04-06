@@ -2,6 +2,6 @@
 
 set -e
 
-build_type=$1
+build_dir=$1
 
-rsync -P ${HOME}/.cmake/_deps build-${build_type}/ -r --include "*/" --include "*.tar.gz" --exclude "*"
+rsync -P ${HOME}/.cmake/_deps ${build_dir}/ -r --include "*/" --include "*.tar.gz" --exclude "*"
