@@ -1,6 +1,8 @@
 #include "api.h"
 #include "world.h"
 
+#include <gtest/gtest.h>
+
 namespace ceq::rt {
 
 Timestamp Now() noexcept {
@@ -36,6 +38,12 @@ uint64_t GetHostUniqueId() noexcept {
   return reinterpret_cast<uint64_t>(GetCurrentHost());
 }
 
+void FinishTest() noexcept {
+  if (!testing::Test::HasFailure()) {
+    _Exit(0);
+  }
+}
+
 std::shared_ptr<spdlog::logger> GetLogger() noexcept {
   return GetCurrentHost()->GetLogger();
 }
@@ -46,6 +54,14 @@ void PauseHost(const Address& address) noexcept {
 
 void ResumeHost(const Address& address) noexcept {
   GetWorld()->GetHost(address)->ResumeHost();
+}
+
+void KillHost(const Address& address) noexcept {
+  GetWorld()->GetHost(address)->KillHost();
+}
+
+void StartHost(const Address& address) noexcept {
+  GetWorld()->GetHost(address)->StartHost();
 }
 
 }  // namespace ceq::rt

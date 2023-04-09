@@ -40,7 +40,7 @@ TEST(RuntimeSimulatorHostPause, SimplyWorks) {
   RunSimulation();
 }
 
-TEST(RuntimeSimulatorHostPause, RpcCalls) {
+TEST(RuntimeSimulatorHostPause, PauseServer) {
   struct Supervisor : public ceq::rt::IHostRunnable {
     void Main() noexcept override {
       SleepFor(1h);
@@ -99,10 +99,62 @@ TEST(RuntimeSimulatorHostPause, RpcCalls) {
   };
 
   Host host;
+  Client client;
   Supervisor supervisor;
 
   ceq::rt::InitWorld(42);
   ceq::rt::AddHost("addr1", &host);
+  ceq::rt::AddHost("addr2", &client);
+  ceq::rt::AddHost("supervisor", &supervisor);
+  ceq::rt::RunSimulation();
+}
+
+TEST(RuntimeSimulatorHostPause, PauseClient) {
+  struct Supervisor : public ceq::rt::IHostRunnable {
+    void Main() noexcept override {
+      SleepFor(30min);
+      PauseHost("addr2");
+      SleepFor(2h);
+      ResumeHost("addr2");
+    }
+  };
+
+  struct Client final : public IHostRunnable {
+    void Main() noexcept override {
+      EchoServiceClient client({"addr1", 42});
+
+      auto start = Now();
+      EchoRequest request;
+      request.set_msg("test");
+      auto response = client.Echo(std::move(request));
+      EXPECT_EQ(start + 2h + 30min, Now());
+    }
+  };
+
+  struct Host final : public IHostRunnable, public EchoServiceStub {
+    void Main() noexcept override {
+      RpcServer server;
+      server.Register(this);
+      server.Run(42);
+      SleepFor(10h);
+      server.ShutDown();
+    }
+
+    ceq::Result<EchoReply, ceq::rt::RpcError> Echo(const EchoRequest& request) noexcept override {
+      EchoReply reply;
+      SleepFor(1h);
+      reply.set_msg(request.msg());
+      return ceq::Ok(std::move(reply));
+    }
+  };
+
+  Host host;
+  Client client;
+  Supervisor supervisor;
+
+  ceq::rt::InitWorld(42);
+  ceq::rt::AddHost("addr1", &host);
+  ceq::rt::AddHost("addr2", &client);
   ceq::rt::AddHost("supervisor", &supervisor);
   ceq::rt::RunSimulation();
 }

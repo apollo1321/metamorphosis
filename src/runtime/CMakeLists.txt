@@ -50,6 +50,7 @@ target_link_libraries(runtime_simulator
   ceq_cancellation
   libprotobuf
   Boost::fiber
+  GTest::gtest_main
   spdlog)
 
 target_compile_definitions(runtime_simulator PUBLIC 

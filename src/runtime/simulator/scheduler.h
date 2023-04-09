@@ -12,15 +12,18 @@ class RuntimeSimulationProps : public boost::fibers::fiber_properties {
   void MarkAsMainFiber();
   bool IsMainFiber() const;
 
-  bool HostIsInitialized() noexcept;
-  Host* GetCurrentHost() noexcept;
-  void SetCurrentHost(Host* host) noexcept;
+  bool HostIsInitialized() const noexcept;
+  Host* GetCurrentHost() const noexcept;
+  void SetCurrentHost(Host* host, size_t epoch) noexcept;
+
+  size_t GetCurrentEpoch() const noexcept;
 
  private:
   bool is_main_ = false;
 
   bool host_initialized_ = false;
   Host* current_host_ = nullptr;
+  size_t host_epoch_ = 0;
 };
 
 class RuntimeSimulationScheduler
@@ -44,6 +47,7 @@ class RuntimeSimulationScheduler
   bool flag_{false};
 
   Host* last_host_ = nullptr;
+  size_t last_epoch_ = 0;
 };
 
-}  // namespace runtime_simulation
+}  // namespace ceq::rt
