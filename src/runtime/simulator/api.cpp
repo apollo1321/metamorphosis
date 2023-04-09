@@ -1,7 +1,4 @@
 #include "api.h"
-
-#include <util/condition_check.h>
-
 #include "world.h"
 
 namespace ceq::rt {
@@ -41,6 +38,14 @@ uint64_t GetHostUniqueId() noexcept {
 
 std::shared_ptr<spdlog::logger> GetLogger() noexcept {
   return GetCurrentHost()->GetLogger();
+}
+
+void PauseHost(const Address& address) noexcept {
+  GetWorld()->GetHost(address)->PauseHost();
+}
+
+void ResumeHost(const Address& address) noexcept {
+  GetWorld()->GetHost(address)->ResumeHost();
 }
 
 }  // namespace ceq::rt

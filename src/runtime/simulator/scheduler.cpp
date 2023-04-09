@@ -35,6 +35,9 @@ void RuntimeSimulationScheduler::awakened(boost::fibers::context* ctx,
   if (!props.HostIsInitialized()) {
     props.SetCurrentHost(last_host_);
   }
+  VERIFY(!ctx->is_context(boost::fibers::type::dispatcher_context) ||
+             props.GetCurrentHost() == nullptr,
+         "dispatching fiber has non-null current_host");
 
   if (props.IsMainFiber() || rqueue_.empty()) {
     rqueue_.insert(rqueue_.end(), *ctx);

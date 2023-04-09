@@ -32,6 +32,8 @@ class World {
   RpcResult MakeRequest(Endpoint endpint, SerializedData data, ServiceName service_name,
                         HandlerName handler_name, StopToken stop_token) noexcept;
 
+  Host* GetHost(const Address& address) noexcept;
+
  private:
   Duration GetRpcDelay() noexcept;
   bool ShouldMakeNetworkError() noexcept;
