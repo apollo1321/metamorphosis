@@ -15,6 +15,7 @@ void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
   current_time_ = Timestamp(static_cast<Duration>(0));
   events_queue_.clear();
   hosts_.clear();
+  closed_links_.clear();
   initialized_ = true;
 }
 
@@ -82,8 +83,9 @@ bool World::ShouldMakeNetworkError() noexcept {
   return prob_dist(GetGenerator()) < options_.network_error_proba;
 }
 
-RpcResult World::MakeRequest(Endpoint endpoint, SerializedData data, ServiceName service_name,
-                             HandlerName handler_name, StopToken stop_token) noexcept {
+RpcResult World::MakeRequest(Address from, Endpoint endpoint, SerializedData data,
+                             ServiceName service_name, HandlerName handler_name,
+                             StopToken stop_token) noexcept {
   struct State {
     RpcResult result = Err(RpcError::ErrorType::Cancelled);
     Event event;
@@ -95,13 +97,19 @@ RpcResult World::MakeRequest(Endpoint endpoint, SerializedData data, ServiceName
     state->event.Signal();
   });
 
-  boost::fibers::fiber([this, endpoint = std::move(endpoint), data = std::move(data),
-                        service_name = std::move(service_name),
+  boost::fibers::fiber([this, from = std::move(from), endpoint = std::move(endpoint),
+                        data = std::move(data), service_name = std::move(service_name),
                         handler_name = std::move(handler_name), state, stop_token]() {
     SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
 
     if (!hosts_.contains(endpoint.address)) {
       state->result = Err(RpcError::ErrorType::ConnectionRefused);
+      state->event.Signal();
+      return;
+    }
+
+    if (closed_links_.contains(std::make_pair(from, endpoint.address))) {
+      state->result = Err(RpcError::ErrorType::NetworkError);
       state->event.Signal();
       return;
     }
@@ -118,6 +126,12 @@ RpcResult World::MakeRequest(Endpoint endpoint, SerializedData data, ServiceName
     auto result = target_host->ProcessRequest(endpoint.port, data, service_name, handler_name);
 
     SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
+
+    if (closed_links_.contains(std::make_pair(from, endpoint.address))) {
+      state->result = Err(RpcError::ErrorType::NetworkError);
+      state->event.Signal();
+      return;
+    }
 
     if (ShouldMakeNetworkError()) {
       state->result = Err(RpcError::ErrorType::NetworkError);
@@ -136,6 +150,14 @@ Host* World::GetHost(const Address& address) noexcept {
   auto it = hosts_.find(address);
   VERIFY(it != hosts_.end(), "host <" + address + "> is not registered in the world");
   return it->second.get();
+}
+
+void World::CloseLink(const Address& from, const Address& to) noexcept {
+  closed_links_.emplace(std::make_pair(from, to));
+}
+
+void World::RestoreLink(const Address& from, const Address& to) noexcept {
+  closed_links_.erase(std::make_pair(from, to));
 }
 
 World* GetWorld() noexcept {

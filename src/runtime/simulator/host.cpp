@@ -9,7 +9,7 @@
 namespace ceq::rt {
 
 Host::Host(const Address& address, IHostRunnable* host_main, const HostOptions& options) noexcept
-    : logger_{CreateLogger(address)}, host_main_{host_main} {
+    : logger_{CreateLogger(address)}, host_main_{host_main}, address_{address} {
   std::uniform_real_distribution<double> drift_dist{options.drift_interval.first,
                                                     options.drift_interval.second};
   std::uniform_int_distribution<Duration::rep> skew_dist{
@@ -112,8 +112,8 @@ RpcResult Host::MakeRequest(const Endpoint& endpoint, const SerializedData& data
   WaitIfPaused();
   LockForeverIfOldEpoch();
 
-  auto result = GetWorld()->MakeRequest(endpoint, std::move(data), std::move(service_name),
-                                        std::move(handler_name), std::move(stop_token));
+  auto result =
+      GetWorld()->MakeRequest(address_, endpoint, data, service_name, handler_name, stop_token);
 
   WaitIfPaused();
   LockForeverIfOldEpoch();
