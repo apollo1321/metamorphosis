@@ -56,6 +56,8 @@ struct Host {
   IHostRunnable* host_main_;
   boost::fibers::fiber main_fiber_;
 
+  Address address_;
+
   std::unordered_map<uint16_t, RpcServer::RpcServerImpl*> servers_;
 
   std::shared_ptr<spdlog::logger> logger_;
