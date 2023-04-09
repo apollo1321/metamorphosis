@@ -108,7 +108,8 @@ RpcResult World::MakeRequest(Endpoint endpoint, SerializedData data, ServiceName
 
     auto target_host = hosts_[endpoint.address].get();
 
-    boost::this_fiber::properties<RuntimeSimulationProps>().SetCurrentHost(target_host);
+    boost::this_fiber::properties<RuntimeSimulationProps>().SetCurrentHost(
+        target_host, target_host->GetCurrentEpoch());
 
     if (stop_token.StopRequested()) {
       return;

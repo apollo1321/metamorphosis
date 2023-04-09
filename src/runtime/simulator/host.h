@@ -20,6 +20,10 @@ struct Host {
                            const ServiceName& service_name,
                            const HandlerName& handler_name) noexcept;
 
+  RpcResult MakeRequest(const Endpoint& endpoint, const SerializedData& data,
+                        const ServiceName& service_name, const HandlerName& handler_name,
+                        StopToken stop_token) noexcept;
+
   void RegisterServer(RpcServer::RpcServerImpl* server, uint16_t port) noexcept;
   void UnregisterServer(uint16_t port) noexcept;
 
@@ -28,21 +32,28 @@ struct Host {
   void PauseHost() noexcept;
   void ResumeHost() noexcept;
 
+  void KillHost() noexcept;
+  void StartHost() noexcept;
+
+  size_t GetCurrentEpoch() const noexcept;
+
   ~Host();
 
  private:
-  void RunMain(IHostRunnable* host_main) noexcept;
+  void RunMain() noexcept;
 
   Timestamp ToLocalTime(Timestamp global_time) const noexcept;
   Timestamp ToGlobalTime(Timestamp local_time) const noexcept;
 
   void WaitIfPaused() noexcept;
+  void LockForeverIfOldEpoch() const noexcept;
 
  private:
   Timestamp start_time_;
   double drift_;
   Duration max_sleep_lag_;
 
+  IHostRunnable* host_main_;
   boost::fibers::fiber main_fiber_;
 
   std::unordered_map<uint16_t, RpcServer::RpcServerImpl*> servers_;
@@ -52,9 +63,12 @@ struct Host {
   bool paused_ = false;
   boost::fibers::mutex pause_lk_;
   boost::fibers::condition_variable pause_cv_;
+
+  size_t epoch_ = 0;
 };
 
 Host* GetCurrentHost() noexcept;
+size_t GetCurrentEpoch() noexcept;
 
 using HostPtr = std::unique_ptr<Host>;
 

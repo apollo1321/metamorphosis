@@ -44,6 +44,11 @@ void RunSimulation(size_t iteration_count = std::numeric_limits<size_t>::max()) 
 uint64_t GetHostUniqueId() noexcept;
 Timestamp GetGlobalTime() noexcept;
 
+// If not all fibers are joined (host was killed, paused or iteration_count is set), there is
+// expected memory leak. This function is needed to handle correct report of test results in such
+// cases.
+void FinishTest() noexcept;
+
 ////////////////////////////////////////////////////////////
 // Failure simulation
 ////////////////////////////////////////////////////////////
@@ -51,10 +56,10 @@ Timestamp GetGlobalTime() noexcept;
 void PauseHost(const Address& address) noexcept;
 void ResumeHost(const Address& address) noexcept;
 
-// TODO
-/* void KillHost(const Address& address) noexcept; */
-/* void StartHost(const Address& address) noexcept; */
+void KillHost(const Address& address) noexcept;
+void StartHost(const Address& address) noexcept;
 
+// TODO
 /* void DropLink(const Address& from, const Address& to) noexcept; */
 /* void RestoreLink(const Address& from, const Address& to) noexcept; */
 
