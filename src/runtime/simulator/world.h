@@ -3,6 +3,7 @@
 #include <chrono>
 #include <map>
 #include <random>
+#include <set>
 #include <unordered_map>
 
 #include <boost/fiber/all.hpp>
@@ -29,10 +30,14 @@ class World {
 
   void RunSimulation(size_t iteration_count) noexcept;
 
-  RpcResult MakeRequest(Endpoint endpint, SerializedData data, ServiceName service_name,
-                        HandlerName handler_name, StopToken stop_token) noexcept;
+  RpcResult MakeRequest(Address from, Endpoint endpoint, SerializedData data,
+                        ServiceName service_name, HandlerName handler_name,
+                        StopToken stop_token) noexcept;
 
   Host* GetHost(const Address& address) noexcept;
+
+  void CloseLink(const Address& from, const Address& to) noexcept;
+  void RestoreLink(const Address& from, const Address& to) noexcept;
 
  private:
   Duration GetRpcDelay() noexcept;
@@ -52,6 +57,8 @@ class World {
   std::mt19937 generator_;
 
   WorldOptions options_;
+
+  std::set<std::pair<Address, Address>> closed_links_;
 };
 
 World* GetWorld() noexcept;

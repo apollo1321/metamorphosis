@@ -64,4 +64,12 @@ void StartHost(const Address& address) noexcept {
   GetWorld()->GetHost(address)->StartHost();
 }
 
+void CloseLink(const Address& from, const Address& to) noexcept {
+  GetWorld()->CloseLink(from, to);
+}
+
+void RestoreLink(const Address& from, const Address& to) noexcept {
+  GetWorld()->RestoreLink(from, to);
+}
+
 }  // namespace ceq::rt
