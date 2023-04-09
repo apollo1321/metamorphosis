@@ -4,6 +4,8 @@
 #include <raft/node.h>
 #include <runtime/simulator/api.h>
 
+#include <cstdlib>
+
 using namespace std::chrono_literals;
 using namespace ceq;      // NOLINT
 using namespace ceq::rt;  // NOLINT
@@ -62,5 +64,5 @@ TEST(RaftElection, SimplyWorks) {
 
   ceq::rt::RunSimulation(1000);
 
-  abort();
+  _Exit(0);
 }

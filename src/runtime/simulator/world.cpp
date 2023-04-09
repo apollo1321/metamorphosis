@@ -131,6 +131,12 @@ RpcResult World::MakeRequest(Endpoint endpoint, SerializedData data, ServiceName
   return std::move(state->result);
 }
 
+Host* World::GetHost(const Address& address) noexcept {
+  auto it = hosts_.find(address);
+  VERIFY(it != hosts_.end(), "host <" + address + "> is not registered in the world");
+  return it->second.get();
+}
+
 World* GetWorld() noexcept {
   static World world;
   return &world;

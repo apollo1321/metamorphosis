@@ -19,9 +19,9 @@ Host::Host(const Address& address, IHostRunnable* host_main, const HostOptions& 
   start_time_ = Timestamp(static_cast<Duration>(skew_dist(GetGenerator())));
   max_sleep_lag_ = options.max_sleep_lag;
 
-  main_fiber_ = boost::fibers::fiber{boost::fibers::launch::dispatch, [this, host_main]() {
-                                       RunMain(host_main);
-                                     }};
+  main_fiber_ = boost::fibers::fiber{[this, host_main]() {
+    RunMain(host_main);
+  }};
 }
 
 Timestamp Host::GetLocalTime() const noexcept {
@@ -42,6 +42,7 @@ bool Host::SleepUntil(Timestamp local_time, StopToken stop_token) noexcept {
 
   VERIFY(GetWorld()->GetGlobalTime() == global_timestamp || stop_token.StopRequested(),
          "SleepUntil error");
+  WaitIfPaused();
 
   return stop_token.StopRequested();
 }
@@ -87,6 +88,7 @@ RpcResult Host::ProcessRequest(uint16_t port, const SerializedData& data,
                                const ServiceName& service_name,
                                const HandlerName& handler_name) noexcept {
   VERIFY(GetCurrentHost() == this, "invalid current_host");
+  WaitIfPaused();
 
   if (!servers_.contains(port)) {
     return Err(RpcError::ErrorType::ConnectionRefused);
@@ -97,6 +99,22 @@ RpcResult Host::ProcessRequest(uint16_t port, const SerializedData& data,
 
 std::shared_ptr<spdlog::logger> Host::GetLogger() noexcept {
   return logger_;
+}
+
+void Host::PauseHost() noexcept {
+  VERIFY(!std::exchange(paused_, true), "host is already paused");
+}
+
+void Host::ResumeHost() noexcept {
+  paused_ = false;
+  pause_cv_.notify_all();
+}
+
+void Host::WaitIfPaused() noexcept {
+  std::unique_lock guard(pause_lk_);
+  pause_cv_.wait(guard, [this]() {
+    return !paused_;
+  });
 }
 
 Host::~Host() {
