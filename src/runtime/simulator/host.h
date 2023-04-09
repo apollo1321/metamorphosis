@@ -25,14 +25,18 @@ struct Host {
 
   std::shared_ptr<spdlog::logger> GetLogger() noexcept;
 
+  void PauseHost() noexcept;
+  void ResumeHost() noexcept;
+
   ~Host();
 
  private:
   void RunMain(IHostRunnable* host_main) noexcept;
 
-
   Timestamp ToLocalTime(Timestamp global_time) const noexcept;
   Timestamp ToGlobalTime(Timestamp local_time) const noexcept;
+
+  void WaitIfPaused() noexcept;
 
  private:
   Timestamp start_time_;
@@ -44,6 +48,10 @@ struct Host {
   std::unordered_map<uint16_t, RpcServer::RpcServerImpl*> servers_;
 
   std::shared_ptr<spdlog::logger> logger_;
+
+  bool paused_ = false;
+  boost::fibers::mutex pause_lk_;
+  boost::fibers::condition_variable pause_cv_;
 };
 
 Host* GetCurrentHost() noexcept;
