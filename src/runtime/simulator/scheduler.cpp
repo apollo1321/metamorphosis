@@ -17,23 +17,28 @@ bool RuntimeSimulationProps::IsMainFiber() const {
   return is_main_;
 }
 
-Host* RuntimeSimulationProps::GetCurrentHost() noexcept {
+Host* RuntimeSimulationProps::GetCurrentHost() const noexcept {
   return current_host_;
 }
 
-void RuntimeSimulationProps::SetCurrentHost(Host* host) noexcept {
+void RuntimeSimulationProps::SetCurrentHost(Host* host, size_t epoch) noexcept {
   host_initialized_ = true;
   current_host_ = host;
+  host_epoch_ = epoch;
 }
 
-bool RuntimeSimulationProps::HostIsInitialized() noexcept {
+bool RuntimeSimulationProps::HostIsInitialized() const noexcept {
   return host_initialized_;
+}
+
+size_t RuntimeSimulationProps::GetCurrentEpoch() const noexcept {
+  return host_epoch_;
 }
 
 void RuntimeSimulationScheduler::awakened(boost::fibers::context* ctx,
                                           RuntimeSimulationProps& props) noexcept {
   if (!props.HostIsInitialized()) {
-    props.SetCurrentHost(last_host_);
+    props.SetCurrentHost(last_host_, last_epoch_);
   }
   VERIFY(!ctx->is_context(boost::fibers::type::dispatcher_context) ||
              props.GetCurrentHost() == nullptr,
@@ -53,6 +58,7 @@ boost::fibers::context* RuntimeSimulationScheduler::pick_next() noexcept {
   auto current_host = properties(ctx).GetCurrentHost();
   if (current_host != nullptr || properties(ctx).IsMainFiber()) {
     last_host_ = current_host;
+    last_epoch_ = properties(ctx).GetCurrentEpoch();
   }
   return ctx;
 }
