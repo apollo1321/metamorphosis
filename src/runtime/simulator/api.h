@@ -59,8 +59,7 @@ void ResumeHost(const Address& address) noexcept;
 void KillHost(const Address& address) noexcept;
 void StartHost(const Address& address) noexcept;
 
-// TODO
-/* void DropLink(const Address& from, const Address& to) noexcept; */
-/* void RestoreLink(const Address& from, const Address& to) noexcept; */
+void CloseLink(const Address& from, const Address& to) noexcept;
+void RestoreLink(const Address& from, const Address& to) noexcept;
 
 }  // namespace ceq::rt
