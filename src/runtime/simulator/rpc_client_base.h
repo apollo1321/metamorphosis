@@ -13,15 +13,14 @@ class RpcClientBase {
   explicit RpcClientBase(const Endpoint& endpoint) noexcept;
 
   template <class Request, class Response>
-  Result<Response, RpcError> MakeRequest(const Request& request, ServiceName service_name,
-                                         HandlerName handler_name,
+  Result<Response, RpcError> MakeRequest(const Request& request, const ServiceName& service_name,
+                                         const HandlerName& handler_name,
                                          StopToken stop_token = {}) noexcept {
     SerializedData data;
     data.resize(request.ByteSizeLong());
     VERIFY(request.SerializeToArray(data.data(), data.size()), "serialization error");
 
-    auto result = MakeRequest(std::move(data), std::move(service_name), std::move(handler_name),
-                              std::move(stop_token));
+    auto result = MakeRequest(data, service_name, handler_name, stop_token);
     if (result.HasError()) {
       return Err(std::move(result).GetError());
     }
@@ -34,8 +33,8 @@ class RpcClientBase {
   }
 
  private:
-  RpcResult MakeRequest(SerializedData data, ServiceName service_name, HandlerName handler_name,
-                        StopToken stop_token = {}) noexcept;
+  RpcResult MakeRequest(const SerializedData& data, const ServiceName& service_name,
+                        const HandlerName& handler_name, StopToken stop_token = {}) noexcept;
 
  private:
   Endpoint endpoint_;

@@ -15,3 +15,7 @@ gtest_discover_tests(runtime_simulator_cancellation)
 add_executable(runtime_simulator_host_pause host_pause.cpp)
 target_link_libraries(runtime_simulator_host_pause simulator_rpc_test_proto runtime_simulator GTest::gtest_main)
 gtest_discover_tests(runtime_simulator_host_pause)
+
+add_executable(runtime_simulator_host_kill host_kill.cpp)
+target_link_libraries(runtime_simulator_host_kill simulator_rpc_test_proto runtime_simulator GTest::gtest_main)
+gtest_discover_tests(runtime_simulator_host_kill)
