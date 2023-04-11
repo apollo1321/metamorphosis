@@ -152,7 +152,7 @@ class [[nodiscard]] Result {
  protected:
   template <class Index, class... Args, size_t Ind1, size_t... Is>
   explicit Result(Index index, std::tuple<Args...>&& args, std::index_sequence<Ind1, Is...>)
-      : data_(index, std::get<Is>(args)...) {
+      : data_(index, std::get<Is>(std::move(args))...) {
   }
 
  private:
@@ -163,13 +163,13 @@ template <class E>
 class [[nodiscard]] Result<void, E> : public Result<std::monostate, E> {
  public:
   Result(std::tuple<impl::OkTag>&& args)  // NOLINT
-      : Result(std::in_place_index<0>, std::move(args), std::make_index_sequence<1>{}) {
+      : Base::Result(std::in_place_index<0>, std::move(args), std::make_index_sequence<1>{}) {
   }
 
   template <class... Args>
   Result(std::tuple<impl::ErrTag, Args...>&& args)  // NOLINT
       : Base::Result(std::in_place_index<1>, std::move(args),
-               std::make_index_sequence<sizeof...(Args) + 1>{}) {
+                     std::make_index_sequence<sizeof...(Args) + 1>{}) {
   }
 
  private:

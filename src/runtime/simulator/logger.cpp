@@ -1,4 +1,5 @@
 #include "logger.h"
+#include "host.h"
 #include "world.h"
 
 #include <string>
@@ -7,7 +8,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-namespace ceq::rt {
+namespace ceq::rt::sim {
 
 template <class GetTime>
 struct TimeFlags : public spdlog::custom_flag_formatter {
@@ -97,6 +98,14 @@ std::shared_ptr<spdlog::logger> CreateLogger(std::string host_name) noexcept {
   logger->set_level(spdlog::level::trace);
 
   return logger;
+}
+
+}  // namespace ceq::rt::sim
+
+namespace ceq::rt {
+
+std::shared_ptr<spdlog::logger> GetLogger() noexcept {
+  return sim::GetCurrentHost()->GetLogger();
 }
 
 }  // namespace ceq::rt

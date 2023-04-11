@@ -8,12 +8,12 @@
 
 #include <boost/fiber/all.hpp>
 
-#include <runtime/event.h>
-#include <runtime/simulator/rpc_client_base.h>
+#include <runtime/util/event.h>
 
 #include "host.h"
+#include "rpc_client_base.h"
 
-namespace ceq::rt {
+namespace ceq::rt::sim {
 
 class World {
  public:
@@ -30,9 +30,11 @@ class World {
 
   void RunSimulation(size_t iteration_count) noexcept;
 
-  RpcResult MakeRequest(Address from, Endpoint endpoint, SerializedData data,
-                        ServiceName service_name, HandlerName handler_name,
-                        StopToken stop_token) noexcept;
+  Result<rpc::SerializedData, rpc::Error> MakeRequest(Address from, rpc::Endpoint endpoint,
+                                                      rpc::SerializedData data,
+                                                      rpc::ServiceName service_name,
+                                                      rpc::HandlerName handler_name,
+                                                      StopToken stop_token) noexcept;
 
   Host* GetHost(const Address& address) noexcept;
 
@@ -63,4 +65,4 @@ class World {
 
 World* GetWorld() noexcept;
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::sim

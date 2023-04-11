@@ -1,10 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 #include <string>
 
-namespace ceq::rt {
+namespace ceq::rt::rpc {
 
 using Port = uint16_t;
 using Address = std::string;
@@ -22,24 +21,24 @@ struct ServerRunConfig {
   size_t worker_threads_count{};
 };
 
-class RpcServer {
+class Server {
  public:
-  class RpcService;
-  class RpcServerImpl;
+  class Service;
+  class ServerImpl;
 
  public:
-  RpcServer() noexcept;
+  Server() noexcept;
 
-  void Register(RpcService* service) noexcept;
+  void Register(Service* service) noexcept;
 
   void Run(Port port, ServerRunConfig run_config = ServerRunConfig()) noexcept;
 
   void ShutDown() noexcept;
 
-  ~RpcServer();
+  ~Server();
 
  private:
-  RpcServerImpl* impl_;
+  ServerImpl* impl_;
 };
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::rpc

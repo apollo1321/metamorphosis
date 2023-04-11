@@ -1,13 +1,13 @@
 #include "rpc_service_base.h"
 
-namespace ceq::rt {
+namespace ceq::rt::rpc {
 
-RpcServer::RpcService::RpcService(ServiceName service_name) noexcept
+Server::Service::Service(ServiceName service_name) noexcept
     : service_name_{std::move(service_name)} {
 }
 
-const ServiceName& RpcServer::RpcService::GetServiceName() noexcept {
+const ServiceName& Server::Service::GetServiceName() noexcept {
   return service_name_;
 }
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::rpc

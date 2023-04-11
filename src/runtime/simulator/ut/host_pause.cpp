@@ -9,24 +9,23 @@
 #include <runtime/simulator/ut/test_service.service.h>
 
 using namespace std::chrono_literals;
-
 using namespace ceq::rt;  // NOLINT
 
-TEST(RuntimeSimulatorHostPause, SimplyWorks) {
-  struct Supervisor : public ceq::rt::IHostRunnable {
+TEST(SimulatorHostPause, SimplyWorks) {
+  struct Supervisor : public sim::IHostRunnable {
     void Main() noexcept override {
       SleepFor(1s);
-      PauseHost("addr1");
+      sim::PauseHost("addr1");
       SleepFor(1h);
-      ResumeHost("addr1");
+      sim::ResumeHost("addr1");
     }
   };
 
-  struct Host final : public IHostRunnable {
+  struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
-      auto start = ceq::rt::Now();
-      ceq::rt::SleepFor(10s);
-      auto end = ceq::rt::Now();
+      auto start = Now();
+      SleepFor(10s);
+      auto end = Now();
       EXPECT_EQ(end - start, 1h + 1s);
     }
   };
@@ -34,25 +33,25 @@ TEST(RuntimeSimulatorHostPause, SimplyWorks) {
   Host host;
   Supervisor supervisor;
 
-  InitWorld(42);
-  AddHost("addr1", &host);
-  AddHost("supervisor", &supervisor);
-  RunSimulation();
+  sim::InitWorld(42);
+  sim::AddHost("addr1", &host);
+  sim::AddHost("supervisor", &supervisor);
+  sim::RunSimulation();
 }
 
-TEST(RuntimeSimulatorHostPause, PauseServer) {
-  struct Supervisor : public ceq::rt::IHostRunnable {
+TEST(SimulatorHostPause, PauseServer) {
+  struct Supervisor : public sim::IHostRunnable {
     void Main() noexcept override {
       SleepFor(1h);
-      PauseHost("addr1");
+      sim::PauseHost("addr1");
       SleepFor(2h);
-      ResumeHost("addr1");
+      sim::ResumeHost("addr1");
     }
   };
 
-  struct Client final : public IHostRunnable {
+  struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
-      EchoServiceClient client({"addr1", 42});
+      rpc::EchoServiceClient client({"addr1", 42});
 
       {
         auto start = Now();
@@ -82,16 +81,16 @@ TEST(RuntimeSimulatorHostPause, PauseServer) {
     }
   };
 
-  struct Host final : public IHostRunnable, public EchoServiceStub {
+  struct Host final : public sim::IHostRunnable, public rpc::EchoServiceStub {
     void Main() noexcept override {
-      RpcServer server;
+      rpc::Server server;
       server.Register(this);
       server.Run(42);
       SleepFor(10h);
       server.ShutDown();
     }
 
-    ceq::Result<EchoReply, ceq::rt::RpcError> Echo(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       reply.set_msg(request.msg());
       return ceq::Ok(std::move(reply));
@@ -102,26 +101,26 @@ TEST(RuntimeSimulatorHostPause, PauseServer) {
   Client client;
   Supervisor supervisor;
 
-  ceq::rt::InitWorld(42);
-  ceq::rt::AddHost("addr1", &host);
-  ceq::rt::AddHost("addr2", &client);
-  ceq::rt::AddHost("supervisor", &supervisor);
-  ceq::rt::RunSimulation();
+  sim::InitWorld(42);
+  sim::AddHost("addr1", &host);
+  sim::AddHost("addr2", &client);
+  sim::AddHost("supervisor", &supervisor);
+  sim::RunSimulation();
 }
 
-TEST(RuntimeSimulatorHostPause, PauseClient) {
-  struct Supervisor : public ceq::rt::IHostRunnable {
+TEST(SimulatorHostPause, PauseClient) {
+  struct Supervisor : public sim::IHostRunnable {
     void Main() noexcept override {
       SleepFor(30min);
-      PauseHost("addr2");
+      sim::PauseHost("addr2");
       SleepFor(2h);
-      ResumeHost("addr2");
+      sim::ResumeHost("addr2");
     }
   };
 
-  struct Client final : public IHostRunnable {
+  struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
-      EchoServiceClient client({"addr1", 42});
+      rpc::EchoServiceClient client({"addr1", 42});
 
       auto start = Now();
       EchoRequest request;
@@ -131,16 +130,16 @@ TEST(RuntimeSimulatorHostPause, PauseClient) {
     }
   };
 
-  struct Host final : public IHostRunnable, public EchoServiceStub {
+  struct Host final : public sim::IHostRunnable, public rpc::EchoServiceStub {
     void Main() noexcept override {
-      RpcServer server;
+      rpc::Server server;
       server.Register(this);
       server.Run(42);
       SleepFor(10h);
       server.ShutDown();
     }
 
-    ceq::Result<EchoReply, ceq::rt::RpcError> Echo(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       SleepFor(1h);
       reply.set_msg(request.msg());
@@ -152,9 +151,9 @@ TEST(RuntimeSimulatorHostPause, PauseClient) {
   Client client;
   Supervisor supervisor;
 
-  ceq::rt::InitWorld(42);
-  ceq::rt::AddHost("addr1", &host);
-  ceq::rt::AddHost("addr2", &client);
-  ceq::rt::AddHost("supervisor", &supervisor);
-  ceq::rt::RunSimulation();
+  sim::InitWorld(42);
+  sim::AddHost("addr1", &host);
+  sim::AddHost("addr2", &client);
+  sim::AddHost("supervisor", &supervisor);
+  sim::RunSimulation();
 }

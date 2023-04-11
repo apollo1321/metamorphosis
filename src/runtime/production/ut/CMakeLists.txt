@@ -1,0 +1,13 @@
+add_executable(test_production_cancellation cancellation.cpp)
+target_link_libraries(test_production_cancellation runtime_production GTest::gtest_main)
+gtest_discover_tests(test_production_cancellation)
+
+generate_proto(test_production_rpc_proto test_service.proto FALSE)
+
+add_executable(test_production_rpc rpc.cpp)
+target_link_libraries(test_production_rpc test_production_rpc_proto runtime_production GTest::gtest_main)
+gtest_discover_tests(test_production_rpc)
+
+add_executable(test_production_database database.cpp)
+target_link_libraries(test_production_database runtime_production GTest::gtest_main)
+gtest_discover_tests(test_production_database)

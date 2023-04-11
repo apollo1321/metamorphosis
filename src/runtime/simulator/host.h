@@ -1,30 +1,38 @@
 #pragma once
 
+#include <map>
 #include <unordered_map>
 
-#include <util/result.h>
+#include <spdlog/logger.h>
 #include <boost/fiber/fiber.hpp>
 
+#include <runtime/database.h>
+#include <util/result.h>
+
 #include "api.h"
+#include "database.h"
 #include "rpc_server.h"
 
-namespace ceq::rt {
+namespace ceq::rt::sim {
 
-struct Host {
+class Host {
+ public:
   Host(const Address& address, IHostRunnable* host_main, const HostOptions& options) noexcept;
 
   Timestamp GetLocalTime() const noexcept;
   bool SleepUntil(Timestamp local_time, StopToken stop_token = StopToken{}) noexcept;
 
-  RpcResult ProcessRequest(uint16_t port, const SerializedData& data,
-                           const ServiceName& service_name,
-                           const HandlerName& handler_name) noexcept;
+  Result<rpc::SerializedData, rpc::Error> ProcessRequest(
+      uint16_t port, const rpc::SerializedData& data, const rpc::ServiceName& service_name,
+      const rpc::HandlerName& handler_name) noexcept;
 
-  RpcResult MakeRequest(const Endpoint& endpoint, const SerializedData& data,
-                        const ServiceName& service_name, const HandlerName& handler_name,
-                        StopToken stop_token) noexcept;
+  Result<rpc::SerializedData, rpc::Error> MakeRequest(const rpc::Endpoint& endpoint,
+                                                      const rpc::SerializedData& data,
+                                                      const rpc::ServiceName& service_name,
+                                                      const rpc::HandlerName& handler_name,
+                                                      StopToken stop_token) noexcept;
 
-  void RegisterServer(RpcServer::RpcServerImpl* server, uint16_t port) noexcept;
+  void RegisterServer(rpc::Server::ServerImpl* server, uint16_t port) noexcept;
   void UnregisterServer(uint16_t port) noexcept;
 
   std::shared_ptr<spdlog::logger> GetLogger() noexcept;
@@ -37,16 +45,18 @@ struct Host {
 
   size_t GetCurrentEpoch() const noexcept;
 
+  void StopFiberIfNecessary() noexcept;
+
   ~Host();
+
+ public:
+  std::map<std::string, HostDatabase> databases;
 
  private:
   void RunMain() noexcept;
 
   Timestamp ToLocalTime(Timestamp global_time) const noexcept;
   Timestamp ToGlobalTime(Timestamp local_time) const noexcept;
-
-  void WaitIfPaused() noexcept;
-  void LockForeverIfOldEpoch() const noexcept;
 
  private:
   Timestamp start_time_;
@@ -58,7 +68,7 @@ struct Host {
 
   Address address_;
 
-  std::unordered_map<uint16_t, RpcServer::RpcServerImpl*> servers_;
+  std::unordered_map<uint16_t, rpc::Server::ServerImpl*> servers_;
 
   std::shared_ptr<spdlog::logger> logger_;
 
@@ -74,4 +84,4 @@ size_t GetCurrentEpoch() noexcept;
 
 using HostPtr = std::unique_ptr<Host>;
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::sim
