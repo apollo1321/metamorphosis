@@ -22,7 +22,7 @@ enum ReadStatus {
 }
 
 message ReadReply {
-  string data = 1;
+  bytes data = 1;
   ReadStatus status = 2;
 }
 

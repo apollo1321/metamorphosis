@@ -3,19 +3,7 @@
 
 #include <gtest/gtest.h>
 
-namespace ceq::rt {
-
-Timestamp Now() noexcept {
-  return GetCurrentHost()->GetLocalTime();
-}
-
-bool SleepFor(Duration duration, StopToken stop_token) noexcept {
-  return SleepUntil(Now() + duration, std::move(stop_token));
-}
-
-bool SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
-  return GetCurrentHost()->SleepUntil(timestamp, std::move(stop_token));
-}
+namespace ceq::rt::sim {
 
 void InitWorld(uint64_t seed, WorldOptions options) noexcept {
   GetWorld()->Initialize(seed, options);
@@ -36,16 +24,6 @@ void RunSimulation(size_t iteration_count) noexcept {
 
 uint64_t GetHostUniqueId() noexcept {
   return reinterpret_cast<uint64_t>(GetCurrentHost());
-}
-
-void FinishTest() noexcept {
-  if (!testing::Test::HasFailure()) {
-    _Exit(0);
-  }
-}
-
-std::shared_ptr<spdlog::logger> GetLogger() noexcept {
-  return GetCurrentHost()->GetLogger();
 }
 
 void PauseHost(const Address& address) noexcept {
@@ -72,4 +50,4 @@ void RestoreLink(const Address& from, const Address& to) noexcept {
   GetWorld()->RestoreLink(from, to);
 }
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::sim

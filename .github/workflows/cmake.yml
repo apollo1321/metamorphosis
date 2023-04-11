@@ -39,7 +39,7 @@ jobs:
         key: ${{ github.job }}-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
 
     - name: Configure CMake
-      run: cmake -B ${{ github.workspace }}/build-${{ matrix.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -GNinja
+      run: cmake -B ${{ github.workspace }}/build-${{ matrix.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPORTABLE=1 -GNinja
 
     - name: Build
       run: cmake --build ${{ github.workspace }}/build-${{ matrix.build_type }} --target src/all

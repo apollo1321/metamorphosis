@@ -10,14 +10,11 @@
 #include <raft/raft.service.h>
 
 #include <runtime/api.h>
-#include <runtime/cancellation/stop_source.h>
-#include <runtime/event.h>
+#include <runtime/util/event.h>
 
 #include <util/defer.h>
 
 #include <boost/fiber/all.hpp>
-
-using namespace std::chrono_literals;
 
 namespace ceq::raft {
 
@@ -36,7 +33,7 @@ struct StateMachine {
   std::vector<uint64_t> log_;
 };
 
-struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
+struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftApiStub {
   enum class State {
     Leader,
     Follower,
@@ -58,7 +55,7 @@ struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
   // API
   //////////////////////////////////////////////////////////
 
-  Result<Response, rt::RpcError> Execute(const RsmCommand& command) noexcept override {
+  Result<Response, rt::rpc::Error> Execute(const RsmCommand& command) noexcept override {
     LOG("Execute: start command {}", command.data());
     DEFER {
       LOG("Execute: finishing for command {}", command.data());
@@ -105,7 +102,7 @@ struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
   // Internal RPC's
   //////////////////////////////////////////////////////////
 
-  Result<AppendEntriesResult, rt::RpcError> AppendEntries(
+  Result<AppendEntriesResult, rt::rpc::Error> AppendEntries(
       const AppendEntriesRequest& request) noexcept override {
     LOG("AppendEntries: current term: {}, request: {}", request.term(), request);
 
@@ -162,7 +159,7 @@ struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
     return Ok(std::move(result));
   }
 
-  Result<RequestVoteResult, rt::RpcError> RequestVote(
+  Result<RequestVoteResult, rt::rpc::Error> RequestVote(
       const RequestVoteRequest& request) noexcept override {
     LOG("RequestVote: current term: {}, request: {}", current_term, request);
     RequestVoteResult result;
@@ -416,7 +413,7 @@ struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
         }
         requests.emplace_back([&, node_id]() {
           LOG("start RequestVote to node {}", node_id);
-          Result<RequestVoteResult, rt::RpcError> result =
+          Result<RequestVoteResult, rt::rpc::Error> result =
               clients[node_id].RequestVote(request_vote);
           if (result.HasError()) {
             LOG("finished RequestVote to node {} with error: {}", node_id,
@@ -462,7 +459,7 @@ struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
   State state = State::Follower;
 
   RaftConfig config;
-  std::vector<rt::RaftInternalsClient> clients;
+  std::vector<rt::rpc::RaftInternalsClient> clients;
 
   rt::StopSource reset_election_timeout;
   rt::StopSource reset_heartbeat_timeout;
@@ -484,9 +481,9 @@ struct RaftNode final : public rt::RaftInternalsStub, public rt::RaftApiStub {
 void RunMain(RaftConfig config) noexcept {
   RaftNode node(config);
 
-  rt::RpcServer server;
-  server.Register(static_cast<rt::RaftInternalsStub*>(&node));
-  server.Register(static_cast<rt::RaftApiStub*>(&node));
+  rt::rpc::Server server;
+  server.Register(static_cast<rt::rpc::RaftInternalsStub*>(&node));
+  server.Register(static_cast<rt::rpc::RaftApiStub*>(&node));
   server.Run(config.cluster[config.node_id].port);
 
   node.StartNode();

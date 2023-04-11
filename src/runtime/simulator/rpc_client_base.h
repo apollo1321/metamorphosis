@@ -1,21 +1,21 @@
 #pragma once
 
-#include <runtime/cancellation/stop_token.h>
 #include <runtime/rpc_server.h>
+#include <runtime/util/cancellation/stop_token.h>
 #include <util/result.h>
 
-#include "common.h"
+#include "rpc_server.h"
 
-namespace ceq::rt {
+namespace ceq::rt::rpc {
 
-class RpcClientBase {
+class ClientBase {
  public:
-  explicit RpcClientBase(const Endpoint& endpoint) noexcept;
+  explicit ClientBase(const Endpoint& endpoint) noexcept;
 
   template <class Request, class Response>
-  Result<Response, RpcError> MakeRequest(const Request& request, const ServiceName& service_name,
-                                         const HandlerName& handler_name,
-                                         StopToken stop_token = {}) noexcept {
+  Result<Response, Error> MakeRequest(const Request& request, const ServiceName& service_name,
+                                      const HandlerName& handler_name,
+                                      StopToken stop_token = {}) noexcept {
     SerializedData data;
     data.resize(request.ByteSizeLong());
     VERIFY(request.SerializeToArray(data.data(), data.size()), "serialization error");
@@ -27,17 +27,19 @@ class RpcClientBase {
 
     Response proto_result;
     if (!proto_result.ParseFromArray(result.GetValue().data(), result.GetValue().size())) {
-      return Err(RpcError::ErrorType::ParseError);
+      return Err(Error::ErrorType::ParseError);
     }
     return Ok(std::move(proto_result));
   }
 
  private:
-  RpcResult MakeRequest(const SerializedData& data, const ServiceName& service_name,
-                        const HandlerName& handler_name, StopToken stop_token = {}) noexcept;
+  Result<SerializedData, Error> MakeRequest(const SerializedData& data,
+                                            const ServiceName& service_name,
+                                            const HandlerName& handler_name,
+                                            StopToken stop_token = {}) noexcept;
 
  private:
   Endpoint endpoint_;
 };
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::rpc

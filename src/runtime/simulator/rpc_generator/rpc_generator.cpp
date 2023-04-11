@@ -3,14 +3,14 @@
 #include <memory>
 #include <stdexcept>
 
-#include <codegen/util.h>
+#include <runtime/util/codegen.h>
 
 using google::protobuf::FileDescriptor;
 using google::protobuf::compiler::GeneratorContext;
 using google::protobuf::io::Printer;
 using google::protobuf::io::ZeroCopyOutputStream;
 
-namespace {
+namespace ceq::rt::rpc {
 
 void GenerateClientHeader(GeneratorContext* generator_context,
                           const FileDescriptor* file) noexcept {
@@ -25,7 +25,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
   AddDependencyHeaders(printer, file);
   printer.Print("#include <runtime/simulator/rpc_client_base.h>\n\n");
 
-  printer.Print("namespace ceq::rt {\n");
+  printer.Print("namespace ceq::rt::rpc {\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -35,17 +35,17 @@ void GenerateClientHeader(GeneratorContext* generator_context,
     vars["service_name"] = service->name();
 
     printer.Print("\n");
-    printer.Print(vars, "class $service_name$Client final : private RpcClientBase {\n");
+    printer.Print(vars, "class $service_name$Client final : private ClientBase {\n");
     printer.Print("public:\n");
     printer.Indent();
 
-    printer.Print("using RpcClientBase::RpcClientBase;\n\n");
+    printer.Print("using ClientBase::ClientBase;\n\n");
 
     // Methods
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
       printer.Print(vars,
-                    "Result<$output_type$, RpcError> $method_name$(const $input_type$& input, "
+                    "Result<$output_type$, Error> $method_name$(const $input_type$& input, "
                     "StopToken stop_token = {}) noexcept;\n");
     }
 
@@ -53,7 +53,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
     printer.Print("};\n");
   }
 
-  printer.Print("\n}  // namespace ceq::rt\n");
+  printer.Print("\n}  // namespace ceq::rt::rpc\n");
 }
 
 void GenerateClientSource(GeneratorContext* generator_context,
@@ -66,7 +66,7 @@ void GenerateClientSource(GeneratorContext* generator_context,
   // Includes
   printer.Print("#include \"$name$.client.h\"\n\n", "name", file_name);
 
-  printer.Print("namespace ceq::rt {\n");
+  printer.Print("namespace ceq::rt::rpc {\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -83,7 +83,7 @@ void GenerateClientSource(GeneratorContext* generator_context,
 
       printer.Print("\n");
       printer.Print(vars,
-                    "Result<$output_type$, RpcError> $service_class$::$method_name$(const "
+                    "Result<$output_type$, Error> $service_class$::$method_name$(const "
                     "$input_type$& input, StopToken stop_token) noexcept {\n");
       printer.Indent();
       printer.Print(vars,
@@ -94,7 +94,7 @@ void GenerateClientSource(GeneratorContext* generator_context,
     }
   }
 
-  printer.Print("\n}  // namespace ceq::rt\n");
+  printer.Print("\n}  // namespace ceq::rt::rpc\n");
 }
 
 void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescriptor* file) {
@@ -109,7 +109,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
   AddDependencyHeaders(printer, file);
   printer.Print("#include <runtime/simulator/rpc_service_base.h>\n\n");
 
-  printer.Print("namespace ceq::rt {\n");
+  printer.Print("namespace ceq::rt::rpc {\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -120,7 +120,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
     vars["service_class"] = vars["service_name"] + "Stub";
 
     printer.Print("\n");
-    printer.Print(vars, "class $service_class$ : public RpcServer::RpcService {\n");
+    printer.Print(vars, "class $service_class$ : public Server::Service {\n");
     printer.Print("public:\n");
     printer.Indent();
 
@@ -132,7 +132,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
       AddMethodInfo(vars, service->method(method_id));
 
       printer.Print(vars,
-                    "virtual Result<$output_type$, RpcError> $method_name$(const $input_type$& "
+                    "virtual Result<$output_type$, Error> $method_name$(const $input_type$& "
                     "request) noexcept = 0;\n");
     }
     printer.Print("\n");
@@ -141,16 +141,15 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
     printer.Print("private:\n");
     printer.Indent();
 
-    printer.Print(
-        vars,
-        "RpcResult ProcessRequest(const SerializedData& data, const HandlerName& handler_name) "
-        "noexcept override;\n");
+    printer.Print(vars,
+                  "Result<SerializedData, Error> ProcessRequest(const SerializedData& data, const "
+                  "HandlerName& handler_name) noexcept override;\n");
 
     printer.Outdent();
     printer.Print("};\n");
   }
 
-  printer.Print("\n}  // namespace ceq::rt\n");
+  printer.Print("\n}  // namespace ceq::rt::rpc\n");
 }
 
 void GenerateServiceSource(GeneratorContext* generator_context, const FileDescriptor* file) {
@@ -162,7 +161,7 @@ void GenerateServiceSource(GeneratorContext* generator_context, const FileDescri
   // Includes
   printer.Print("#include \"$name$.service.h\"\n\n", "name", file_name);
 
-  printer.Print("namespace ceq::rt {\n");
+  printer.Print("namespace ceq::rt::rpc {\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -177,12 +176,11 @@ void GenerateServiceSource(GeneratorContext* generator_context, const FileDescri
     // Constructor
     printer.Print(vars,
                   "$service_class$::$service_class$() noexcept : "
-                  "RpcServer::RpcService{\"$service_name$\"} {}\n\n");
+                  "Server::Service{\"$service_name$\"} {}\n\n");
 
-    printer.Print(
-        vars,
-        "RpcResult $service_class$::ProcessRequest(const SerializedData& data, const HandlerName& "
-        "handler_name) noexcept {\n");
+    printer.Print(vars,
+                  "Result<SerializedData, Error> $service_class$::ProcessRequest(const "
+                  "SerializedData& data, const HandlerName& handler_name) noexcept {\n");
     printer.Indent();
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
@@ -195,15 +193,13 @@ void GenerateServiceSource(GeneratorContext* generator_context, const FileDescri
       printer.Outdent();
       printer.Print(vars, "}\n");
     }
-    printer.Print(vars, "return Err(RpcError::ErrorType::HandlerNotFound);\n");
+    printer.Print(vars, "return Err(Error::ErrorType::HandlerNotFound);\n");
     printer.Outdent();
     printer.Print("}\n");
   }
 
-  printer.Print("\n}  // namespace ceq::rt\n");
+  printer.Print("\n}  // namespace ceq::rt::rpc\n");
 }
-
-}  // namespace
 
 bool RpcGenerator::Generate(const FileDescriptor* file, const std::string& parameter,
                             GeneratorContext* generator_context, std::string* error) const {
@@ -220,3 +216,5 @@ bool RpcGenerator::Generate(const FileDescriptor* file, const std::string& param
 
   return true;
 }
+
+}  // namespace ceq::rt::rpc

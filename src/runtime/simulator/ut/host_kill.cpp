@@ -12,17 +12,17 @@ using namespace std::chrono_literals;
 
 using namespace ceq::rt;  // NOLINT
 
-TEST(RuntimeSimulatorHostKill, SimplyWorks) {
-  struct Supervisor : public ceq::rt::IHostRunnable {
+TEST(SimulatorHostKill, SimplyWorks) {
+  struct Supervisor : public sim::IHostRunnable {
     void Main() noexcept override {
       SleepFor(1s);
-      KillHost("addr1");
+      sim::KillHost("addr1");
       SleepFor(1h);
-      StartHost("addr1");
+      sim::StartHost("addr1");
     }
   };
 
-  struct Host final : public IHostRunnable {
+  struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
       ++count;
       ceq::rt::SleepFor(10s);
@@ -35,12 +35,15 @@ TEST(RuntimeSimulatorHostKill, SimplyWorks) {
   Host host;
   Supervisor supervisor;
 
-  InitWorld(42);
+  sim::InitWorld(42);
   AddHost("addr1", &host);
   AddHost("supervisor", &supervisor);
-  RunSimulation();
+  sim::RunSimulation();
 
   EXPECT_EQ(host.count, 3);
+}
 
-  FinishTest();
+int main(int argc, char** argv) {
+  testing::InitGoogleTest(&argc, argv);
+  _Exit(RUN_ALL_TESTS());
 }

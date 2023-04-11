@@ -1,29 +1,42 @@
 #pragma once
 
-#include <runtime/rpc_server.h>
-#include <boost/fiber/all.hpp>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
-#include "common.h"
+#include <boost/fiber/all.hpp>
 
-namespace ceq::rt {
+#include <runtime/rpc_server.h>
+#include <runtime/util/rpc_error.h>
+#include <util/result.h>
 
-class RpcServer::RpcServerImpl {
+namespace ceq::rt::sim {
+class Host;
+}
+
+namespace ceq::rt::rpc {
+
+using SerializedData = std::vector<uint8_t>;
+using ServiceName = std::string;
+using HandlerName = std::string;
+
+class Server::ServerImpl {
  public:
-  void Register(RpcServer::RpcService* service) noexcept;
+  void Register(Server::Service* service) noexcept;
 
   void Run(uint16_t port, const ServerRunConfig& config) noexcept;
 
   void ShutDown() noexcept;
 
-  ~RpcServerImpl();
+  ~ServerImpl();
 
  private:
-  RpcResult ProcessRequest(const SerializedData& data, const ServiceName& service_name,
-                           const HandlerName& handler_name) noexcept;
+  Result<SerializedData, Error> ProcessRequest(const SerializedData& data,
+                                               const ServiceName& service_name,
+                                               const HandlerName& handler_name) noexcept;
 
  private:
-  std::unordered_map<ServiceName, RpcServer::RpcService*> services_;
+  std::unordered_map<ServiceName, Server::Service*> services_;
 
   bool running_ = false;
   bool finished_ = false;
@@ -34,7 +47,7 @@ class RpcServer::RpcServerImpl {
 
   uint16_t port_ = 0;
 
-  friend class Host;
+  friend class sim::Host;
 };
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::rpc
