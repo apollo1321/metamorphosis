@@ -7,18 +7,17 @@
 #include <benchmark/echo_service.client.h>
 #include <benchmark/echo_service.service.h>
 
-#include <runtime/rpc_server.h>
+#include <runtime/api.h>
 
 #include <CLI/CLI.hpp>
 
 using namespace std::chrono_literals;
 
 using ceq::Result;
-using ceq::rt::RpcError;
-using ceq::rt::ServerRunConfig;
+using namespace ceq::rt;  // NOLINT
 
-class EchoService final : public ceq::rt::EchoServiceStub {
-  Result<EchoReply, RpcError> SayHello(const EchoRequest& request) noexcept override {
+class EchoService final : public rpc::EchoServiceStub {
+  Result<EchoReply, rpc::Error> SayHello(const EchoRequest& request) noexcept override {
     EchoReply reply;
     reply.set_message("Hello from async server " + request.name());
     return ceq::Ok(reply);
@@ -30,7 +29,8 @@ struct ClientConfig {
   size_t thread_count;
 };
 
-void BenchEchoService(ServerRunConfig server_config, ClientConfig client_config, uint16_t port) {
+void BenchEchoService(rpc::ServerRunConfig server_config, ClientConfig client_config,
+                      uint16_t port) {
   std::cout << "=================================\n";
   std::cout << "Server config: \n";
   std::cout << "\tqueue_count = " << server_config.queue_count << '\n';
@@ -41,7 +41,7 @@ void BenchEchoService(ServerRunConfig server_config, ClientConfig client_config,
   std::cout << "\tthread_count = " << client_config.thread_count << '\n';
 
   EchoService service;
-  ceq::rt::RpcServer server;
+  rpc::Server server;
   server.Register(&service);
 
   server.Run(port, server_config);
@@ -49,7 +49,7 @@ void BenchEchoService(ServerRunConfig server_config, ClientConfig client_config,
   std::atomic<bool> running{true};
   std::atomic<size_t> count{};
 
-  ceq::rt::EchoServiceClient client("127.0.0.1:" + std::to_string(port));
+  rpc::EchoServiceClient client("127.0.0.1:" + std::to_string(port));
 
   std::vector<std::thread> threads;
   for (size_t thread_id = 0; thread_id < client_config.thread_count; ++thread_id) {
@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
   app.add_option("-p,--port", port, "free port")->default_val(10050);
 
   auto server = app.add_subcommand("server", "server config");
-  ServerRunConfig server_config{};
+  rpc::ServerRunConfig server_config{};
 
   server->add_option("-q,--queues", server_config.queue_count, "completion queue count")
       ->default_val(1);

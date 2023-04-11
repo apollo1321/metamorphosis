@@ -3,119 +3,70 @@
 #include <iostream>
 #include <mutex>
 
-#include <rocksdb/db.h>
 #include <CLI/CLI.hpp>
 
 #include <queue/queue_service.service.h>
 
-#include <runtime/rpc_server.h>
+#include <runtime/api.h>
+#include <runtime/util/serde/string_serde.h>
+#include <runtime/util/serde/u64_serde.h>
+
 #include <util/condition_check.h>
 
-using ceq::Result;
-using ceq::rt::RpcError;
+using namespace ceq;      // NOLINT
+using namespace ceq::rt;  // NOLINT
 
-class QueueService final : public ceq::rt::QueueServiceStub {
+using KVStorage = kv::KVStorage<kv::U64Serde, kv::StringSerde>;
+
+class QueueService final : public rpc::QueueServiceStub {
  public:
-  struct U64Comparator final : rocksdb::Comparator {
-    int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const {
-      VERIFY(a.size() == sizeof(uint64_t) && b.size() == sizeof(uint64_t),
-             "invalid size of compared keys");
-      uint64_t a_val = *reinterpret_cast<const uint64_t*>(a.data());
-      uint64_t b_val = *reinterpret_cast<const uint64_t*>(b.data());
-      return a_val == b_val ? 0 : a_val < b_val ? -1 : +1;
-    }
-
-    const char* Name() const {
-      return "U64Comparator";
-    }
-
-    // Ignore by now
-    void FindShortestSeparator(std::string*, const rocksdb::Slice&) const {
-    }
-    void FindShortSuccessor(std::string*) const {
-    }
-  };
-
- public:
-  explicit QueueService(const std::string& db_path) {
-    rocksdb::Status status;
-
-    write_options_.sync = true;
-
-    // Open database
-    {
-      rocksdb::Options options;
-      options.create_if_missing = true;
-      options.comparator = &comparator_;
-      rocksdb::DB* db{};
-      VERIFY(rocksdb::DB::Open(options, db_path, &db).ok(), "cannot open database");
-      database_ = std::unique_ptr<rocksdb::DB>(db);
-    }
-
+  explicit QueueService(KVStorage storage) noexcept : kv_storage_(std::move(storage)) {
     // Read end index
-    {
-      std::unique_ptr<rocksdb::Iterator> iterator{database_->NewIterator(read_options_)};
-      VERIFY(iterator->status().ok(), "cannot read index");
-      iterator->SeekToLast();
-      VERIFY(iterator->status().ok(), "cannot read index");
-      if (!iterator->Valid()) {
-        end_index_ = 0;
-      } else {
-        end_index_ = *reinterpret_cast<const uint64_t*>(iterator->key().data()) + 1;
-      }
+    auto iterator = kv_storage_.NewIterator();
+    iterator.SeekToLast();
+    if (!iterator.Valid()) {
+      end_index_ = 0;
+    } else {
+      end_index_ = iterator.GetKey() + 1;
     }
   }
 
-  Result<AppendReply, RpcError> Append(const AppendRequest& request) noexcept override {
+  Result<AppendReply, rpc::Error> Append(const AppendRequest& request) noexcept override {
     const uint64_t index = end_index_.fetch_add(1);
-    rocksdb::Slice key(reinterpret_cast<const char*>(&index), sizeof(index));
-
-    auto status = database_->Put(write_options_, key, request.data());
-    if (!status.ok()) {
-      return ceq::Err(RpcError::ErrorType::Internal, status.ToString());
+    auto result = kv_storage_.Put(index, request.data());
+    if (result.HasError()) {
+      return Err(rpc::Error::ErrorType::Internal, result.GetError().Message());
     }
 
     AppendReply reply;
     reply.set_id(index);
-    return ceq::Ok(reply);
+    return Ok(reply);
   }
 
-  Result<ReadReply, RpcError> Read(const ReadRequest& request) noexcept override {
-    const uint64_t index = request.id();
-    rocksdb::Slice key(reinterpret_cast<const char*>(&index), sizeof(index));
-
-    std::string result;
+  Result<ReadReply, rpc::Error> Read(const ReadRequest& request) noexcept override {
+    auto result = kv_storage_.Get(request.id());
     ReadReply reply;
-    auto status = database_->Get(read_options_, key, &result);
-    if (status.ok()) {
-      reply.set_data(std::move(result));
+    if (result.HasValue()) {
+      reply.set_data(result.GetValue());
       reply.set_status(ReadStatus::OK);
-    } else if (status.IsNotFound()) {
+      return Ok(std::move(reply));
+    } else if (result.GetError().error_type == db::Error::ErrorType::NotFound) {
       reply.set_status(ReadStatus::NO_DATA);
-    } else if (!status.ok()) {
-      return ceq::Err(RpcError::ErrorType::Internal, status.ToString());
+      return Ok(std::move(reply));
+    } else {
+      return Err(rpc::Error::ErrorType::Internal, result.GetError().Message());
     }
-
-    return ceq::Ok(reply);
   }
 
-  Result<google::protobuf::Empty, RpcError> Trim(const TrimRequest& request) noexcept override {
-    const uint64_t start = 0;
-    rocksdb::Slice start_key(reinterpret_cast<const char*>(&start), sizeof(start));
-
-    const uint64_t end = request.id();
-    rocksdb::Slice end_key(reinterpret_cast<const char*>(&end), sizeof(end));
-
-    auto status = database_->DeleteRange(write_options_, database_->DefaultColumnFamily(),
-                                         start_key, end_key);
-    if (!status.ok()) {
-      return ceq::Err(RpcError::ErrorType::Internal, status.ToString());
+  Result<google::protobuf::Empty, rpc::Error> Trim(const TrimRequest& request) noexcept override {
+    auto result = kv_storage_.DeleteRange(0, request.id());
+    if (result.HasError()) {
+      return ceq::Err(rpc::Error::ErrorType::Internal, result.GetError().Message());
     }
-
     return ceq::Ok(google::protobuf::Empty{});
   }
 
-  Result<google::protobuf::Empty, RpcError> ShutDown(
+  Result<google::protobuf::Empty, rpc::Error> ShutDown(
       const google::protobuf::Empty&) noexcept override {
     std::lock_guard guard(shut_down_mutex_);
     shut_down_ = true;
@@ -132,17 +83,9 @@ class QueueService final : public ceq::rt::QueueServiceStub {
   }
 
  private:
-  const uint64_t max_queue_size_{};
-
   std::atomic<uint64_t> end_index_{};
 
-  // Database
-  U64Comparator comparator_;
-
-  std::unique_ptr<rocksdb::DB> database_;
-
-  rocksdb::WriteOptions write_options_;
-  rocksdb::ReadOptions read_options_;
+  KVStorage kv_storage_;
 
   // ShutDown
   std::condition_variable shut_down_cv_;
@@ -162,9 +105,17 @@ int main(int argc, char** argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  QueueService service(db_path);
+  db::Options options{.create_if_missing = true};
 
-  ceq::rt::RpcServer server;
+  auto db = kv::Open(db_path, options, kv::U64Serde{}, kv::StringSerde{});
+  if (db.HasError()) {
+    LOG_CRITICAL("Cannot open database: {}", db.GetError().Message());
+    return 1;
+  }
+
+  QueueService service(std::move(db.GetValue()));
+
+  rpc::Server server;
   server.Register(&service);
 
   server.Run(port);

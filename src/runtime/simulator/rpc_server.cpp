@@ -5,24 +5,24 @@
 
 #include "rpc_service_base.h"
 
-namespace ceq::rt {
+namespace ceq::rt::rpc {
 
-void RpcServer::RpcServerImpl::Register(RpcServer::RpcService* service) noexcept {
+void Server::ServerImpl::Register(Server::Service* service) noexcept {
   VERIFY(!services_.contains(service->GetServiceName()), "service is already registered");
   services_[service->GetServiceName()] = service;
 }
 
-void RpcServer::RpcServerImpl::Run(uint16_t port, const ServerRunConfig& /*config*/) noexcept {
+void Server::ServerImpl::Run(uint16_t port, const ServerRunConfig& /*config*/) noexcept {
   VERIFY(!std::exchange(running_, true), "RpcServer is already running");
   port_ = port;
-  GetCurrentHost()->RegisterServer(this, port);
+  sim::GetCurrentHost()->RegisterServer(this, port);
 }
 
-void RpcServer::RpcServerImpl::ShutDown() noexcept {
+void Server::ServerImpl::ShutDown() noexcept {
   VERIFY(running_, "RpcServer is not running");
   VERIFY(!std::exchange(finished_, true), "RpcServer is already finished");
 
-  GetCurrentHost()->UnregisterServer(port_);
+  sim::GetCurrentHost()->UnregisterServer(port_);
 
   std::unique_lock guard(shutdown_mutex_);
   shutdown_cv_.wait(guard, [&]() {
@@ -30,9 +30,9 @@ void RpcServer::RpcServerImpl::ShutDown() noexcept {
   });
 }
 
-RpcResult RpcServer::RpcServerImpl::ProcessRequest(const SerializedData& data,
-                                                   const ServiceName& service_name,
-                                                   const HandlerName& handler_name) noexcept {
+Result<SerializedData, Error> Server::ServerImpl::ProcessRequest(
+    const SerializedData& data, const ServiceName& service_name,
+    const HandlerName& handler_name) noexcept {
   {
     std::lock_guard guard(shutdown_mutex_);
     ++running_count_;
@@ -44,14 +44,14 @@ RpcResult RpcServer::RpcServerImpl::ProcessRequest(const SerializedData& data,
   };
 
   if (!services_.contains(service_name)) {
-    return Err(RpcError::ErrorType::HandlerNotFound, "Unknown service: " + service_name);
+    return Err(Error::ErrorType::HandlerNotFound, "Unknown service: " + service_name);
   }
 
   return services_[service_name]->ProcessRequest(data, handler_name);
 }
 
-RpcServer::RpcServerImpl::~RpcServerImpl() {
+Server::ServerImpl::~ServerImpl() {
   VERIFY(finished_, "Destruction of running server");
 }
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::rpc

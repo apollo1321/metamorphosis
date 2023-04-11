@@ -3,10 +3,11 @@
 
 #include <algorithm>
 
-#include <runtime/cancellation/stop_callback.h>
+#include <runtime/util/cancellation/stop_callback.h>
 #include <util/condition_check.h>
 
-namespace ceq::rt {
+namespace ceq::rt::sim {
+using rpc::Endpoint;
 
 void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
   boost::fibers::use_scheduling_algorithm<RuntimeSimulationScheduler>();
@@ -83,11 +84,13 @@ bool World::ShouldMakeNetworkError() noexcept {
   return prob_dist(GetGenerator()) < options_.network_error_proba;
 }
 
-RpcResult World::MakeRequest(Address from, Endpoint endpoint, SerializedData data,
-                             ServiceName service_name, HandlerName handler_name,
-                             StopToken stop_token) noexcept {
+Result<rpc::SerializedData, rpc::Error> World::MakeRequest(Address from, Endpoint endpoint,
+                                                           rpc::SerializedData data,
+                                                           rpc::ServiceName service_name,
+                                                           rpc::HandlerName handler_name,
+                                                           StopToken stop_token) noexcept {
   struct State {
-    RpcResult result = Err(RpcError::ErrorType::Cancelled);
+    Result<rpc::SerializedData, rpc::Error> result = Err(rpc::Error::ErrorType::Cancelled);
     Event event;
   };
 
@@ -103,13 +106,13 @@ RpcResult World::MakeRequest(Address from, Endpoint endpoint, SerializedData dat
     SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
 
     if (!hosts_.contains(endpoint.address)) {
-      state->result = Err(RpcError::ErrorType::ConnectionRefused);
+      state->result = Err(rpc::Error::ErrorType::ConnectionRefused);
       state->event.Signal();
       return;
     }
 
     if (closed_links_.contains(std::make_pair(from, endpoint.address))) {
-      state->result = Err(RpcError::ErrorType::NetworkError);
+      state->result = Err(rpc::Error::ErrorType::NetworkError);
       state->event.Signal();
       return;
     }
@@ -128,13 +131,13 @@ RpcResult World::MakeRequest(Address from, Endpoint endpoint, SerializedData dat
     SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
 
     if (closed_links_.contains(std::make_pair(from, endpoint.address))) {
-      state->result = Err(RpcError::ErrorType::NetworkError);
+      state->result = Err(rpc::Error::ErrorType::NetworkError);
       state->event.Signal();
       return;
     }
 
     if (ShouldMakeNetworkError()) {
-      state->result = Err(RpcError::ErrorType::NetworkError);
+      state->result = Err(rpc::Error::ErrorType::NetworkError);
     } else {
       state->result = std::move(result);
     }
@@ -165,4 +168,4 @@ World* GetWorld() noexcept {
   return &world;
 }
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::sim

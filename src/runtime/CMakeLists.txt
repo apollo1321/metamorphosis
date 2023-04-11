@@ -1,60 +1,75 @@
-add_subdirectory(cancellation)
-
 # ------------------------------------------------------------------------------
-# grpc runtime
+# production runtime
 # ------------------------------------------------------------------------------
 
-add_library(runtime_grpc
-  api.cpp
-  rpc_error.cpp
+add_library(runtime_production
+  database.cpp
+  logger.cpp
   rpc_server.cpp
-  event.cpp
-  grpc/api.cpp
-  grpc/rpc_client_base.cpp
-  grpc/rpc_server.cpp
-  grpc/rpc_service_base.cpp)
+  production/database.cpp
+  production/logger.cpp
+  production/random.cpp
+  production/rpc_client_base.cpp
+  production/rpc_server.cpp
+  production/rpc_service_base.cpp
+  production/time.cpp
+)
 
-target_link_libraries(runtime_grpc
+target_link_libraries(runtime_production
   ceq_lib
   ceq_util
   ceq_cancellation
+  ceq_event
+  rpc_error
   libprotobuf
   grpc++_reflection
   grpc++
   Boost::fiber
-  spdlog)
+  rocksdb_lib
+  spdlog
+)
 
-add_subdirectory(grpc)
+add_subdirectory(production)
 
 # ------------------------------------------------------------------------------
-# runtime simulator
+# simulator runtime
 # ------------------------------------------------------------------------------
 
 add_library(runtime_simulator
-  api.cpp
-  rpc_error.cpp
+  database.cpp
+  logger.cpp
   rpc_server.cpp
-  event.cpp
   simulator/api.cpp
+  simulator/database.cpp
+  simulator/host.cpp
+  simulator/logger.cpp
+  simulator/random.cpp
   simulator/rpc_client_base.cpp
   simulator/rpc_server.cpp
   simulator/rpc_service_base.cpp
+  simulator/scheduler.cpp
+  simulator/time.cpp
   simulator/world.cpp
-  simulator/host.cpp
-  simulator/logger.cpp
-  simulator/scheduler.cpp)
+)
 
 target_link_libraries(runtime_simulator
   ceq_lib
   ceq_util
   ceq_cancellation
+  ceq_event
+  rpc_error
   libprotobuf
   Boost::fiber
   GTest::gtest_main
-  spdlog)
+  spdlog
+)
 
 target_compile_definitions(runtime_simulator PUBLIC 
-  RT_SIMULATION 
+  SIMULATION
   SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 add_subdirectory(simulator)
+
+# ------------------------------------------------------------------------------
+
+add_subdirectory(util)

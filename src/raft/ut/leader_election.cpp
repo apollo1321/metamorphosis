@@ -2,6 +2,7 @@
 #include <boost/fiber/all.hpp>
 
 #include <raft/node.h>
+#include <runtime/api.h>
 #include <runtime/simulator/api.h>
 
 #include <cstdlib>
@@ -11,7 +12,7 @@ using namespace ceq;      // NOLINT
 using namespace ceq::rt;  // NOLINT
 
 TEST(RaftElection, SimplyWorks) {
-  struct RaftNode final : public ceq::rt::IHostRunnable {
+  struct RaftNode final : public sim::IHostRunnable {
     explicit RaftNode(raft::RaftConfig config) : config{std::move(config)} {
     }
 
@@ -22,10 +23,10 @@ TEST(RaftElection, SimplyWorks) {
     raft::RaftConfig config;
   };
 
-  std::vector<Endpoint> cluster{
-      Endpoint{"addr1", 42},
-      Endpoint{"addr2", 42},
-      Endpoint{"addr3", 42},
+  std::vector<rpc::Endpoint> cluster{
+      rpc::Endpoint{"addr1", 42},
+      rpc::Endpoint{"addr2", 42},
+      rpc::Endpoint{"addr3", 42},
   };
   std::pair<Duration, Duration> election_timeout_interval = {150ms, 300ms};
   rt::Duration heart_beat_period = 50ms;
@@ -53,16 +54,19 @@ TEST(RaftElection, SimplyWorks) {
       .rpc_timeout = rpc_timeout,
   });
 
-  WorldOptions world_options{
+  sim::WorldOptions world_options{
       .delivery_time_interval = {5ms, 350ms},
   };
-  ceq::rt::InitWorld(42, world_options);
+  sim::InitWorld(42, world_options);
 
-  ceq::rt::AddHost("addr1", &node1);
-  ceq::rt::AddHost("addr2", &node2);
-  ceq::rt::AddHost("addr3", &node3);
+  sim::AddHost("addr1", &node1);
+  sim::AddHost("addr2", &node2);
+  sim::AddHost("addr3", &node3);
 
-  ceq::rt::RunSimulation(1000);
+  sim::RunSimulation(1000);
+}
 
-  _Exit(0);
+int main(int argc, char** argv) {
+  testing::InitGoogleTest(&argc, argv);
+  _Exit(RUN_ALL_TESTS());
 }

@@ -4,7 +4,7 @@
 
 #include "host.h"
 
-namespace ceq::rt {
+namespace ceq::rt::sim {
 
 class RuntimeSimulationProps : public boost::fibers::fiber_properties {
  public:
@@ -50,4 +50,4 @@ class RuntimeSimulationScheduler
   size_t last_epoch_ = 0;
 };
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::sim

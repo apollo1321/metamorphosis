@@ -4,6 +4,8 @@
 
 #include <queue/queue_service.client.h>
 
+using namespace ceq::rt;  // NOLINT
+
 int main(int argc, char** argv) {
   CLI::App app{"Queue service client"};
 
@@ -29,9 +31,9 @@ int main(int argc, char** argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  ceq::rt::QueueServiceClient client(address);
+  rpc::QueueServiceClient client(address);
 
-  auto handle_error = [](ceq::rt::RpcError error) {
+  auto handle_error = [](rpc::Error error) {
     std::cerr << "RPC Error: " << error.Message() << std::endl;
   };
 
