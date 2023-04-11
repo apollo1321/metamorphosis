@@ -3,13 +3,19 @@
 #include <chrono>
 #include <random>
 #include <string>
+#include <utility>
 
-#include <runtime/api.h>
 #include <runtime/rpc_server.h>
+#include <runtime/time.h>
 
-#include "common.h"
+namespace ceq::rt::sim {
 
-namespace ceq::rt {
+using rpc::Address;
+
+/*
+ * If not all fibers are joined (host was killed, paused or iteration_count is set), there is
+ * expected memory leak. Run gtests with main() and then use _Exit() instead of return.
+ */
 
 ////////////////////////////////////////////////////////////
 // World start-up
@@ -23,6 +29,13 @@ struct HostOptions {
   std::pair<Duration, Duration> start_time_interval;
   std::pair<double, double> drift_interval;
   Duration max_sleep_lag = Duration::zero();
+
+  // TODO
+  /* std::pair<Duration, Duration> cancellation_lag_interval; */
+
+  // TODO
+  /* std::pair<Duration, Duration> kv_store_write_time_interval; */
+  /* std::pair<Duration, Duration> kv_store_read_time_interval; */
 };
 
 struct WorldOptions {
@@ -44,11 +57,6 @@ void RunSimulation(size_t iteration_count = std::numeric_limits<size_t>::max()) 
 uint64_t GetHostUniqueId() noexcept;
 Timestamp GetGlobalTime() noexcept;
 
-// If not all fibers are joined (host was killed, paused or iteration_count is set), there is
-// expected memory leak. This function is needed to handle correct report of test results in such
-// cases.
-void FinishTest() noexcept;
-
 ////////////////////////////////////////////////////////////
 // Failure simulation
 ////////////////////////////////////////////////////////////
@@ -62,4 +70,4 @@ void StartHost(const Address& address) noexcept;
 void CloseLink(const Address& from, const Address& to) noexcept;
 void RestoreLink(const Address& from, const Address& to) noexcept;
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::sim

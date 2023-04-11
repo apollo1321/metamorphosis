@@ -1,28 +1,29 @@
 #pragma once
 
-#include <runtime/rpc_error.h>
 #include <runtime/rpc_server.h>
+#include <runtime/util/rpc_error.h>
 #include <util/result.h>
 
-#include "common.h"
+#include "rpc_server.h"
 
-namespace ceq::rt {
+namespace ceq::rt::rpc {
 
-class RpcServer::RpcService {
+class Server::Service {
  public:
-  explicit RpcService(ServiceName service_name) noexcept;
+  explicit Service(ServiceName service_name) noexcept;
 
   const ServiceName& GetServiceName() noexcept;
 
-  virtual RpcResult ProcessRequest(const SerializedData& data,
-                                   const HandlerName& handler_name) noexcept = 0;
+  virtual Result<SerializedData, Error> ProcessRequest(
+      const SerializedData& data, const HandlerName& handler_name) noexcept = 0;
 
  protected:
   template <class Request, class Response, class Handler>
-  RpcResult ProcessRequestWrapper(const SerializedData& data, Handler handler) noexcept {
+  Result<SerializedData, Error> ProcessRequestWrapper(const SerializedData& data,
+                                                      Handler handler) noexcept {
     Request request;
     if (!request.ParseFromArray(data.data(), data.size())) {
-      return Err(RpcError::ErrorType::ParseError);
+      return Err(Error::ErrorType::ParseError);
     }
     auto result = handler(request);
     if (result.HasError()) {
@@ -30,9 +31,8 @@ class RpcServer::RpcService {
     }
     SerializedData serialized_result;
     serialized_result.resize(result.GetValue().ByteSizeLong());
-    VERIFY(
-        result.GetValue().SerializeToArray(serialized_result.data(), serialized_result.size()),
-        "serialization error");
+    VERIFY(result.GetValue().SerializeToArray(serialized_result.data(), serialized_result.size()),
+           "serialization error");
     return Ok(std::move(serialized_result));
   }
 
@@ -40,4 +40,4 @@ class RpcServer::RpcService {
   const ServiceName service_name_;
 };
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::rpc

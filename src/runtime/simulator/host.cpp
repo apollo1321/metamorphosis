@@ -3,10 +3,12 @@
 #include "scheduler.h"
 #include "world.h"
 
+#include <runtime/random.h>
+
 #include <util/binary_search.h>
 #include <util/condition_check.h>
 
-namespace ceq::rt {
+namespace ceq::rt::sim {
 
 Host::Host(const Address& address, IHostRunnable* host_main, const HostOptions& options) noexcept
     : logger_{CreateLogger(address)}, host_main_{host_main}, address_{address} {
@@ -15,7 +17,7 @@ Host::Host(const Address& address, IHostRunnable* host_main, const HostOptions& 
   std::uniform_int_distribution<Duration::rep> skew_dist{
       options.start_time_interval.first.count(), options.start_time_interval.second.count()};
 
-  drift_ = drift_dist(GetGenerator());
+  drift_ = drift_dist(rt::GetGenerator());
   start_time_ = Timestamp(static_cast<Duration>(skew_dist(GetGenerator())));
   max_sleep_lag_ = options.max_sleep_lag;
 
@@ -41,8 +43,7 @@ bool Host::SleepUntil(Timestamp local_time, StopToken stop_token) noexcept {
   VERIFY(GetWorld()->GetGlobalTime() == global_timestamp || stop_token.StopRequested(),
          "SleepUntil error");
 
-  WaitIfPaused();
-  LockForeverIfOldEpoch();
+  StopFiberIfNecessary();
 
   return stop_token.StopRequested();
 }
@@ -76,7 +77,7 @@ Timestamp Host::ToGlobalTime(Timestamp local_time) const noexcept {
   return global_time;
 }
 
-void Host::RegisterServer(RpcServer::RpcServerImpl* server, uint16_t port) noexcept {
+void Host::RegisterServer(rpc::Server::ServerImpl* server, uint16_t port) noexcept {
   VERIFY(!servers_.contains(port), "port is already used");
   servers_[port] = server;
 }
@@ -86,37 +87,35 @@ void Host::UnregisterServer(uint16_t port) noexcept {
   servers_.erase(port);
 }
 
-RpcResult Host::ProcessRequest(uint16_t port, const SerializedData& data,
-                               const ServiceName& service_name,
-                               const HandlerName& handler_name) noexcept {
+Result<rpc::SerializedData, rpc::Error> Host::ProcessRequest(
+    uint16_t port, const rpc::SerializedData& data, const rpc::ServiceName& service_name,
+    const rpc::HandlerName& handler_name) noexcept {
   VERIFY(GetCurrentHost() == this, "invalid current_host");
-  WaitIfPaused();
-  LockForeverIfOldEpoch();
+  StopFiberIfNecessary();
 
   if (!servers_.contains(port)) {
-    return Err(RpcError::ErrorType::ConnectionRefused);
+    return Err(rpc::Error::ErrorType::ConnectionRefused);
   }
 
   auto result = servers_[port]->ProcessRequest(data, service_name, handler_name);
 
-  WaitIfPaused();
-  LockForeverIfOldEpoch();
+  StopFiberIfNecessary();
 
   return result;
 }
 
-RpcResult Host::MakeRequest(const Endpoint& endpoint, const SerializedData& data,
-                            const ServiceName& service_name, const HandlerName& handler_name,
-                            StopToken stop_token) noexcept {
+Result<rpc::SerializedData, rpc::Error> Host::MakeRequest(const rpc::Endpoint& endpoint,
+                                                          const rpc::SerializedData& data,
+                                                          const rpc::ServiceName& service_name,
+                                                          const rpc::HandlerName& handler_name,
+                                                          StopToken stop_token) noexcept {
   VERIFY(GetCurrentHost() == this, "invalid current_host");
-  WaitIfPaused();
-  LockForeverIfOldEpoch();
+  StopFiberIfNecessary();
 
   auto result =
       GetWorld()->MakeRequest(address_, endpoint, data, service_name, handler_name, stop_token);
 
-  WaitIfPaused();
-  LockForeverIfOldEpoch();
+  StopFiberIfNecessary();
 
   return result;
 }
@@ -134,11 +133,27 @@ void Host::ResumeHost() noexcept {
   pause_cv_.notify_all();
 }
 
-void Host::WaitIfPaused() noexcept {
-  std::unique_lock guard(pause_lk_);
-  pause_cv_.wait(guard, [this]() {
-    return !paused_;
-  });
+void Host::StopFiberIfNecessary() noexcept {
+  // Handle host pause
+  {
+    std::unique_lock guard(pause_lk_);
+    pause_cv_.wait(guard, [this]() {
+      return !paused_;
+    });
+  }
+
+  // Handle host kill
+  size_t fiber_epoch = sim::GetCurrentEpoch();
+  VERIFY(fiber_epoch <= epoch_, "invalid fiber epoch");
+  if (fiber_epoch != epoch_) {
+    boost::fibers::mutex lk;
+    boost::fibers::condition_variable cv;
+
+    std::unique_lock guard(lk);
+    cv.wait(guard, []() {
+      return false;  // sleep forever
+    });
+  }
 }
 
 void Host::KillHost() noexcept {
@@ -156,20 +171,6 @@ void Host::StartHost() noexcept {
 
 size_t Host::GetCurrentEpoch() const noexcept {
   return epoch_;
-}
-
-void Host::LockForeverIfOldEpoch() const noexcept {
-  size_t fiber_epoch = rt::GetCurrentEpoch();
-  VERIFY(fiber_epoch <= epoch_, "invalid fiber epoch");
-  if (rt::GetCurrentEpoch() != epoch_) {
-    boost::fibers::mutex lk;
-    boost::fibers::condition_variable cv;
-
-    std::unique_lock guard(lk);
-    cv.wait(guard, []() {
-      return false;  // sleep forever
-    });
-  }
 }
 
 Host::~Host() {
@@ -192,4 +193,4 @@ size_t GetCurrentEpoch() noexcept {
   return boost::this_fiber::properties<RuntimeSimulationProps>().GetCurrentEpoch();
 }
 
-}  // namespace ceq::rt
+}  // namespace ceq::rt::sim

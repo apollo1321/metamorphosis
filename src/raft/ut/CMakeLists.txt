@@ -1,3 +1,3 @@
-add_executable(raft_leader_election_ut leader_election.cpp)
-target_link_libraries(raft_leader_election_ut raft_node runtime_simulator GTest::gtest_main spdlog)
-gtest_discover_tests(raft_leader_election_ut)
+add_executable(test_raft_leader_election leader_election.cpp)
+target_link_libraries(test_raft_leader_election raft_node runtime_simulator GTest::gtest_main)
+gtest_discover_tests(test_raft_leader_election)

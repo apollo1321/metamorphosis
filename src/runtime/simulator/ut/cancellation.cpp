@@ -2,16 +2,13 @@
 #include <boost/fiber/all.hpp>
 
 #include <runtime/api.h>
-#include <runtime/cancellation/stop_source.h>
 #include <runtime/simulator/api.h>
 
 using namespace std::chrono_literals;
+using namespace ceq::rt;  // NOLINT
 
-using ceq::rt::Duration;
-using ceq::rt::Timestamp;
-
-TEST(Cancellation, CancelSleepSimplyWorks) {
-  struct Host final : public ceq::rt::IHostRunnable {
+TEST(SimulatorCancellation, CancelSleepSimplyWorks) {
+  struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
       ceq::rt::StopSource source;
 
@@ -30,13 +27,13 @@ TEST(Cancellation, CancelSleepSimplyWorks) {
 
   Host host;
 
-  ceq::rt::InitWorld(42);
-  ceq::rt::AddHost("addr1", &host);
-  ceq::rt::RunSimulation();
+  sim::InitWorld(42);
+  sim::AddHost("addr1", &host);
+  sim::RunSimulation();
 }
 
-TEST(Cancellation, SleepAfterCancel) {
-  struct Host final : public ceq::rt::IHostRunnable {
+TEST(SimulatorCancellation, SleepAfterCancel) {
+  struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
       ceq::rt::StopSource source;
 
@@ -50,13 +47,13 @@ TEST(Cancellation, SleepAfterCancel) {
 
   Host host;
 
-  ceq::rt::InitWorld(42);
-  ceq::rt::AddHost("addr1", &host);
-  ceq::rt::RunSimulation();
+  sim::InitWorld(42);
+  sim::AddHost("addr1", &host);
+  sim::RunSimulation();
 }
 
-TEST(Cancellation, CancellationDoesNotAffectOther) {
-  struct Host final : public ceq::rt::IHostRunnable {
+TEST(SimulatorCancellation, CancellationDoesNotAffectOther) {
+  struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
       ceq::rt::StopSource source;
 
@@ -88,7 +85,7 @@ TEST(Cancellation, CancellationDoesNotAffectOther) {
 
   Host host;
 
-  ceq::rt::InitWorld(42);
-  ceq::rt::AddHost("addr1", &host);
-  ceq::rt::RunSimulation();
+  sim::InitWorld(42);
+  sim::AddHost("addr1", &host);
+  sim::RunSimulation();
 }

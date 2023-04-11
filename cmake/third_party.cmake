@@ -464,9 +464,9 @@ set(WITH_TOOLS           OFF CACHE INTERNAL "")
 set(FAIL_ON_WARNINGS     OFF CACHE INTERNAL "")
 FetchContent_MakeAvailable(rocksdb)
 
-add_library(store INTERFACE)
-target_link_libraries(store INTERFACE rocksdb)
-target_include_directories(store INTERFACE src ${rocksdb_SOURCE_DIR}/include)
+add_library(rocksdb_lib INTERFACE)
+target_link_libraries(rocksdb_lib INTERFACE rocksdb)
+target_include_directories(rocksdb_lib INTERFACE ${rocksdb_SOURCE_DIR}/include)
 
 # ------------------------------------------------------------------------------
 # spdlog
