@@ -16,22 +16,9 @@
 
 #include <boost/fiber/all.hpp>
 
+#include "state_machine.h"
+
 namespace ceq::raft {
-
-struct StateMachine {
-  RsmResponse Apply(uint64_t data) {
-    log_.emplace_back(data);
-
-    RsmResponse response;
-    for (uint64_t data : log_) {
-      response.add_log_entries(data);
-    }
-    return std::move(response);
-  }
-
- private:
-  std::vector<uint64_t> log_;
-};
 
 struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftApiStub {
   enum class State {
@@ -42,10 +29,11 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
   struct PendingRequest {
     rt::Event replication_finished{};
-    RsmResponse rsm_response{};
+    google::protobuf::Any response{};
   };
 
-  explicit RaftNode(RaftConfig config) : config{config} {
+  explicit RaftNode(IStateMachine* state_machine, RaftConfig config)
+      : config{config}, rsm{state_machine} {
     for (auto& endpoint : config.cluster) {
       clients.emplace_back(endpoint);
     }
@@ -55,37 +43,39 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   // API
   //////////////////////////////////////////////////////////
 
-  Result<Response, rt::rpc::Error> Execute(const RsmCommand& command) noexcept override {
-    LOG("EXECUTE: command = {}", command.data());
+  Result<Response, rt::rpc::Error> Execute(const Request& request) noexcept override {
+    LOG("EXECUTE: start");
 
     Response response;
     if (state != State::Leader) {
-      LOG("EXECUTE: fail: not a leader", command.data());
+      LOG("EXECUTE: fail: not a leader");
       response.set_status(Response_Status_NotALeader);
       return Ok(std::move(response));
     }
 
-    LogEntry entry;
-    entry.set_term(current_term);
-    entry.set_data(command.data());
-    log.emplace_back(entry);
+    {
+      LogEntry entry;
+      entry.set_term(current_term);
+      *entry.mutable_request() = request;
+      log.emplace_back(std::move(entry));
+    }
 
     size_t new_log_index = log.size();
 
     LOG("EXECUTE: append command to log, index = {}", new_log_index);
 
-    PendingRequest request;
+    PendingRequest pending_request;
 
     rt::StopCallback finish_guard(stop_leader.GetToken(), [&]() {
-      request.replication_finished.Signal();
+      pending_request.replication_finished.Signal();
     });
 
-    pending_requests[new_log_index] = &request;
+    pending_requests[new_log_index] = &pending_request;
 
     reset_heartbeat_timeout.Stop();
 
     LOG("EXECUTE: await replicating command to replicas");
-    request.replication_finished.Await();
+    pending_request.replication_finished.Await();
 
     pending_requests.erase(new_log_index);
 
@@ -96,7 +86,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     LOG("EXECUTE: success");
     response.set_status(Response_Status_Commited);
-    *response.mutable_rsm_response() = std::move(request.rsm_response);
+    *response.mutable_response() = std::move(pending_request.response);
 
     return Ok(std::move(response));
   }
@@ -166,7 +156,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         new_commit_index);
 
     for (size_t index = commit_index + 1; index <= new_commit_index; ++index) {
-      rsm.Apply(log[index - 1].data());
+      rsm.Execute(log[index - 1].request());
     }
 
     commit_index = new_commit_index;
@@ -294,9 +284,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       request.set_prev_log_term(next_index[node_id] == 1 ? 0 : log[next_index[node_id] - 2].term());
 
       for (size_t index = next_index[node_id] - 1; index < log.size(); ++index) {
-        auto entry = request.add_entries();
-        entry->set_term(log[index].term());
-        entry->set_data(log[index].data());
+        *request.add_entries() = log[index];
       }
 
       rt::StopSource request_stop;
@@ -325,7 +313,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       }
 
       if (result.HasError()) {
-        LOG("LEADER[{}]: AppendEntries end with error {}", node_id, result.GetError().Message());
+        LOG("LEADER[{}]: AppendEntries end with error: {}", node_id, result.GetError().Message());
         continue;
       }
 
@@ -385,10 +373,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     LOG("LEADER: updating commit index, prev = {}, new = {}", commit_index, new_commit_index);
 
     for (uint64_t index = commit_index + 1; index <= new_commit_index; ++index) {
-      auto rsm_response = rsm.Apply(log[index - 1].data());
+      auto response = rsm.Execute(log[index - 1].request());
       auto it = pending_requests.find(index);
       if (it != pending_requests.end()) {
-        it->second->rsm_response = std::move(rsm_response);
+        it->second->response = std::move(response);
         it->second->replication_finished.Signal();
       }
     }
@@ -517,11 +505,11 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   std::vector<uint64_t> next_index;
 
   // State machine
-  StateMachine rsm;
+  impl::StateMachine rsm;
 };
 
-void RunMain(RaftConfig config) noexcept {
-  RaftNode node(config);
+void RunMain(IStateMachine* state_machine, RaftConfig config) noexcept {
+  RaftNode node(state_machine, config);
 
   // Raft node does not support concurrent execution
   rt::rpc::ServerRunConfig server_config;
