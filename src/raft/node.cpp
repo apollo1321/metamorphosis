@@ -30,6 +30,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   struct PendingRequest {
     rt::Event replication_finished{};
     google::protobuf::Any response{};
+    bool success = false;
   };
 
   explicit RaftNode(IStateMachine* state_machine, RaftConfig config)
@@ -79,7 +80,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     pending_requests.erase(new_log_index);
 
-    if (state != State::Leader) {
+    if (!pending_request.success) {
+      response.set_status(Response_Status_NotALeader);
       LOG("EXECUTE: fail: current replica is not a leader");
       return Ok(std::move(response));
     }
@@ -121,9 +123,6 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     if (request.prev_log_index() == 0) {
       VERIFY(request.prev_log_term() == 0, "invalid prev_log_term");
-      LOG("APPEND_ENTRIES: accept: prev_log_index == 0");
-      result.set_success(true);
-      return Ok(std::move(result));
     }
 
     if (request.prev_log_index() > log.size()) {
@@ -133,7 +132,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       return Ok(std::move(result));
     }
 
-    if (log[request.prev_log_index() - 1].term() != request.prev_log_term()) {
+    if (request.prev_log_index() != 0 &&
+        log[request.prev_log_index() - 1].term() != request.prev_log_term()) {
       LOG("APPEND_ENTRIES: dismiss: prev_log_term = {} != request_prev_log_term = {}",
           log[request.prev_log_index() - 1].term(), request.prev_log_term());
       result.set_success(false);
@@ -198,7 +198,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       return Ok(std::move(result));
     }
 
-    const uint64_t last_log_term = log.empty() ? 0 : log.back().term();
+    const uint64_t last_log_term = GetLastLogTerm();
     if (last_log_term > request.last_log_term()) {
       LOG("REQUEST_VOTE: dismiss: current last_log_term = {} > candidate last_log_term = {}",
           last_log_term, request.last_log_term());
@@ -332,9 +332,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         VERIFY(next_index[node_id] >= 2, "invalid state");
         --next_index[node_id];
       } else {
-        LOG("LEADER[{}]: success, update match_index and next_index", node_id);
         match_index[node_id] = request.prev_log_index() + request.entries_size();
         next_index[node_id] += request.entries_size();
+        LOG("LEADER[{}]: success, update match_index = {} and next_index = {}", node_id,
+            match_index[node_id], next_index[node_id]);
 
         UpdateCommitIndex();
       }
@@ -377,6 +378,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       auto it = pending_requests.find(index);
       if (it != pending_requests.end()) {
         it->second->response = std::move(response);
+        it->second->success = true;
         it->second->replication_finished.Signal();
       }
     }
@@ -417,6 +419,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       RequestVoteRequest request_vote;
       request_vote.set_term(current_term);
       request_vote.set_candidate_id(config.node_id);
+      request_vote.set_last_log_term(GetLastLogTerm());
+      request_vote.set_last_log_index(log.size());
 
       stop_election = rt::StopSource{};
 
@@ -439,15 +443,19 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
           if (result.HasError()) {
             LOG("CANDIDATE: finished RequestVote to node {} with error: {}", node_id,
                 result.GetError().Message());
+            return;
           }
 
-          if (state != State::Candidate || result.HasError()) {
+          if (state != State::Candidate) {
+            LOG("CANDIDATE: finished RequestVote to node {}, not a CANDIDATE", node_id);
             return;
           }
 
           if (result.GetValue().vote_granted()) {
             LOG("CANDIDATE: node {} granted vote", node_id);
             ++votes_count;
+          } else {
+            LOG("CANDIDATE: node {} denied vote", node_id);
           }
 
           if (votes_count >= MajorityCount()) {
@@ -475,6 +483,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
   size_t MajorityCount() const noexcept {
     return config.cluster.size() / 2 + 1;
+  }
+
+  uint64_t GetLastLogTerm() const noexcept {
+    return log.empty() ? 0 : log.back().term();
   }
 
   rt::StopSource stop_election;
