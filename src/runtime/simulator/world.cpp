@@ -48,17 +48,21 @@ void World::SleepUntil(Timestamp wake_up_time, StopToken stop_token) noexcept {
   event.Await();
 }
 
-void World::RunSimulation(size_t iteration_count) noexcept {
+void World::RunSimulation(Duration duration) noexcept {
   VERIFY(std::exchange(initialized_, false), "world in unitialized");
   boost::this_fiber::properties<RuntimeSimulationProps>().MarkAsMainFiber();
   boost::this_fiber::yield();
 
-  while (running_count_ > 0 && iteration_count > 0) {
+  while (running_count_ > 0) {
     VERIFY(!events_queue_.empty(),
            "unexpected state: no active tasks (deadlock or real sleep_for is called)");
 
     auto [ts, event] = *events_queue_.begin();
     events_queue_.erase(events_queue_.begin());
+
+    if (ts.time_since_epoch() > duration) {
+      break;
+    }
 
     VERIFY(current_time_ <= ts, "invalid event timestamp");
     current_time_ = ts;
@@ -66,9 +70,9 @@ void World::RunSimulation(size_t iteration_count) noexcept {
 
     // this fiber will be resumed after all other fibers are executed
     boost::this_fiber::yield();
-
-    --iteration_count;
   }
+
+  FlushAllLogs();
 }
 
 Duration World::GetRpcDelay() noexcept {
@@ -161,6 +165,12 @@ void World::CloseLink(const Address& from, const Address& to) noexcept {
 
 void World::RestoreLink(const Address& from, const Address& to) noexcept {
   closed_links_.erase(std::make_pair(from, to));
+}
+
+void World::FlushAllLogs() noexcept {
+  for (auto& [_, host] : hosts_) {
+    host->GetLogger()->flush();
+  }
 }
 
 World* GetWorld() noexcept {

@@ -56,14 +56,12 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   //////////////////////////////////////////////////////////
 
   Result<Response, rt::rpc::Error> Execute(const RsmCommand& command) noexcept override {
-    LOG("Execute: start command {}", command.data());
-    DEFER {
-      LOG("Execute: finishing for command {}", command.data());
-    };
+    LOG("EXECUTE: command = {}", command.data());
 
     Response response;
-    response.set_status(Response_Status_NotALeader);
     if (state != State::Leader) {
+      LOG("EXECUTE: fail: not a leader", command.data());
+      response.set_status(Response_Status_NotALeader);
       return Ok(std::move(response));
     }
 
@@ -73,6 +71,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     log.emplace_back(entry);
 
     size_t new_log_index = log.size();
+
+    LOG("EXECUTE: append command to log, index = {}", new_log_index);
 
     PendingRequest request;
 
@@ -84,14 +84,17 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     reset_heartbeat_timeout.Stop();
 
+    LOG("EXECUTE: await replicating command to replicas");
     request.replication_finished.Await();
 
     pending_requests.erase(new_log_index);
 
     if (state != State::Leader) {
+      LOG("EXECUTE: fail: current replica is not a leader");
       return Ok(std::move(response));
     }
 
+    LOG("EXECUTE: success");
     response.set_status(Response_Status_Commited);
     *response.mutable_rsm_response() = std::move(request.rsm_response);
 
@@ -104,12 +107,14 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
   Result<AppendEntriesResult, rt::rpc::Error> AppendEntries(
       const AppendEntriesRequest& request) noexcept override {
-    LOG("AppendEntries: current term: {}, request: {}", request.term(), request);
+    LOG("APPEND_ENTRIES: start, current_term = {}, request_term = {}", current_term,
+        request.term());
 
     AppendEntriesResult result;
     result.set_term(current_term);
 
     if (request.term() < current_term) {
+      LOG("APPEND_ENTRIES: dismiss, request_term < current_term");
       result.set_success(false);
       return Ok(std::move(result));
     }
@@ -117,6 +122,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     reset_election_timeout.Stop();
 
     if (request.term() >= current_term) {
+      LOG("APPEND_ENTRIES: request_term >= current_term; change to FOLLOWER");
       state = State::Follower;
       stop_election.Stop();
       stop_leader.Stop();
@@ -125,20 +131,26 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     if (request.prev_log_index() == 0) {
       VERIFY(request.prev_log_term() == 0, "invalid prev_log_term");
+      LOG("APPEND_ENTRIES: accept: prev_log_index == 0");
       result.set_success(true);
       return Ok(std::move(result));
     }
 
     if (request.prev_log_index() > log.size()) {
+      LOG("APPEND_ENTRIES: dismiss: prev_log_index = {} > log_size = {}", request.prev_log_index(),
+          log.size());
       result.set_success(false);
       return Ok(std::move(result));
     }
 
     if (log[request.prev_log_index() - 1].term() != request.prev_log_term()) {
+      LOG("APPEND_ENTRIES: dismiss: prev_log_term = {} != request_prev_log_term = {}",
+          log[request.prev_log_index() - 1].term(), request.prev_log_term());
       result.set_success(false);
       return Ok(std::move(result));
     }
 
+    LOG("APPEND_ENTRIES: accept, writting entries to local log");
     result.set_success(true);
     log.resize(request.prev_log_index());
     for (size_t index = 0; index < request.entries().size(); ++index) {
@@ -149,6 +161,9 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     if (request.leader_commit() > commit_index) {
       new_commit_index = std::min<uint64_t>(request.leader_commit(), log.size());
     }
+
+    LOG("APPEND_ENTRIES: updating commit index, prev = {}, new = {}", commit_index,
+        new_commit_index);
 
     for (size_t index = commit_index + 1; index <= new_commit_index; ++index) {
       rsm.Apply(log[index - 1].data());
@@ -161,17 +176,18 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
   Result<RequestVoteResult, rt::rpc::Error> RequestVote(
       const RequestVoteRequest& request) noexcept override {
-    LOG("RequestVote: current term: {}, request: {}", current_term, request);
+    LOG("REQUEST_VOTE: start, current_term = {}, candidate_id = {}, request_term = {}",
+        current_term, request.candidate_id(), request.term());
     RequestVoteResult result;
     result.set_term(current_term);
     if (request.term() < current_term) {
-      LOG("RequestVote: dismiss: request.term() < current_term");
+      LOG("REQUEST_VOTE: dismiss: request_term < current_term");
       result.set_vote_granted(false);
       return Ok(std::move(result));
     }
 
     if (request.term() > current_term) {
-      LOG("RequestVote: change to follower: request.term() > current_term");
+      LOG("REQUEST_VOTE: request_term > current_term; change to FOLLOWER");
       current_term = request.term();
       state = State::Follower;
       voted_for = std::nullopt;
@@ -181,29 +197,42 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     }
 
     if (voted_for == request.candidate_id()) {
-      LOG("RequestVote: accept: voted_for == request.candidate_id()");
+      LOG("REQUEST_VOTE: accept: voted_for == candidate_id");
       result.set_vote_granted(true);
       return Ok(std::move(result));
     }
 
     if (voted_for) {
-      LOG("RequestVote: dismiss: voted_for = ", *voted_for);
+      LOG("REQUEST_VOTE: dismiss: already voted_for = {}", *voted_for);
       result.set_vote_granted(false);
       return Ok(std::move(result));
     }
 
     const uint64_t last_log_term = log.empty() ? 0 : log.back().term();
     if (last_log_term > request.last_log_term()) {
+      LOG("REQUEST_VOTE: dismiss: current last_log_term = {} > candidate last_log_term = {}",
+          last_log_term, request.last_log_term());
       result.set_vote_granted(false);
     } else if (last_log_term == request.last_log_term()) {
-      result.set_vote_granted(log.size() <= request.last_log_index());
+      LOG("REQUEST_VOTE: current last_log_term = {} == candidate last_log_term = {}", last_log_term,
+          request.last_log_term());
+      if (log.size() <= request.last_log_index()) {
+        LOG("REQUEST_VOTE: accept: current log_size = {} <= candidate log_size {}", log.size(),
+            request.last_log_index());
+        result.set_vote_granted(true);
+      } else {
+        LOG("REQUEST_VOTE: dismiss: current log_size = {} > candidate log_size {}", log.size(),
+            request.last_log_index());
+        result.set_vote_granted(false);
+      }
     } else {
+      LOG("REQUEST_VOTE: accept: current last_log_term = {} < candidate last_log_term = {}",
+          last_log_term, request.last_log_term());
       result.set_vote_granted(true);
     }
     if (result.vote_granted()) {
       voted_for = request.candidate_id();
     }
-    LOG("RequestVote: log consistency check: {}", result.vote_granted());
     return Ok(std::move(result));
   }
 
@@ -212,8 +241,6 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   //////////////////////////////////////////////////////////
 
   void StartNode() noexcept {
-    LOG("StartNode");
-
     while (true) {
       switch (state) {
         case State::Leader:
@@ -230,59 +257,51 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   }
 
   void StartLeader() noexcept {
-    LOG("StartLeader");
+    LOG("LEADER: start with term {}", current_term);
+    DEFER {
+      LOG("LEADER: finished");
+    };
 
-    std::vector<uint64_t> match_index(config.cluster.size(), 0);
+    next_index = std::vector<uint64_t>(config.cluster.size(), log.size() + 1);
+    match_index = std::vector<uint64_t>(config.cluster.size(), 0);
 
     std::vector<boost::fibers::fiber> sessions;
 
     stop_leader = rt::StopSource();
-
-    rt::StopCallback stop_leader_cb(stop_leader.GetToken(), [&]() {
-      LOG("stop_leader.Stop() is called");
-    });
 
     for (size_t node_id = 0; node_id < config.cluster.size(); ++node_id) {
       if (node_id == config.node_id) {
         continue;
       }
       sessions.emplace_back([&, node_id]() {
-        StartLeaderNodeSession(node_id, match_index);
+        StartLeaderNodeSession(node_id);
       });
     }
 
     for (auto& session : sessions) {
       session.join();
     }
-
-    LOG("finished StartLeader");
   }
 
-  void StartLeaderNodeSession(size_t node_id, std::vector<uint64_t> match_index) noexcept {
-    size_t next_index = log.size() + 1;
-
+  void StartLeaderNodeSession(size_t node_id) noexcept {
     while (state == State::Leader) {
-      VERIFY(next_index >= 1, "invalid next_index");
+      VERIFY(next_index[node_id] >= 1, "invalid next_index");
       AppendEntriesRequest request;
 
       request.set_term(current_term);
       request.set_leader_id(config.node_id);
-      request.set_prev_log_index(next_index - 1);
-      request.set_prev_log_term(next_index == 1 ? 0 : log[next_index - 2].term());
+      request.set_prev_log_index(next_index[node_id] - 1);
+      request.set_prev_log_term(next_index[node_id] == 1 ? 0 : log[next_index[node_id] - 2].term());
 
-      for (size_t index = next_index - 1; index < log.size(); ++index) {
+      for (size_t index = next_index[node_id] - 1; index < log.size(); ++index) {
         auto entry = request.add_entries();
         entry->set_term(log[index].term());
         entry->set_data(log[index].data());
       }
 
       rt::StopSource request_stop;
-      rt::StopCallback stop_guard(stop_leader.GetToken(), [&]() {
+      rt::StopCallback stop_propagate(stop_leader.GetToken(), [&]() {
         request_stop.Stop();
-      });
-
-      rt::StopCallback request_stop_cb(request_stop.GetToken(), [&]() {
-        LOG("request_stop.Stop() is called");
       });
 
       boost::fibers::fiber request_timeout([&]() {
@@ -291,25 +310,29 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       });
 
       DEFER {
+        request_stop.Stop();
         request_timeout.join();
       };
 
-      LOG("Start AppendEntries RPC to node {}", node_id);
+      LOG("LEADER[{}]: start AppendEntries with next_index = {}, match_index = {}", node_id,
+          next_index[node_id], match_index[node_id]);
       auto result = clients[node_id].AppendEntries(request, request_stop.GetToken());
-      LOG("Finished AppendEntries RPC to node {}", node_id);
+      LOG("LEADER[{}]: finished AppendEntries", node_id);
 
       if (state != State::Leader) {
+        LOG("LEADER[{}]: not a leader", node_id);
         continue;
       }
 
       if (result.HasError()) {
-        LOG("AppendEntries to node {} end with error {}", node_id, result.GetError().Message());
+        LOG("LEADER[{}]: AppendEntries end with error {}", node_id, result.GetError().Message());
         continue;
       }
 
       AppendEntriesResult& response = result.GetValue();
       if (response.term() > current_term) {
-        LOG("AppendEntries to node {} received greater term", node_id);
+        LOG("LEADER[{}]: received greater term = {}, change state to FOLLOWER", node_id,
+            response.term());
         current_term = response.term();
         state = State::Follower;
         stop_leader.Stop();
@@ -317,82 +340,91 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       }
 
       if (!response.success()) {
-        VERIFY(next_index >= 2, "invalid state");
-        --next_index;
+        LOG("LEADER[{}]: log is inconsistent, decrement next_index", node_id);
+        VERIFY(next_index[node_id] >= 2, "invalid state");
+        --next_index[node_id];
       } else {
-        match_index[node_id] = next_index;
-        next_index = std::min(log.size() + 1, next_index + 1);
+        LOG("LEADER[{}]: success, update match_index and next_index", node_id);
+        match_index[node_id] = request.prev_log_index() + request.entries_size();
+        next_index[node_id] += request.entries_size();
 
-        LOG("AppendEntries to node {} success", node_id);
-
-        const size_t quorum = config.cluster.size() / 2 + 1;
-        uint64_t new_commit_index = commit_index;
-
-        for (uint64_t index = log.size();
-             index > commit_index && log[index - 1].term() == current_term; --index) {
-          size_t match_count = 1;
-
-          for (size_t node_id = 0; node_id < config.cluster.size(); ++node_id) {
-            if (node_id == config.node_id) {
-              continue;
-              ;
-            }
-            if (match_index[node_id] >= index) {
-              ++match_count;
-            }
-          }
-          if (match_count >= quorum) {
-            new_commit_index = index;
-            break;
-          }
-        }
-
-        for (uint64_t index = commit_index + 1; index <= new_commit_index; ++index) {
-          auto rsm_response = rsm.Apply(log[index - 1].data());
-          auto it = pending_requests.find(index);
-          if (it != pending_requests.end()) {
-            it->second->rsm_response = std::move(rsm_response);
-            it->second->replication_finished.Signal();
-          }
-        }
-
-        commit_index = new_commit_index;
+        UpdateCommitIndex();
       }
 
-      if (next_index == log.size() + 1) {
+      if (next_index[node_id] == log.size() + 1) {
+        LOG("LEADER[{}]: all log replicated, wait on heart_beat_timeout", node_id);
         reset_heartbeat_timeout = rt::StopSource();
         rt::SleepFor(config.heart_beat_period, reset_heartbeat_timeout.GetToken());
       }
     }
   }
 
+  void UpdateCommitIndex() noexcept {
+    VERIFY(state == State::Leader, "UpdateCommitIndex must be called only by leaders");
+
+    uint64_t new_commit_index = commit_index;
+
+    for (uint64_t index = log.size(); index > commit_index && log[index - 1].term() == current_term;
+         --index) {
+      size_t match_count = 1;
+
+      for (size_t node_id = 0; node_id < config.cluster.size(); ++node_id) {
+        if (node_id == config.node_id) {
+          continue;
+        }
+        if (match_index[node_id] >= index) {
+          ++match_count;
+        }
+      }
+      if (match_count >= MajorityCount()) {
+        new_commit_index = index;
+        break;
+      }
+    }
+
+    LOG("LEADER: updating commit index, prev = {}, new = {}", commit_index, new_commit_index);
+
+    for (uint64_t index = commit_index + 1; index <= new_commit_index; ++index) {
+      auto rsm_response = rsm.Apply(log[index - 1].data());
+      auto it = pending_requests.find(index);
+      if (it != pending_requests.end()) {
+        it->second->rsm_response = std::move(rsm_response);
+        it->second->replication_finished.Signal();
+      }
+    }
+
+    commit_index = new_commit_index;
+  }
+
   void StartFollower() noexcept {
-    LOG("StartFollower");
+    LOG("FOLLOWER: start with term {}", current_term);
+    DEFER {
+      LOG("FOLLOWER: finished");
+    };
 
     while (state == State::Follower) {
       reset_election_timeout = rt::StopSource();
       if (!rt::SleepFor(GetElectionTimeout(), reset_election_timeout.GetToken())) {
-        LOG("election timeout expired, change state to candidate");
+        LOG("FOLLOWER: election timeout expired, change state to CANDIDATE");
         state = State::Candidate;
       } else {
-        LOG("election timeout was cancelled, continue as follower");
+        LOG("FOLLOWER: election timeout was cancelled, continue as FOLLOWER");
       }
     }
-
-    LOG("finished StartFollower");
   }
 
   void StartCandidate() noexcept {
-    LOG("StartCandidate");
+    DEFER {
+      LOG("CANDIDATE: finished");
+    };
 
     while (state == State::Candidate) {
       ++current_term;
       voted_for = config.node_id;
 
-      LOG("start new election with term {}", current_term);
+      LOG("CANDIDATE: start new elections with term {}", current_term);
 
       size_t votes_count = 1;
-      const size_t quorum = config.cluster.size() / 2 + 1;
 
       RequestVoteRequest request_vote;
       request_vote.set_term(current_term);
@@ -412,14 +444,13 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
           continue;
         }
         requests.emplace_back([&, node_id]() {
-          LOG("start RequestVote to node {}", node_id);
+          LOG("CANDIDATE: start RequestVote to node {}", node_id);
           Result<RequestVoteResult, rt::rpc::Error> result =
               clients[node_id].RequestVote(request_vote);
+
           if (result.HasError()) {
-            LOG("finished RequestVote to node {} with error: {}", node_id,
+            LOG("CANDIDATE: finished RequestVote to node {} with error: {}", node_id,
                 result.GetError().Message());
-          } else {
-            LOG("finished RequestVote to node {} with success: {}", node_id, result.GetValue());
           }
 
           if (state != State::Candidate || result.HasError()) {
@@ -427,10 +458,12 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
           }
 
           if (result.GetValue().vote_granted()) {
+            LOG("CANDIDATE: node {} granted vote", node_id);
             ++votes_count;
           }
 
-          if (votes_count >= quorum) {
+          if (votes_count >= MajorityCount()) {
+            LOG("CANDIDATE: got majority of votes, change state to LEADER");
             state = State::Leader;
             stop_election.Stop();
           }
@@ -443,7 +476,6 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
       election_timer.join();
     }
-    LOG("finished StartCandidate");
   }
 
   rt::Duration GetElectionTimeout() noexcept {
@@ -451,6 +483,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         config.election_timeout_interval.first.count(),
         config.election_timeout_interval.second.count()};
     return rt::Duration(dist(rt::GetGenerator()));
+  }
+
+  size_t MajorityCount() const noexcept {
+    return config.cluster.size() / 2 + 1;
   }
 
   rt::StopSource stop_election;
@@ -464,7 +500,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   rt::StopSource reset_election_timeout;
   rt::StopSource reset_heartbeat_timeout;
 
+  std::unordered_map<uint64_t, PendingRequest*> pending_requests;
+
   // Persistent state
+  // TODO: write to disk
   uint64_t current_term = 0;
   std::optional<uint64_t> voted_for;
   std::vector<LogEntry> log;
@@ -473,18 +512,27 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   uint64_t commit_index = 0;
   uint64_t last_applied = 0;
 
-  std::unordered_map<uint64_t, PendingRequest*> pending_requests;
+  // Leaders volatile state
+  std::vector<uint64_t> match_index;
+  std::vector<uint64_t> next_index;
 
+  // State machine
   StateMachine rsm;
 };
 
 void RunMain(RaftConfig config) noexcept {
   RaftNode node(config);
 
+  // Raft node does not support concurrent execution
+  rt::rpc::ServerRunConfig server_config;
+  server_config.worker_threads_count = 1;
+  server_config.threads_per_queue = 1;
+  server_config.queue_count = 1;
+
   rt::rpc::Server server;
   server.Register(static_cast<rt::rpc::RaftInternalsStub*>(&node));
   server.Register(static_cast<rt::rpc::RaftApiStub*>(&node));
-  server.Run(config.cluster[config.node_id].port);
+  server.Run(config.cluster[config.node_id].port, server_config);
 
   node.StartNode();
   server.ShutDown();

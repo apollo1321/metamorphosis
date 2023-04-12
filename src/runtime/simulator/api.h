@@ -48,7 +48,7 @@ void InitWorld(uint64_t seed, WorldOptions options = WorldOptions{}) noexcept;
 void AddHost(const Address& address, IHostRunnable* server_main,
              const HostOptions& options = HostOptions{}) noexcept;
 
-void RunSimulation(size_t iteration_count = std::numeric_limits<size_t>::max()) noexcept;
+void RunSimulation(Duration duration = Duration::max()) noexcept;
 
 ////////////////////////////////////////////////////////////
 // Helper functions for tests
@@ -56,6 +56,7 @@ void RunSimulation(size_t iteration_count = std::numeric_limits<size_t>::max()) 
 
 uint64_t GetHostUniqueId() noexcept;
 Timestamp GetGlobalTime() noexcept;
+void FlushAllLogs() noexcept;
 
 ////////////////////////////////////////////////////////////
 // Failure simulation
