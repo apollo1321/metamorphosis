@@ -15,6 +15,9 @@ void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
   generator_ = std::mt19937(seed);
   current_time_ = Timestamp(static_cast<Duration>(0));
   events_queue_.clear();
+  for (auto& [_, host] : hosts_) {
+    host->KillHost();
+  }
   hosts_.clear();
   closed_links_.clear();
   initialized_ = true;
