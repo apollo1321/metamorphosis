@@ -55,10 +55,10 @@ spdlog::pattern_formatter::custom_flags MakeFlags() noexcept {
         return GetCurrentHost()->GetLocalTime().time_since_epoch().count() / 1'000 % 1'000;
       },
       3));
-  flags['S'] = std::unique_ptr<spdlog::custom_flag_formatter>(new TimeFlags([]() {
+  flags['Q'] = std::unique_ptr<spdlog::custom_flag_formatter>(new TimeFlags([]() {
     return GetWorld()->GetGlobalTime().time_since_epoch().count() / 1'000 / 1'000 % 60;
   }));
-  flags['s'] = std::unique_ptr<spdlog::custom_flag_formatter>(new TimeFlags([]() {
+  flags['q'] = std::unique_ptr<spdlog::custom_flag_formatter>(new TimeFlags([]() {
     return GetCurrentHost()->GetLocalTime().time_since_epoch().count() / 1'000 / 1'000 % 60;
   }));
   flags['M'] = std::unique_ptr<spdlog::custom_flag_formatter>(new TimeFlags([]() {
@@ -75,6 +75,9 @@ spdlog::pattern_formatter::custom_flags MakeFlags() noexcept {
            24;
   }));
 
+  // Local time pattern:  L:[%h:%m:%q.%e.%f]
+  // Global time pattern: G:[%H:%M:%Q.%E.%F]
+
   return flags;
 }
 
@@ -82,14 +85,14 @@ std::shared_ptr<spdlog::logger> CreateLogger(std::string host_name) noexcept {
   auto logger = std::make_shared<spdlog::logger>(host_name);
 
   auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_st>(host_name + ".host.log",
-                                                                          1024 * 1024, 1, true);
+                                                                          1024 * 1024, 0, true);
   file_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-      "G:[%H:%M:%S.%E.%F] L:[%h:%m:%s.%e.%f] [%^%L%$] %v", spdlog::pattern_time_type::local,
+      "G:[%H:%M:%Q.%E.%F] [%^%L%$] %v (%!:%s:%#)", spdlog::pattern_time_type::local,
       spdlog::details::os::default_eol, MakeFlags()));
 
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
   console_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-      "G:[%H:%M:%S.%E.%F] L:[%h:%m:%s.%e.%f] [%^%L%$] [%n] %v", spdlog::pattern_time_type::local,
+      "G:[%H:%M:%Q.%E.%F] [%^%L%$] [%n] %v (%!:%s:%#)", spdlog::pattern_time_type::local,
       spdlog::details::os::default_eol, MakeFlags()));
 
   logger->sinks().emplace_back(std::move(file_sink));

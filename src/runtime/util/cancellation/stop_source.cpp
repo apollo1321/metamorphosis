@@ -33,6 +33,11 @@ void StopSource::Stop() noexcept {
   }
 }
 
+bool StopSource::StopRequested() const noexcept {
+  std::lock_guard guard(state_->lock);
+  return state_->cancelled;
+}
+
 StopSource::~StopSource() {
   if (state_ != nullptr) {
     state_->UnRef();
