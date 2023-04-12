@@ -42,7 +42,9 @@ TEST(RaftElection, SimplyWorks) {
 
         RsmCommand command;
         command.set_data(index);
-        auto response = FromAny<RsmResponse>(client.Execute(ToAny(command), 100s, 100).GetValue());
+        auto any_response = client.Execute(ToAny(command), 100s, 1000).GetValue();
+        LOG("CLIENT: any_response = {}", any_response.type_url());
+        auto response = FromAny<RsmResponse>(any_response);
 
         EXPECT_EQ(response.log_entries_size(), index + 1);
         LOG("CLIENT: response = {}", response);
@@ -91,16 +93,18 @@ TEST(RaftElection, SimplyWorks) {
 
   Client client{cluster};
 
-  for (size_t iteration = 0; iteration < 20; ++iteration) {
+  for (size_t iteration = 0; iteration < 50; ++iteration) {
     // One-way delay
-    sim::WorldOptions world_options{.delivery_time_interval = {5ms, 50ms},
+    sim::WorldOptions world_options{.delivery_time_interval = {5ms, 100ms},
                                     .network_error_proba = 0.2};
     sim::InitWorld(iteration, world_options);
 
+    sim::HostOptions host_options{.max_sleep_lag = 500us};
+
     sim::AddHost("client", &client);
-    sim::AddHost("addr0", &node1);
-    sim::AddHost("addr1", &node2);
-    sim::AddHost("addr2", &node3);
+    sim::AddHost("addr0", &node1, host_options);
+    sim::AddHost("addr1", &node2, host_options);
+    sim::AddHost("addr2", &node3, host_options);
 
     sim::RunSimulation(10s);
   }
