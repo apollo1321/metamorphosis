@@ -18,12 +18,16 @@ void AddHost(const Address& address, IHostRunnable* host_main,
   GetWorld()->AddHost(address, std::make_unique<Host>(address, host_main, options));
 }
 
-void RunSimulation(size_t iteration_count) noexcept {
-  GetWorld()->RunSimulation(iteration_count);
+void RunSimulation(Duration duration) noexcept {
+  GetWorld()->RunSimulation(duration);
 }
 
 uint64_t GetHostUniqueId() noexcept {
   return reinterpret_cast<uint64_t>(GetCurrentHost());
+}
+
+void FlushAllLogs() noexcept {
+  GetWorld()->FlushAllLogs();
 }
 
 void PauseHost(const Address& address) noexcept {

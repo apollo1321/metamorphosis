@@ -8,9 +8,11 @@
 
 namespace ceq::raft {
 
+using Cluster = std::vector<rt::rpc::Endpoint>;
+
 struct RaftConfig {
   size_t node_id{};
-  std::vector<rt::rpc::Endpoint> cluster;
+  Cluster cluster;
 
   std::pair<rt::Duration, rt::Duration> election_timeout_interval;
   rt::Duration heart_beat_period;

@@ -15,6 +15,7 @@ class StopSource {
   StopToken GetToken() noexcept;
 
   void Stop() noexcept;
+  bool StopRequested() const noexcept;
 
   ~StopSource();
 

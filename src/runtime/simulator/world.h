@@ -28,7 +28,7 @@ class World {
 
   void SleepUntil(Timestamp wake_up_time, StopToken stop_token = StopToken{}) noexcept;
 
-  void RunSimulation(size_t iteration_count) noexcept;
+  void RunSimulation(Duration duration) noexcept;
 
   Result<rpc::SerializedData, rpc::Error> MakeRequest(Address from, rpc::Endpoint endpoint,
                                                       rpc::SerializedData data,
@@ -40,6 +40,8 @@ class World {
 
   void CloseLink(const Address& from, const Address& to) noexcept;
   void RestoreLink(const Address& from, const Address& to) noexcept;
+
+  void FlushAllLogs() noexcept;
 
  private:
   Duration GetRpcDelay() noexcept;
