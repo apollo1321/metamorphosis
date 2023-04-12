@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+message RsmCommand {
+  uint64 data = 1;
+}
+
+message RsmResponse {
+  repeated uint64 log_entries = 1;
+}

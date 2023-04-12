@@ -11,6 +11,8 @@
 
 #include <raft/client.h>
 
+#include "test_rsm.h"
+
 using namespace std::chrono_literals;
 using namespace ceq;      // NOLINT
 using namespace ceq::rt;  // NOLINT
@@ -21,7 +23,8 @@ TEST(RaftElection, SimplyWorks) {
     }
 
     void Main() noexcept override {
-      raft::RunMain(config);
+      TestStateMachine state_machine;
+      raft::RunMain(&state_machine, config);
     }
 
     raft::RaftConfig config;
@@ -35,15 +38,18 @@ TEST(RaftElection, SimplyWorks) {
       SleepFor(500ms);
 
       for (size_t index = 0;; ++index) {
+        LOG("CLIENT: write command: {}", index);
+
         RsmCommand command;
         command.set_data(index);
-        auto response = client.Execute(command, 1s, 10).GetValue();
-        EXPECT_EQ(response.status(), Response::Status::Response_Status_Commited);
-        EXPECT_EQ(response.rsm_response().log_entries_size(), index + 1);
-        for (size_t entry_index = 0; entry_index < response.rsm_response().log_entries_size();
-             ++entry_index) {
-          EXPECT_EQ(response.rsm_response().log_entries()[entry_index], entry_index);
+        auto response = FromAny<RsmResponse>(client.Execute(ToAny(command), 100s, 100).GetValue());
+
+        EXPECT_EQ(response.log_entries_size(), index + 1);
+        LOG("CLIENT: response = {}", response);
+        for (size_t entry_index = 0; entry_index < response.log_entries_size(); ++entry_index) {
+          EXPECT_EQ(response.log_entries()[entry_index], entry_index);
         }
+        LOG("CLIENT: finished writing command: {}", index);
       }
     }
 
@@ -85,18 +91,19 @@ TEST(RaftElection, SimplyWorks) {
 
   Client client{cluster};
 
-  // One-way delay
-  sim::WorldOptions world_options{
-      .delivery_time_interval = {5ms, 50ms},
-  };
-  sim::InitWorld(42, world_options);
+  for (size_t iteration = 0; iteration < 20; ++iteration) {
+    // One-way delay
+    sim::WorldOptions world_options{.delivery_time_interval = {5ms, 50ms},
+                                    .network_error_proba = 0.2};
+    sim::InitWorld(iteration, world_options);
 
-  sim::AddHost("client", &client);
-  sim::AddHost("addr0", &node1);
-  sim::AddHost("addr1", &node2);
-  sim::AddHost("addr2", &node3);
+    sim::AddHost("client", &client);
+    sim::AddHost("addr0", &node1);
+    sim::AddHost("addr1", &node2);
+    sim::AddHost("addr2", &node3);
 
-  sim::RunSimulation(3s);
+    sim::RunSimulation(10s);
+  }
 }
 
 int main(int argc, char** argv) {

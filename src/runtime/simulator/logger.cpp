@@ -77,6 +77,7 @@ spdlog::pattern_formatter::custom_flags MakeFlags() noexcept {
 
   // Local time pattern:  L:[%h:%m:%q.%e.%f]
   // Global time pattern: G:[%H:%M:%Q.%E.%F]
+  // Source code position:  (%!:%s:%#)
 
   return flags;
 }
@@ -87,12 +88,12 @@ std::shared_ptr<spdlog::logger> CreateLogger(std::string host_name) noexcept {
   auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_st>(host_name + ".host.log",
                                                                           1024 * 1024, 0, true);
   file_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-      "G:[%H:%M:%Q.%E.%F] [%^%L%$] %v (%!:%s:%#)", spdlog::pattern_time_type::local,
+      "G:[%H:%M:%Q.%E.%F] [%^%L%$] %v", spdlog::pattern_time_type::local,
       spdlog::details::os::default_eol, MakeFlags()));
 
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
   console_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
-      "G:[%H:%M:%Q.%E.%F] [%^%L%$] [%n] %v (%!:%s:%#)", spdlog::pattern_time_type::local,
+      "G:[%H:%M:%Q.%E.%F] [%^%L%$] [%n] %v", spdlog::pattern_time_type::local,
       spdlog::details::os::default_eol, MakeFlags()));
 
   logger->sinks().emplace_back(std::move(file_sink));
