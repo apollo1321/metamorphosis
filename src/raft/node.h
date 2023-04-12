@@ -3,12 +3,19 @@
 #include <utility>
 #include <vector>
 
+#include <google/protobuf/any.pb.h>
+
 #include <runtime/api.h>
 #include <runtime/rpc_server.h>
 
 namespace ceq::raft {
 
 using Cluster = std::vector<rt::rpc::Endpoint>;
+
+struct IStateMachine {
+  virtual google::protobuf::Any Execute(const google::protobuf::Any& command) noexcept = 0;
+  virtual ~IStateMachine() = default;
+};
 
 struct RaftConfig {
   size_t node_id{};
@@ -19,6 +26,6 @@ struct RaftConfig {
   rt::Duration rpc_timeout;
 };
 
-void RunMain(RaftConfig config) noexcept;
+void RunMain(IStateMachine* state_machine, RaftConfig config) noexcept;
 
 }  // namespace ceq::raft
