@@ -22,10 +22,14 @@ struct TestStateMachine final : public ceq::raft::IStateMachine {
   google::protobuf::Any Execute(const google::protobuf::Any& command) noexcept override {
     log.push_back(FromAny<RsmCommand>(command).data());
 
+    LOG("TestStateMachine: command = {}", log.back());
+
     RsmResponse response;
     for (uint64_t val : log) {
       response.add_log_entries(val);
     }
+
+    LOG("TestStateMachine: response = {}", response);
 
     return ToAny(response);
   }
