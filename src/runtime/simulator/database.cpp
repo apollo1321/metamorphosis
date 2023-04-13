@@ -31,7 +31,11 @@ struct Iterator final : public IIterator {
   virtual void Prev() noexcept override {
     sim::GetCurrentHost()->StopFiberIfNecessary();
     EnsureIteratorIsValid();
-    iterator = std::prev(iterator);
+    if (iterator == storage.begin()) {
+      iterator = storage.end();
+    } else {
+      iterator = std::prev(iterator);
+    }
   }
 
   virtual db::Data GetKey() noexcept override {
