@@ -1,8 +1,9 @@
 #pragma once
 
 #include <raft/node.h>
-
 #include <raft/ut/test_rsm.pb.h>
+
+namespace ceq::raft::test {
 
 template <class T>
 google::protobuf::Any ToAny(const T& proto) noexcept {
@@ -19,20 +20,22 @@ T FromAny(const google::protobuf::Any& proto) noexcept {
 }
 
 struct TestStateMachine final : public ceq::raft::IStateMachine {
-  google::protobuf::Any Execute(const google::protobuf::Any& command) noexcept override {
+  google::protobuf::Any Apply(const google::protobuf::Any& command) noexcept override {
     log.push_back(FromAny<RsmCommand>(command).data());
 
     LOG("TestStateMachine: command = {}", log.back());
 
-    RsmResponse response;
+    RsmResult result;
     for (uint64_t val : log) {
-      response.add_log_entries(val);
+      result.add_log_entries(val);
     }
 
-    LOG("TestStateMachine: response = {}", response);
+    LOG("TestStateMachine: result = {}", result);
 
-    return ToAny(response);
+    return ToAny(result);
   }
 
   std::vector<uint64_t> log;
 };
+
+}  // namespace ceq::raft::test

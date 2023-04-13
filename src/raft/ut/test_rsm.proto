@@ -4,6 +4,6 @@ message RsmCommand {
   uint64 data = 1;
 }
 
-message RsmResponse {
+message RsmResult {
   repeated uint64 log_entries = 1;
 }

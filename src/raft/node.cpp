@@ -29,8 +29,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
   struct PendingRequest {
     rt::Event replication_finished{};
-    google::protobuf::Any response{};
-    bool success = false;
+    google::protobuf::Any result{};
   };
 
   explicit RaftNode(IStateMachine* state_machine, RaftConfig config)
@@ -71,6 +70,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       pending_request.replication_finished.Signal();
     });
 
+    uint64_t term = current_term;
+
     pending_requests[new_log_index] = &pending_request;
 
     reset_heartbeat_timeout.Stop();
@@ -80,7 +81,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     pending_requests.erase(new_log_index);
 
-    if (!pending_request.success) {
+    if (term != current_term) {
       response.set_status(Response_Status_NotALeader);
       LOG("EXECUTE: fail: current replica is not a leader");
       return Ok(std::move(response));
@@ -88,7 +89,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     LOG("EXECUTE: success");
     response.set_status(Response_Status_Commited);
-    *response.mutable_response() = std::move(pending_request.response);
+    *response.mutable_result() = std::move(pending_request.result);
 
     return Ok(std::move(response));
   }
@@ -156,7 +157,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         new_commit_index);
 
     for (size_t index = commit_index + 1; index <= new_commit_index; ++index) {
-      rsm.Execute(log[index - 1].request());
+      rsm.Apply(log[index - 1].request());
     }
 
     commit_index = new_commit_index;
@@ -374,11 +375,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     LOG("LEADER: updating commit index, prev = {}, new = {}", commit_index, new_commit_index);
 
     for (uint64_t index = commit_index + 1; index <= new_commit_index; ++index) {
-      auto response = rsm.Execute(log[index - 1].request());
+      auto result = rsm.Apply(log[index - 1].request());
       auto it = pending_requests.find(index);
       if (it != pending_requests.end()) {
-        it->second->response = std::move(response);
-        it->second->success = true;
+        it->second->result = std::move(result);
         it->second->replication_finished.Signal();
       }
     }
@@ -438,7 +438,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         requests.emplace_back([&, node_id]() {
           LOG("CANDIDATE: start RequestVote to node {}", node_id);
           Result<RequestVoteResult, rt::rpc::Error> result =
-              clients[node_id].RequestVote(request_vote);
+              clients[node_id].RequestVote(request_vote, stop_election.GetToken());
 
           if (result.HasError()) {
             LOG("CANDIDATE: finished RequestVote to node {} with error: {}", node_id,

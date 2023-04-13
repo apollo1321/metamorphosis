@@ -16,7 +16,7 @@ class StateMachine {
  public:
   explicit StateMachine(IStateMachine* state_machine) noexcept;
 
-  google::protobuf::Any Execute(const Request& request) noexcept;
+  google::protobuf::Any Apply(const Request& request) noexcept;
 
  private:
   IStateMachine* state_machine_;
