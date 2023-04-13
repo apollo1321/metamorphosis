@@ -8,4 +8,8 @@ target_link_libraries(test_raft
   runtime_simulator 
   GTest::gtest_main
 )
+target_compile_definitions(test_raft PRIVATE
+  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_OFF
+)
+
 gtest_discover_tests(test_raft)

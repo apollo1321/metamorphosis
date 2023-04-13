@@ -13,7 +13,7 @@ class RaftClient {
  public:
   explicit RaftClient(const Cluster& cluster) noexcept;
 
-  Result<google::protobuf::Any, rt::rpc::Error> Execute(const google::protobuf::Any& input,
+  Result<google::protobuf::Any, rt::rpc::Error> Execute(const google::protobuf::Any& command,
                                                         rt::Duration timeout, size_t retry_count,
                                                         rt::StopToken stop_token = {}) noexcept;
 

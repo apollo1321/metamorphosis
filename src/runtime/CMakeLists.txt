@@ -66,7 +66,7 @@ target_link_libraries(runtime_simulator
 
 target_compile_definitions(runtime_simulator PUBLIC 
   SIMULATION
-  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+)
 
 add_subdirectory(simulator)
 

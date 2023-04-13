@@ -26,6 +26,10 @@ uint64_t GetHostUniqueId() noexcept {
   return reinterpret_cast<uint64_t>(GetCurrentHost());
 }
 
+Timestamp GetGlobalTime() noexcept {
+  return GetWorld()->GetGlobalTime();
+}
+
 void FlushAllLogs() noexcept {
   GetWorld()->FlushAllLogs();
 }
