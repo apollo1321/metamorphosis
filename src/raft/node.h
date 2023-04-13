@@ -24,6 +24,9 @@ struct RaftConfig {
   std::pair<rt::Duration, rt::Duration> election_timeout_interval;
   rt::Duration heart_beat_period;
   rt::Duration rpc_timeout;
+
+  std::filesystem::path log_db_path;
+  std::filesystem::path raft_state_db_path;
 };
 
 void RunMain(IStateMachine* state_machine, RaftConfig config) noexcept;
