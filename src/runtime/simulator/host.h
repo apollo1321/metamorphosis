@@ -3,9 +3,9 @@
 #include <map>
 #include <unordered_map>
 
-#include <spdlog/logger.h>
 #include <boost/fiber/fiber.hpp>
 
+#include <runtime/logger.h>
 #include <runtime/database.h>
 #include <util/result.h>
 

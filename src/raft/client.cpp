@@ -10,7 +10,7 @@ RaftClient::RaftClient(const Cluster& cluster) noexcept
 }
 
 Result<google::protobuf::Any, rt::rpc::Error> RaftClient::Execute(
-    const google::protobuf::Any& input, rt::Duration timeout, size_t retry_count,
+    const google::protobuf::Any& command, rt::Duration timeout, size_t retry_count,
     rt::StopToken stop_token) noexcept {
   LOG("EXECUTE: start");
 
@@ -34,7 +34,7 @@ Result<google::protobuf::Any, rt::rpc::Error> RaftClient::Execute(
   };
 
   Request request;
-  *request.mutable_request() = input;
+  *request.mutable_command() = command;
   request.set_client_id(client_id_);
   request.set_request_id(std::uniform_int_distribution<uint64_t>()(rt::GetGenerator()));
 
@@ -62,7 +62,7 @@ Result<google::protobuf::Any, rt::rpc::Error> RaftClient::Execute(
 
     LOG("EXECUTE: attempt {} finished with success", attempt_id);
 
-    return Ok(result.GetValue().response());
+    return Ok(result.GetValue().result());
   }
 
   if (stop_source.StopRequested()) {
