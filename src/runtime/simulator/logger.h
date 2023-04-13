@@ -1,4 +1,6 @@
-#include <spdlog/spdlog.h>
+#pragma once
+
+#include <runtime/logger.h>
 
 namespace ceq::rt::sim {
 

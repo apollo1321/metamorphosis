@@ -13,7 +13,7 @@ namespace ceq::raft {
 using Cluster = std::vector<rt::rpc::Endpoint>;
 
 struct IStateMachine {
-  virtual google::protobuf::Any Execute(const google::protobuf::Any& command) noexcept = 0;
+  virtual google::protobuf::Any Apply(const google::protobuf::Any& command) noexcept = 0;
   virtual ~IStateMachine() = default;
 };
 

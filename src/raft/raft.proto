@@ -10,13 +10,13 @@ message Response {
     Commited = 1;
   };
   Status status = 1;
-  google.protobuf.Any response = 2;
+  google.protobuf.Any result = 2;
 }
 
 message Request {
   uint64 request_id = 1;
   uint64 client_id = 2;
-  google.protobuf.Any request = 3;
+  google.protobuf.Any command = 3;
 }
 
 service RaftApi {
