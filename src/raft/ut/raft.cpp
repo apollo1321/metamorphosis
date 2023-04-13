@@ -105,12 +105,12 @@ std::vector<rpc::Endpoint> GenerateRaftCluster(size_t size) noexcept {
 void RunTest(size_t raft_nodes_count, size_t clients_count) noexcept {
   auto raft_cluster = GenerateRaftCluster(raft_nodes_count);
 
-  raft::RaftConfig config{
-      .cluster = raft_cluster,
-      .election_timeout_interval = {150ms, 300ms},
-      .heart_beat_period = 50ms,
-      .rpc_timeout = 90ms,
-  };
+  raft::RaftConfig config{.cluster = raft_cluster,
+                          .election_timeout_interval = {150ms, 300ms},
+                          .heart_beat_period = 50ms,
+                          .rpc_timeout = 90ms,
+                          .log_db_path = "/tmp/raft_log",
+                          .raft_state_db_path = "/tmp/raft_state"};
 
   sim::WorldOptions world_options{.delivery_time_interval = {0ms, 100ms},
                                   .network_error_proba = 0.2};
