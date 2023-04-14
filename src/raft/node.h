@@ -10,8 +10,6 @@
 
 namespace ceq::raft {
 
-using Cluster = std::vector<rt::rpc::Endpoint>;
-
 struct IStateMachine {
   virtual google::protobuf::Any Apply(const google::protobuf::Any& command) noexcept = 0;
   virtual ~IStateMachine() = default;
@@ -19,7 +17,7 @@ struct IStateMachine {
 
 struct RaftConfig {
   size_t node_id{};
-  Cluster cluster;
+  std::vector<rt::rpc::Endpoint> raft_nodes;
 
   std::pair<rt::Duration, rt::Duration> election_timeout_interval;
   rt::Duration heart_beat_period;

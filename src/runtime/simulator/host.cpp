@@ -54,7 +54,6 @@ void Host::RunMain() noexcept {
     SleepUntil(start_time_, StopToken{});
   }
   host_main_->Main();
-  GetWorld()->NotifyHostFinish();
 }
 
 Timestamp Host::ToLocalTime(Timestamp global_time) const noexcept {
@@ -78,11 +77,13 @@ Timestamp Host::ToGlobalTime(Timestamp local_time) const noexcept {
 }
 
 void Host::RegisterServer(rpc::Server::ServerImpl* server, uint16_t port) noexcept {
+  StopFiberIfNecessary();
   VERIFY(!servers_.contains(port), "port is already used");
   servers_[port] = server;
 }
 
 void Host::UnregisterServer(uint16_t port) noexcept {
+  StopFiberIfNecessary();
   VERIFY(servers_.contains(port), "server was not registered");
   servers_.erase(port);
 }
@@ -125,7 +126,7 @@ std::shared_ptr<spdlog::logger> Host::GetLogger() noexcept {
 }
 
 void Host::PauseHost() noexcept {
-  VERIFY(!std::exchange(paused_, true), "host is already paused");
+  paused_ = true;
 }
 
 void Host::ResumeHost() noexcept {
@@ -146,6 +147,7 @@ void Host::StopFiberIfNecessary() noexcept {
   size_t fiber_epoch = sim::GetCurrentEpoch();
   VERIFY(fiber_epoch <= epoch_, "invalid fiber epoch");
   if (fiber_epoch != epoch_) {
+    // Block forever
     boost::fibers::mutex lk;
     boost::fibers::condition_variable cv;
 
@@ -157,16 +159,22 @@ void Host::StopFiberIfNecessary() noexcept {
 }
 
 void Host::KillHost() noexcept {
-  VERIFY(main_fiber_.joinable(), "host is already killed");
+  if (!main_fiber_.joinable()) {
+    return;
+  }
+  servers_.clear();
   main_fiber_.detach();
   ++epoch_;
 }
 
 void Host::StartHost() noexcept {
-  VERIFY(!main_fiber_.joinable(), "host is not killed to start again");
+  if (main_fiber_.joinable()) {
+    return;
+  }
   main_fiber_ = boost::fibers::fiber{[this]() {
     RunMain();
   }};
+  boost::this_fiber::yield();
 }
 
 size_t Host::GetCurrentEpoch() const noexcept {
@@ -175,7 +183,11 @@ size_t Host::GetCurrentEpoch() const noexcept {
 
 Host::~Host() {
   if (main_fiber_.joinable()) {
-    main_fiber_.join();
+    KillHost();
+    if (paused_) {
+      ResumeHost();
+      boost::this_fiber::yield();  // Block all paused fibers forever
+    }
   }
 }
 

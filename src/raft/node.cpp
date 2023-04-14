@@ -52,7 +52,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       }
     }
 
-    for (auto& endpoint : config.cluster) {
+    for (auto& endpoint : config.raft_nodes) {
       clients.emplace_back(endpoint);
     }
   }
@@ -138,6 +138,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       stop_leader.Stop();
       if (request.term() > result.term()) {
         raft_state.Put("current_term", request.term()).ExpectOk();
+        raft_state.Delete("voted_for").ExpectOk();
       }
     }
 
@@ -189,7 +190,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   Result<RequestVoteResult, rt::rpc::Error> RequestVote(
       const RequestVoteRequest& request) noexcept override {
     LOG("REQUEST_VOTE: start, current_term = {}, candidate_id = {}, request_term = {}",
-        raft_state.Get("current_term").GetValue(), request.candidate_id(), request.term());
+        GetCurrentTerm(), request.candidate_id(), request.term());
     RequestVoteResult result;
     result.set_term(GetCurrentTerm());
     if (request.term() < result.term()) {
@@ -276,14 +277,14 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       LOG("LEADER: finished");
     };
 
-    next_index = std::vector<uint64_t>(config.cluster.size(), GetLogSize() + 1);
-    match_index = std::vector<uint64_t>(config.cluster.size(), 0);
+    next_index = std::vector<uint64_t>(config.raft_nodes.size(), GetLogSize() + 1);
+    match_index = std::vector<uint64_t>(config.raft_nodes.size(), 0);
 
     std::vector<boost::fibers::fiber> sessions;
 
     stop_leader = rt::StopSource();
 
-    for (size_t node_id = 0; node_id < config.cluster.size(); ++node_id) {
+    for (size_t node_id = 0; node_id < config.raft_nodes.size(); ++node_id) {
       if (node_id == config.node_id) {
         continue;
       }
@@ -350,6 +351,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         LOG("LEADER[{}]: received greater term = {}, change state to FOLLOWER", node_id,
             response.term());
         raft_state.Put("current_term", response.term()).ExpectOk();
+        raft_state.Delete("voted_for").ExpectOk();
         state = State::Follower;
         stop_leader.Stop();
         continue;
@@ -385,7 +387,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
          --index) {
       size_t match_count = 1;
 
-      for (size_t node_id = 0; node_id < config.cluster.size(); ++node_id) {
+      for (size_t node_id = 0; node_id < config.raft_nodes.size(); ++node_id) {
         if (node_id == config.node_id) {
           continue;
         }
@@ -458,7 +460,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
       std::vector<boost::fibers::fiber> requests;
 
-      for (size_t node_id = 0; node_id < config.cluster.size(); ++node_id) {
+      for (size_t node_id = 0; node_id < config.raft_nodes.size(); ++node_id) {
         if (node_id == config.node_id) {
           continue;
         }
@@ -475,6 +477,17 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
           if (state != State::Candidate) {
             LOG("CANDIDATE: finished RequestVote to node {}, not a CANDIDATE", node_id);
+            return;
+          }
+
+          if (GetCurrentTerm() < result.GetValue().term()) {
+            LOG("CANDIDATE: finished RequestVote to node {}, received term {}, change state to "
+                "FOLLOWER",
+                node_id, result.GetValue().term());
+            raft_state.Put("current_term", result.GetValue().term()).ExpectOk();
+            raft_state.Delete("voted_for").ExpectOk();
+            state = State::Follower;
+            stop_election.Stop();
             return;
           }
 
@@ -510,7 +523,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   }
 
   size_t MajorityCount() const noexcept {
-    return config.cluster.size() / 2 + 1;
+    return config.raft_nodes.size() / 2 + 1;
   }
 
   uint64_t GetLastLogTerm() noexcept {
@@ -620,7 +633,7 @@ void RunMain(IStateMachine* state_machine, RaftConfig config) noexcept {
   rt::rpc::Server server;
   server.Register(static_cast<rt::rpc::RaftInternalsStub*>(&node));
   server.Register(static_cast<rt::rpc::RaftApiStub*>(&node));
-  server.Run(config.cluster[config.node_id].port, server_config);
+  server.Run(config.raft_nodes[config.node_id].port, server_config);
 
   node.StartNode();
   server.ShutDown();
