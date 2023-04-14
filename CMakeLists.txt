@@ -22,4 +22,7 @@ include(cmake/code_generation.cmake)
 
 enable_testing()
 
+set(LOG_LEVEL OFF CACHE STRING "Set the logging level")
+set_property(CACHE LOG_LEVEL PROPERTY STRINGS INFO ERROR CRITICAL OFF)
+
 add_subdirectory(src)

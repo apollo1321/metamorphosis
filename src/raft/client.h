@@ -11,14 +11,14 @@ namespace ceq::raft {
 
 class RaftClient {
  public:
-  explicit RaftClient(const Cluster& cluster) noexcept;
+  explicit RaftClient(const std::vector<rt::rpc::Endpoint>& raft_nodes) noexcept;
 
-  Result<google::protobuf::Any, rt::rpc::Error> Execute(const google::protobuf::Any& command,
-                                                        rt::Duration timeout, size_t retry_count,
-                                                        rt::StopToken stop_token = {}) noexcept;
+  Result<google::protobuf::Any, rt::rpc::Error> Apply(const google::protobuf::Any& command,
+                                                      rt::Duration timeout, size_t retry_count,
+                                                      rt::StopToken stop_token = {}) noexcept;
 
  private:
-  Cluster cluster_;
+  std::vector<rt::rpc::Endpoint> raft_nodes_;
   std::vector<rt::rpc::RaftApiClient> clients_;
 
   size_t current_leader_ = 0;

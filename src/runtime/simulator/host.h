@@ -5,8 +5,8 @@
 
 #include <boost/fiber/fiber.hpp>
 
-#include <runtime/logger.h>
 #include <runtime/database.h>
+#include <runtime/logger.h>
 #include <util/result.h>
 
 #include "api.h"

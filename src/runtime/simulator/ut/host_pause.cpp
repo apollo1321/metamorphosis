@@ -157,3 +157,40 @@ TEST(SimulatorHostPause, PauseClient) {
   sim::AddHost("supervisor", &supervisor);
   sim::RunSimulation();
 }
+
+TEST(SimulatorHostPause, PauseWithoutResuming) {
+  struct Supervisor : public sim::IHostRunnable {
+    void Main() noexcept override {
+      sim::PauseHost("addr1");
+    }
+  };
+
+  struct Host final : public sim::IHostRunnable {
+    void Main() noexcept override {
+      SleepFor(1s);
+      ++count;
+    }
+
+    size_t count = 0;
+  };
+
+  Host host;
+  Supervisor supervisor;
+
+  sim::InitWorld(42);
+  AddHost("addr1", &host);
+  AddHost("supervisor", &supervisor);
+  sim::RunSimulation(5s);
+
+  sim::InitWorld(42);
+  AddHost("addr1", &host);
+  AddHost("supervisor", &supervisor);
+  sim::RunSimulation(5s);
+
+  EXPECT_EQ(host.count, 0);
+}
+
+int main(int argc, char** argv) {
+  testing::InitGoogleTest(&argc, argv);
+  _Exit(RUN_ALL_TESTS());
+}

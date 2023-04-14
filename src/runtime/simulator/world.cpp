@@ -13,13 +13,6 @@ void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
   boost::fibers::use_scheduling_algorithm<RuntimeSimulationScheduler>();
   options_ = options;
   generator_ = std::mt19937(seed);
-  current_time_ = Timestamp(static_cast<Duration>(0));
-  events_queue_.clear();
-  for (auto& [_, host] : hosts_) {
-    host->KillHost();
-  }
-  hosts_.clear();
-  closed_links_.clear();
   initialized_ = true;
 }
 
@@ -32,13 +25,8 @@ Timestamp World::GetGlobalTime() const noexcept {
 }
 
 void World::AddHost(const Address& address, HostPtr host) noexcept {
-  ++running_count_;
   VERIFY(!hosts_.contains(address), "address already used");
   hosts_[address] = std::move(host);
-}
-
-void World::NotifyHostFinish() noexcept {
-  --running_count_;
 }
 
 void World::SleepUntil(Timestamp wake_up_time, StopToken stop_token) noexcept {
@@ -52,20 +40,13 @@ void World::SleepUntil(Timestamp wake_up_time, StopToken stop_token) noexcept {
 }
 
 void World::RunSimulation(Duration duration) noexcept {
-  VERIFY(std::exchange(initialized_, false), "world in unitialized");
+  VERIFY(initialized_, "world in unitialized");
   boost::this_fiber::properties<RuntimeSimulationProps>().MarkAsMainFiber();
   boost::this_fiber::yield();
 
-  while (running_count_ > 0) {
-    VERIFY(!events_queue_.empty(),
-           "unexpected state: no active tasks (deadlock or real sleep_for is called)");
-
+  while (!events_queue_.empty() && events_queue_.begin()->first.time_since_epoch() <= duration) {
     auto [ts, event] = *events_queue_.begin();
     events_queue_.erase(events_queue_.begin());
-
-    if (ts.time_since_epoch() > duration) {
-      break;
-    }
 
     VERIFY(current_time_ <= ts, "invalid event timestamp");
     current_time_ = ts;
@@ -76,6 +57,11 @@ void World::RunSimulation(Duration duration) noexcept {
   }
 
   FlushAllLogs();
+  current_time_ = Timestamp(static_cast<Duration>(0));
+  events_queue_.clear();
+  hosts_.clear();
+  closed_links_.clear();
+  initialized_ = false;
 }
 
 Duration World::GetRpcDelay() noexcept {
@@ -112,6 +98,14 @@ Result<rpc::SerializedData, rpc::Error> World::MakeRequest(Address from, Endpoin
                         handler_name = std::move(handler_name), state, stop_token]() {
     SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
 
+    const bool is_network_error = ShouldMakeNetworkError();
+
+    if (is_network_error && std::uniform_real_distribution<double>(0., 1.)(GetGenerator()) < 0.5) {
+      state->result = Err(rpc::Error::ErrorType::NetworkError);
+      state->event.Signal();
+      return;
+    }
+
     if (!hosts_.contains(endpoint.address)) {
       state->result = Err(rpc::Error::ErrorType::ConnectionRefused);
       state->event.Signal();
@@ -143,7 +137,7 @@ Result<rpc::SerializedData, rpc::Error> World::MakeRequest(Address from, Endpoin
       return;
     }
 
-    if (ShouldMakeNetworkError()) {
+    if (is_network_error) {
       state->result = Err(rpc::Error::ErrorType::NetworkError);
     } else {
       state->result = std::move(result);
