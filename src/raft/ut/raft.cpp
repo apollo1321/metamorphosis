@@ -129,7 +129,15 @@ void RunTest(size_t raft_nodes_count, size_t clients_count) noexcept {
     SpawnRaftNodes(nodes, raft_host_options);
     sim::RunSimulation(15s);
 
-    CheckLinearizability(std::move(history));
+    EXPECT_GT(history.size(), 1u) << "Too few requests have been completed, seed = " << iteration;
+    if (testing::Test::HasNonfatalFailure()) {
+      return;
+    }
+
+    if (!CheckLinearizability(std::move(history))) {
+      FAIL() << "linearizability check failed, seed = " << iteration;
+      return;
+    }
   }
 }
 
