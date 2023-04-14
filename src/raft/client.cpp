@@ -2,14 +2,15 @@
 
 namespace ceq::raft {
 
-RaftClient::RaftClient(const Cluster& cluster) noexcept
-    : cluster_{cluster}, client_id_{std::uniform_int_distribution<uint64_t>()(rt::GetGenerator())} {
-  for (const rt::rpc::Endpoint& ep : cluster) {
+RaftClient::RaftClient(const std::vector<rt::rpc::Endpoint>& raft_nodes) noexcept
+    : raft_nodes_{raft_nodes},
+      client_id_{std::uniform_int_distribution<uint64_t>()(rt::GetGenerator())} {
+  for (const rt::rpc::Endpoint& ep : raft_nodes_) {
     clients_.emplace_back(ep);
   }
 }
 
-Result<google::protobuf::Any, rt::rpc::Error> RaftClient::Execute(
+Result<google::protobuf::Any, rt::rpc::Error> RaftClient::Apply(
     const google::protobuf::Any& command, rt::Duration timeout, size_t retry_count,
     rt::StopToken stop_token) noexcept {
   LOG("EXECUTE: start");
@@ -42,7 +43,7 @@ Result<google::protobuf::Any, rt::rpc::Error> RaftClient::Execute(
 
   for (size_t attempt_id = 0; attempt_id < retry_count && !stop_source.StopRequested();
        ++attempt_id) {
-    LOG("EXECUTE: start attempt {} to {}", attempt_id, cluster_[current_leader_].address);
+    LOG("EXECUTE: start attempt {} to {}", attempt_id, raft_nodes_[current_leader_].address);
     auto& client = clients_[current_leader_];
     auto result = client.Execute(request, stop_source.GetToken());
     if (result.HasError()) {

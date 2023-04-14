@@ -24,7 +24,6 @@ class World {
   Timestamp GetGlobalTime() const noexcept;
 
   void AddHost(const Address& address, HostPtr host) noexcept;
-  void NotifyHostFinish() noexcept;
 
   void SleepUntil(Timestamp wake_up_time, StopToken stop_token = StopToken{}) noexcept;
 
@@ -55,8 +54,6 @@ class World {
   std::multimap<Timestamp, Event*> events_queue_;
 
   Timestamp current_time_{};
-
-  size_t running_count_ = 0;
 
   std::mt19937 generator_;
 
