@@ -1,0 +1,78 @@
+\RequirePackage[l2tabu, orthodox]{nag}
+
+\documentclass[a4paper, 14pt, oneside, openany]{memoir}
+
+
+\usepackage{fontspec}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{polyglossia}
+\usepackage{geometry}
+
+\geometry{a4paper, top=2cm, bottom=2cm, left=3cm, right=1.5cm, nofoot, nomarginpar}
+
+\setmainlanguage[babelshorthands=true]{russian}
+\addto\captionsrussian{\renewcommand{\contentsname}{СОДЕРЖАНИЕ}}
+
+% В MS Office используются неправильные межстрочные интервалы. 
+% В латехе межстрочный интверал соответствует определению по ГОСТ 2382-23-2004.
+\OnehalfSpacing
+\setmainfont{Times New Roman}
+
+\hypersetup{
+  linktocpage=true,
+  colorlinks,
+  linkcolor=[rgb]{0.9,0,0},
+  pdflang={ru},
+}
+
+\renewcommand{\cftchapterdotsep}{\cftdotsep}
+\renewcommand{\cftchapterpagefont}{\normalfont}
+\renewcommand{\cftchapterleader}{\cftdotfill{\cftchapterdotsep}}
+\renewcommand{\cftchaptername}{\chaptername\space}
+\renewcommand{\cftchapteraftersnum}{.\space}
+
+\newcommand{\basesectionfont}{\fontsize{14pt}{16pt}\selectfont\bfseries}
+
+\makeatletter
+
+\pagestyle{plain}
+
+\makechapterstyle{thesis}{
+  \chapterstyle{default}
+  \setlength{\beforechapskip}{0pt}
+  \setlength{\midchapskip}{0pt}
+  \setlength{\afterchapskip}{\the\dimexpr 14 pt * 2}
+  \renewcommand*{\chapnamefont}{\basesectionfont}
+  \renewcommand*{\chapnumfont}{\basesectionfont}
+  \renewcommand*{\chaptitlefont}{\basesectionfont}
+  \renewcommand*{\chapterheadstart}{}
+
+  \renewcommand*{\printchapternonum}{\center}
+
+  \renewcommand*{\printchaptername}{\center \chapnamefont \@chapapp \space \thechapter}
+  \renewcommand*{\chapternamenum}{}
+  \renewcommand*{\afterchapternum}{.\space}
+  \renewcommand*{\printchapternum}{}
+}
+
+\makeatother
+
+\chapterstyle{thesis}
+
+\setsecheadstyle{\basesectionfont\center}
+\AtBeginDocument{% без этого polyglossia сама всё переопределяет
+  \setsecnumformat{\csname the#1\endcsname\quad}
+}
+
+\begin{document}
+
+\include{title.tex}
+\include{annotation.tex}
+\include{contents.tex}
+\include{introduction.tex}
+\include{part1.tex}
+
+\end{document}
+
+
