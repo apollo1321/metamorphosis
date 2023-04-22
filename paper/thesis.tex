@@ -2,22 +2,67 @@
 
 \documentclass[a4paper, 14pt, oneside, openany]{memoir}
 
+%%==============================
+%% Используемые пакеты
+%%==============================
 
 \usepackage{fontspec}
-\usepackage{microtype}
-\usepackage{hyperref}
 \usepackage{polyglossia}
 \usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage[
+  backend=biber,
+  language=autobib,
+  bibencoding=utf8,
+  autolang=other,
+  style=gost-numeric,
+  doi=false,
+  isbn=false,
+  defernumbers=true,
+]{biblatex}
+
+%%==============================
+%% Настройка библиографии
+%%==============================
+
+\toggletrue{bbx:gostbibliography}
+\renewcommand*{\revsdnamepunct}{\addcomma}
+
+\addbibresource{external.bib}
+
+%%==============================
+%% Настройка страниц
+%%==============================
 
 \geometry{a4paper, top=2cm, bottom=2cm, left=3cm, right=1.5cm, nofoot, nomarginpar}
-
-\setmainlanguage[babelshorthands=true]{russian}
-\addto\captionsrussian{\renewcommand{\contentsname}{СОДЕРЖАНИЕ}}
 
 % В MS Office используются неправильные межстрочные интервалы. 
 % В латехе межстрочный интверал соответствует определению по ГОСТ 2382-23-2004.
 \OnehalfSpacing
+
+\pagestyle{plain}
+\setlength{\parindent}{1.25cm}
+
+%%==============================
+%% Настройка языков
+%%==============================
+
+\setmainlanguage[babelshorthands=true]{russian}
+\setotherlanguage{english}
+
+\addto\captionsrussian{\renewcommand{\contentsname}{СОДЕРЖАНИЕ}}
+
+%%==============================
+%% Настройка шрифта
+%%==============================
+
 \setmainfont{Times New Roman}
+\newfontfamily\cyrillicfonttt{Times New Roman}
+
+%%==============================
+%% Настройка гиперссылок
+%%==============================
 
 \hypersetup{
   linktocpage=true,
@@ -26,18 +71,23 @@
   pdflang={ru},
 }
 
+%%==============================
+%% Настройка оглавления
+%%==============================
+
 \renewcommand{\cftchapterdotsep}{\cftdotsep}
 \renewcommand{\cftchapterpagefont}{\normalfont}
 \renewcommand{\cftchapterleader}{\cftdotfill{\cftchapterdotsep}}
 \renewcommand{\cftchaptername}{\chaptername\space}
 \renewcommand{\cftchapteraftersnum}{.\space}
 
+%%==============================
+%% Настройка оформления глав
+%%==============================
+
 \newcommand{\basesectionfont}{\fontsize{14pt}{16pt}\selectfont\bfseries}
 
 \makeatletter
-
-\pagestyle{plain}
-
 \makechapterstyle{thesis}{
   \chapterstyle{default}
   \setlength{\beforechapskip}{0pt}
@@ -55,23 +105,29 @@
   \renewcommand*{\afterchapternum}{.\space}
   \renewcommand*{\printchapternum}{}
 }
-
 \makeatother
-
 \chapterstyle{thesis}
 
+%%==============================
+%% Настройка оформления параграфов
+%%==============================
+
 \setsecheadstyle{\basesectionfont\center}
-\AtBeginDocument{% без этого polyglossia сама всё переопределяет
-  \setsecnumformat{\csname the#1\endcsname\quad}
-}
 
 \begin{document}
 
-\include{title.tex}
-\include{annotation.tex}
-\include{contents.tex}
-\include{introduction.tex}
-\include{part1.tex}
+\setsecnumformat{\csname the#1\endcsname\quad}
+
+\include{title}
+\include{annotation}
+\include{contents}
+\include{introduction}
+\include{part1}
+\include{part2}
+\include{part3}
+\include{part4}
+\include{conclusion}
+\include{references}
 
 \end{document}
 
