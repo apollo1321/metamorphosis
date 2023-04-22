@@ -12,9 +12,9 @@ struct LastClientData {
 };
 
 // Implementation of state machine with exactly-once semantics
-class StateMachine {
+class ExactlyOnceStateMachine {
  public:
-  explicit StateMachine(IStateMachine* state_machine) noexcept;
+  explicit ExactlyOnceStateMachine(IStateMachine* state_machine) noexcept;
 
   google::protobuf::Any Apply(const Request& request) noexcept;
 
