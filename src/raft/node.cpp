@@ -600,7 +600,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   // State machine
   //////////////////////////////////////////////////////////
 
-  impl::StateMachine rsm;
+  impl::ExactlyOnceStateMachine rsm;
 };
 
 void RunMain(IStateMachine* state_machine, RaftConfig config) noexcept {

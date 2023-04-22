@@ -71,7 +71,7 @@ TEST(RaftSimple, Replica3Client1) {
 
 TEST(RaftSimple, Replica3Client2) {
   for (size_t seed = 0; seed < 50; ++seed) {
-    ceq::raft::test::RunSimpleTest(seed, 3, 2);
+    ceq::raft::test::RunSimpleTest(seed + 100, 3, 2);
     if (testing::Test::HasNonfatalFailure()) {
       return;
     }
@@ -80,7 +80,7 @@ TEST(RaftSimple, Replica3Client2) {
 
 TEST(RaftSimple, Replica5Client3) {
   for (size_t seed = 0; seed < 50; ++seed) {
-    ceq::raft::test::RunSimpleTest(seed, 5, 3);
+    ceq::raft::test::RunSimpleTest(seed + 200, 5, 3);
     if (testing::Test::HasNonfatalFailure()) {
       return;
     }
@@ -89,7 +89,7 @@ TEST(RaftSimple, Replica5Client3) {
 
 TEST(RaftSimple, Replica6Client10) {
   for (size_t seed = 0; seed < 50; ++seed) {
-    ceq::raft::test::RunSimpleTest(seed, 6, 10);
+    ceq::raft::test::RunSimpleTest(seed + 300, 6, 10);
     if (testing::Test::HasNonfatalFailure()) {
       return;
     }
