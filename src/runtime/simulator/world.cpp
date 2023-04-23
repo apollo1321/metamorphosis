@@ -3,6 +3,7 @@
 
 #include <algorithm>
 
+#include <runtime/random.h>
 #include <runtime/util/cancellation/stop_callback.h>
 #include <util/condition_check.h>
 
@@ -64,10 +65,10 @@ void World::RunSimulation(Duration duration) noexcept {
 }
 
 Duration World::GetRpcDelay() noexcept {
-  std::uniform_int_distribution<Duration::rep> delay_dist(
-      options_.delivery_time_interval.first.count(),
-      options_.delivery_time_interval.second.count());
-  return Duration(delay_dist(GetGenerator()));
+  if (GetProbability() < options_.long_delivery_time_proba) {
+    return GetRandomDuration(options_.long_delivery_time);
+  }
+  return GetRandomDuration(options_.delivery_time);
 }
 
 bool World::ShouldMakeNetworkError() noexcept {

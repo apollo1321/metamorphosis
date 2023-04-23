@@ -37,8 +37,12 @@ void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_cou
 
   CrashSupervisor supervisor(raft_nodes, 2s);
 
-  rt::sim::InitWorld(seed, rt::sim::WorldOptions{.delivery_time_interval = {0ms, 100ms},
-                                                 .network_error_proba = 0.1});
+  rt::sim::InitWorld(seed, rt::sim::WorldOptions{
+                               .network_error_proba = 0.01,
+                               .delivery_time = {0ms, 50ms},
+                               .long_delivery_time = {100ms, 500ms},
+                               .long_delivery_time_proba = 0.05,
+                           });
   for (auto& host : raft_hosts) {
     rt::sim::AddHost(host.config.raft_nodes[host.config.node_id].address, &host,
                      rt::sim::HostOptions{.max_sleep_lag = 1ms});
