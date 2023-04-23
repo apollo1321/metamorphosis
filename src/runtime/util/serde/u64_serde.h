@@ -1,20 +1,24 @@
 #pragma once
 
-#include <runtime/kv_storage.h>
+#include "serde.h"
 
-namespace ceq::rt::kv {
+#include <util/condition_check.h>
+
+#include <cstdint>
+
+namespace ceq::rt::serde {
 
 struct U64Serde {
-  db::DataView Serialize(const uint64_t& value) const noexcept {
-    return db::DataView(reinterpret_cast<const uint8_t*>(&value), sizeof(value));
+  DataView Serialize(const uint64_t& value) const noexcept {
+    return DataView(reinterpret_cast<const uint8_t*>(&value), sizeof(value));
   }
 
-  uint64_t Deserialize(db::DataView data) const noexcept {
+  uint64_t Deserialize(DataView data) const noexcept {
     VERIFY(data.size() == sizeof(uint64_t), "invalid data size");
     return *reinterpret_cast<const uint64_t*>(data.data());
   }
 };
 
-static_assert(kv::CSerde<U64Serde>);
+static_assert(CSerde<U64Serde>);
 
-}  // namespace ceq::rt::db
+}  // namespace ceq::rt::serde

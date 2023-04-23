@@ -8,7 +8,7 @@
 
 #include <boost/fiber/all.hpp>
 
-#include <runtime/util/event.h>
+#include <runtime/util/event/event.h>
 
 #include "host.h"
 #include "rpc_client_base.h"
@@ -29,7 +29,7 @@ class World {
 
   void RunSimulation(Duration duration) noexcept;
 
-  Result<rpc::SerializedData, rpc::Error> MakeRequest(Address from, rpc::Endpoint endpoint,
+  Result<rpc::SerializedData, rpc::Error> MakeRequest(Address from, Endpoint endpoint,
                                                       rpc::SerializedData data,
                                                       rpc::ServiceName service_name,
                                                       rpc::HandlerName handler_name,

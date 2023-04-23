@@ -1,3 +1,9 @@
-generate_proto(echo_service_proto echo_service.proto OFF)
-add_executable(echo_benchmark main.cpp)
-target_link_libraries(echo_benchmark ceq_lib echo_service_proto CLI11::CLI11)
+generate_proto(ceq_echo_service_proto echo_service.proto)
+
+add_executable(ceq_echo_benchmark main.cpp)
+
+target_link_libraries(ceq_echo_benchmark
+  ceq_lib
+  ceq_echo_service_proto_prod
+  CLI11::CLI11
+)

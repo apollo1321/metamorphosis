@@ -17,9 +17,9 @@ struct IStateMachine {
 
 struct RaftConfig {
   size_t node_id{};
-  std::vector<rt::rpc::Endpoint> raft_nodes;
+  std::vector<rt::Endpoint> raft_nodes;
 
-  std::pair<rt::Duration, rt::Duration> election_timeout_interval;
+  rt::Interval election_timeout;
   rt::Duration heart_beat_period;
   rt::Duration rpc_timeout;
 

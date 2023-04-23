@@ -16,7 +16,7 @@
 using namespace ceq;      // NOLINT
 using namespace ceq::rt;  // NOLINT
 
-using KVStorage = kv::KVStorage<kv::U64Serde, kv::StringSerde>;
+using KVStorage = kv::KVStorage<serde::U64Serde, serde::StringSerde>;
 
 class QueueService final : public rpc::QueueServiceStub {
  public:
@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
 
   db::Options options{.create_if_missing = true};
 
-  auto db = kv::Open(db_path, options, kv::U64Serde{}, kv::StringSerde{});
+  auto db = kv::Open(db_path, options, serde::U64Serde{}, serde::StringSerde{});
   if (db.HasError()) {
     LOG_CRITICAL("Cannot open database: {}", db.GetError().Message());
     return 1;

@@ -49,7 +49,7 @@ void BenchEchoService(rpc::ServerRunConfig server_config, ClientConfig client_co
   std::atomic<bool> running{true};
   std::atomic<size_t> count{};
 
-  rpc::EchoServiceClient client("127.0.0.1:" + std::to_string(port));
+  rpc::EchoServiceClient client(Endpoint{"127.0.0.1:", port});
 
   std::vector<std::thread> threads;
   for (size_t thread_id = 0; thread_id < client_config.thread_count; ++thread_id) {

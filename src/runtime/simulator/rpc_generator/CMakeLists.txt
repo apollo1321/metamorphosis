@@ -1,12 +1,10 @@
-add_executable(simulator_rpc_generator
-  main.cpp 
+add_library(ceq_rpc_generator_simulator
   rpc_generator.cpp
-  rpc_generator.h
 )
 
-target_link_libraries(simulator_rpc_generator
+target_link_libraries(ceq_rpc_generator_simulator
+  ceq_rpc_generator_util
   ceq_lib
-  ceq_codegen
   libprotobuf
   libprotoc
 )

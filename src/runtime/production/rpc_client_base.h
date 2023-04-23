@@ -12,16 +12,25 @@
 #include <boost/fiber/condition_variable.hpp>
 #include <boost/fiber/mutex.hpp>
 
+#include <runtime/rpc_server.h>
 #include <runtime/util/cancellation/stop_callback.h>
 #include <runtime/util/cancellation/stop_token.h>
-#include <runtime/util/rpc_error.h>
+#include <runtime/util/rpc_error/rpc_error.h>
 #include <util/result.h>
 
 namespace ceq::rt::rpc {
 
 class ClientBase {
  public:
-  explicit ClientBase(const std::string& address) noexcept;
+  explicit ClientBase(const Endpoint& endpoint) noexcept;
+
+  // Non-copyable
+  ClientBase(const ClientBase& other) noexcept = delete;
+  ClientBase& operator=(const ClientBase& other) noexcept = delete;
+
+  // Non-movable
+  ClientBase(ClientBase&& other) noexcept = delete;
+  ClientBase& operator=(ClientBase&& other) noexcept = delete;
 
   ~ClientBase();
 

@@ -1,4 +1,4 @@
-function(generate_proto TARGET PROTO SIMULATION)
+function(generate_proto TARGET PROTO)
   get_filename_component(PROTO_PATH ${PROTO} ABSOLUTE)
   get_filename_component(PROTO_NAME ${PROTO} NAME_WLE)
   get_filename_component(IMPORTS_DIR ${PROTO_PATH} DIRECTORY)
@@ -8,43 +8,58 @@ function(generate_proto TARGET PROTO SIMULATION)
   set(PROTO_SRC "${PROTO_DIR}/${PROTO_NAME}.pb.cc")
   set(PROTO_HDR "${PROTO_DIR}/${PROTO_NAME}.pb.h")
 
-  if (SIMULATION)
-    set(RPC_GENERATOR_EXE "simulator_rpc_generator")
-  else()
-    set(RPC_GENERATOR_EXE "production_rpc_generator")
-  endif()
-
-  set(CLIENT_SRC "${PROTO_DIR}/${PROTO_NAME}.client.cc")
   set(CLIENT_HDR "${PROTO_DIR}/${PROTO_NAME}.client.h")
-
-  set(SERVICE_SRC "${PROTO_DIR}/${PROTO_NAME}.service.cc")
   set(SERVICE_HDR "${PROTO_DIR}/${PROTO_NAME}.service.h")
 
+  set(CLIENT_PROD_HDR "${PROTO_DIR}/${PROTO_NAME}.client.prod.h")
+  set(CLIENT_PROD_SRC "${PROTO_DIR}/${PROTO_NAME}.client.prod.cc")
+  set(SERVICE_PROD_HDR "${PROTO_DIR}/${PROTO_NAME}.service.prod.h")
+  set(SERVICE_PROD_SRC "${PROTO_DIR}/${PROTO_NAME}.service.prod.cc")
+
+  set(CLIENT_SIM_HDR "${PROTO_DIR}/${PROTO_NAME}.client.sim.h")
+  set(CLIENT_SIM_SRC "${PROTO_DIR}/${PROTO_NAME}.client.sim.cc")
+  set(SERVICE_SIM_HDR "${PROTO_DIR}/${PROTO_NAME}.service.sim.h")
+  set(SERVICE_SIM_SRC "${PROTO_DIR}/${PROTO_NAME}.service.sim.cc")
+
+  set(OUTPUT_FILES
+    ${PROTO_SRC}
+    ${PROTO_HDR}
+    ${CLIENT_HDR}
+    ${SERVICE_HDR}
+    ${CLIENT_PROD_HDR}
+    ${CLIENT_PROD_SRC}
+    ${SERVICE_PROD_HDR}
+    ${SERVICE_PROD_SRC}
+    ${CLIENT_SIM_HDR}
+    ${CLIENT_SIM_SRC}
+    ${SERVICE_SIM_HDR}
+    ${SERVICE_SIM_SRC}
+  )
+
   add_custom_command(
-    OUTPUT ${PROTO_SRC} ${PROTO_HDR} ${CLIENT_SRC} ${CLIENT_HDR} ${SERVICE_SRC} ${SERVICE_HDR}
+    OUTPUT ${OUTPUT_FILES}
     COMMAND $<TARGET_FILE:protoc>
-    ARGS 
+    ARGS
       --proto_path "${protobuf_SOURCE_DIR}/src"
       --cpp_out "${PROTO_DIR}"
       --rpc_out "${PROTO_DIR}"
       -I "${IMPORTS_DIR}"
-      --plugin=protoc-gen-rpc=$<TARGET_FILE:${RPC_GENERATOR_EXE}>
+      --plugin=protoc-gen-rpc=$<TARGET_FILE:ceq_rpc_generator>
       "${PROTO_PATH}"
-    DEPENDS "${PROTO_PATH}" ${RPC_GENERATOR_EXE}
+    DEPENDS "${PROTO_PATH}" ceq_rpc_generator
   )
 
-  add_library(${TARGET}
+  add_library(${TARGET}_prod
     ${PROTO_SRC}
-    ${PROTO_HDR}
-    ${CLIENT_SRC}
-    ${CLIENT_HDR}
-    ${SERVICE_SRC}
-    ${SERVICE_HDR}
+    ${CLIENT_PROD_SRC}
+    ${SERVICE_PROD_SRC}
   )
+  target_link_libraries(${TARGET}_prod ceq_runtime_production)
 
-  if (SIMULATION)
-    target_link_libraries(${TARGET} runtime_simulator)
-  else()
-    target_link_libraries(${TARGET} runtime_production)
-  endif()
+  add_library(${TARGET}_sim
+    ${PROTO_SRC}
+    ${CLIENT_SIM_SRC}
+    ${SERVICE_SIM_SRC}
+  )
+  target_link_libraries(${TARGET}_sim ceq_runtime_simulator)
 endfunction()

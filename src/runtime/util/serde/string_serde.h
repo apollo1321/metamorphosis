@@ -1,19 +1,21 @@
 #pragma once
 
-#include <runtime/kv_storage.h>
+#include "serde.h"
 
-namespace ceq::rt::kv {
+#include <string>
+
+namespace ceq::rt::serde {
 
 struct StringSerde {
-  db::DataView Serialize(const std::string& value) const noexcept {
-    return db::DataView(reinterpret_cast<const uint8_t*>(value.data()), value.size());
+  DataView Serialize(const std::string& value) const noexcept {
+    return DataView(reinterpret_cast<const uint8_t*>(value.data()), value.size());
   }
 
-  std::string Deserialize(db::DataView data) const noexcept {
+  std::string Deserialize(DataView data) const noexcept {
     return std::string(data.begin(), data.end());
   }
 };
 
-static_assert(kv::CSerde<StringSerde>);
+static_assert(CSerde<StringSerde>);
 
-}  // namespace ceq::rt::kv
+}  // namespace ceq::rt::serde
