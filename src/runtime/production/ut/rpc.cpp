@@ -28,7 +28,7 @@ TEST(ProductionRpc, SimplyWorks) {
 
   SleepFor(500ms);
 
-  rpc::EchoServiceClient client("127.0.0.1:10050");
+  rpc::EchoServiceClient client(Endpoint{"127.0.0.1", 10050});
   EchoRequest request;
   request.set_msg("Client");
   auto result = client.Echo(request);
@@ -66,7 +66,7 @@ TEST(ProductionRpc, CancelSimplyWorks) {
     stop.Stop();
   });
 
-  rpc::EchoServiceClient client("127.0.0.1:10050");
+  rpc::EchoServiceClient client(Endpoint{"127.0.0.1", 10050});
   EchoRequest request;
   request.set_msg("Client");
   auto result = client.Echo(request, stop.GetToken());
@@ -87,7 +87,7 @@ TEST(ProductionRpc, HandlerNotFound) {
 
   SleepFor(500ms);
 
-  rpc::EchoServiceClient client("127.0.0.1:10050");
+  rpc::EchoServiceClient client(Endpoint{"127.0.0.1", 10050});
   EchoRequest request;
   request.set_msg("Client");
   auto result = client.Echo(request);
@@ -99,7 +99,7 @@ TEST(ProductionRpc, HandlerNotFound) {
 }
 
 TEST(ProductionRpc, ConnectionRefused) {
-  rpc::EchoServiceClient client("127.0.0.1:10051");
+  rpc::EchoServiceClient client(Endpoint{"127.0.0.1", 10050});
   EchoRequest request;
   request.set_msg("Client");
   auto result = client.Echo(request);

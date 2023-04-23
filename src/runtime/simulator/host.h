@@ -26,7 +26,7 @@ class Host {
       uint16_t port, const rpc::SerializedData& data, const rpc::ServiceName& service_name,
       const rpc::HandlerName& handler_name) noexcept;
 
-  Result<rpc::SerializedData, rpc::Error> MakeRequest(const rpc::Endpoint& endpoint,
+  Result<rpc::SerializedData, rpc::Error> MakeRequest(const Endpoint& endpoint,
                                                       const rpc::SerializedData& data,
                                                       const rpc::ServiceName& service_name,
                                                       const rpc::HandlerName& handler_name,

@@ -8,7 +8,8 @@ using namespace ceq::rt;  // NOLINT
 
 TEST(ProductionDatabase, SimplyWorks) {
   db::Options options{.create_if_missing = true};
-  auto maybe_kv = kv::Open("/tmp/testing_simply_works", options, kv::U64Serde{}, kv::U64Serde{});
+  auto maybe_kv =
+      kv::Open("/tmp/testing_simply_works", options, serde::U64Serde{}, serde::U64Serde{});
   if (maybe_kv.HasError()) {
     LOG_CRITICAL("error while opening db: {}", maybe_kv.GetError().Message());
   }
@@ -26,14 +27,14 @@ TEST(ProductionDatabase, SimplyWorks) {
 
 TEST(ProductionDatabase, MissingDb) {
   db::Options options{.create_if_missing = false};
-  auto kv = kv::Open("/tmp/testing_missing_db", options, kv::U64Serde{}, kv::U64Serde{});
+  auto kv = kv::Open("/tmp/testing_missing_db", options, serde::U64Serde{}, serde::U64Serde{});
   EXPECT_EQ(kv.GetError().error_type, db::Error::ErrorType::InvalidArgument);
 }
 
 TEST(ProductionDatabase, DeleteRange) {
   db::Options options{.create_if_missing = true};
-  auto kv =
-      kv::Open("/tmp/testing_delete_range", options, kv::U64Serde{}, kv::U64Serde{}).GetValue();
+  auto kv = kv::Open("/tmp/testing_delete_range", options, serde::U64Serde{}, serde::U64Serde{})
+                .GetValue();
 
   kv.Put(42, 24).ExpectOk();
   EXPECT_EQ(kv.Get(42).GetValue(), 24);
@@ -48,7 +49,8 @@ TEST(ProductionDatabase, DeleteRange) {
 
 TEST(ProductionDatabase, Iterator) {
   db::Options options{.create_if_missing = true};
-  auto kv = kv::Open("/tmp/testing_iterator", options, kv::U64Serde{}, kv::U64Serde{}).GetValue();
+  auto kv =
+      kv::Open("/tmp/testing_iterator", options, serde::U64Serde{}, serde::U64Serde{}).GetValue();
 
   for (uint64_t index = 0; index < 200; ++index) {
     kv.Put(index, index + 200).ExpectOk();
@@ -77,16 +79,18 @@ TEST(ProductionDatabase, Iterator) {
 
 TEST(ProductionDatabase, OpenDatabaseTwice) {
   db::Options options{.create_if_missing = true};
-  auto kv1 = kv::Open("/tmp/testing_open_database_twice", options, kv::U64Serde{}, kv::U64Serde{})
-                 .GetValue();
-  auto kv2 = kv::Open("/tmp/testing_open_database_twice", options, kv::U64Serde{}, kv::U64Serde{});
+  auto kv1 =
+      kv::Open("/tmp/testing_open_database_twice", options, serde::U64Serde{}, serde::U64Serde{})
+          .GetValue();
+  auto kv2 =
+      kv::Open("/tmp/testing_open_database_twice", options, serde::U64Serde{}, serde::U64Serde{});
   EXPECT_EQ(kv2.GetError().error_type, db::Error::ErrorType::Internal);
 }
 
 TEST(ProductionDatabase, StringSerde) {
   db::Options options{.create_if_missing = true};
-  auto kv =
-      kv::Open("/tmp/testing_string_serde", options, kv::StringSerde{}, kv::U64Serde{}).GetValue();
+  auto kv = kv::Open("/tmp/testing_string_serde", options, serde::StringSerde{}, serde::U64Serde{})
+                .GetValue();
 
   kv.Put("bbb", 2).ExpectOk();
   kv.Put("aaa", 1).ExpectOk();

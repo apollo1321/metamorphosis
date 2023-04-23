@@ -1,28 +1,16 @@
 #pragma once
 
+#include "database.h"
+
+#include <runtime/util/serde/serde.h>
+
 #include <functional>
 #include <optional>
 #include <utility>
 
-#include "database.h"
-
 namespace ceq::rt::kv {
 
-template <class T>
-concept CDataOrView = std::same_as<db::Data, T> || std::same_as<db::DataView, T>;
-
-template <class T>
-concept CSerde =  //
-    requires(T serde, db::DataView data) {
-      { serde.Deserialize(data) } noexcept;
-      { serde.Serialize(serde.Deserialize(data)) } noexcept -> CDataOrView;
-    };
-
-template <class T>
-struct Serde {
-  db::Data Serialize(const T& value) const noexcept;
-  T Deserialize(db::DataView data) const noexcept;
-};
+using serde::CSerde;
 
 template <CSerde KeySerde, CSerde ValueSerde, class Cmp>
 class KVStorage;

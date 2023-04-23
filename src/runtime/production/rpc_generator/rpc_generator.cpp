@@ -1,22 +1,22 @@
 #include "rpc_generator.h"
 
+#include <map>
 #include <memory>
-#include <stdexcept>
+#include <string>
 
-#include <runtime/util/codegen.h>
+#include <runtime/rpc_generator/util.h>
 
-using google::protobuf::FileDescriptor;
-using google::protobuf::compiler::GeneratorContext;
 using google::protobuf::io::Printer;
 using google::protobuf::io::ZeroCopyOutputStream;
 
-namespace ceq::rt::rpc {
+namespace ceq::codegen::prod {
 
 void GenerateClientHeader(GeneratorContext* generator_context,
                           const FileDescriptor* file) noexcept {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".client.h"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(
+      generator_context->Open(file_name + ".client.prod.h"));
   Printer printer(stream.get(), '$');
 
   // Includes
@@ -60,11 +60,12 @@ void GenerateClientSource(GeneratorContext* generator_context,
                           const FileDescriptor* file) noexcept {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".client.cc"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(
+      generator_context->Open(file_name + ".client.prod.cc"));
   Printer printer(stream.get(), '$');
 
   // Includes
-  printer.Print("#include \"$name$.client.h\"\n\n", "name", file_name);
+  printer.Print("#include \"$name$.client.prod.h\"\n\n", "name", file_name);
 
   printer.Print("namespace ceq::rt::rpc {\n");
 
@@ -97,10 +98,12 @@ void GenerateClientSource(GeneratorContext* generator_context,
   printer.Print("\n}  // namespace ceq::rt::rpc\n");
 }
 
-void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescriptor* file) {
+void GenerateServiceHeader(GeneratorContext* generator_context,
+                           const FileDescriptor* file) noexcept {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".service.h"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(
+      generator_context->Open(file_name + ".service.prod.h"));
   Printer printer(stream.get(), '$');
 
   // Includes
@@ -177,14 +180,16 @@ void GenerateServiceHeader(GeneratorContext* generator_context, const FileDescri
   printer.Print("\n}  // namespace ceq::rt::rpc\n");
 }
 
-void GenerateServiceSource(GeneratorContext* generator_context, const FileDescriptor* file) {
+void GenerateServiceSource(GeneratorContext* generator_context,
+                           const FileDescriptor* file) noexcept {
   const std::string file_name = GetProtoFileName(file);
 
-  std::unique_ptr<ZeroCopyOutputStream> stream(generator_context->Open(file_name + ".service.cc"));
+  std::unique_ptr<ZeroCopyOutputStream> stream(
+      generator_context->Open(file_name + ".service.prod.cc"));
   Printer printer(stream.get(), '$');
 
   // Includes
-  printer.Print("#include \"$name$.service.h\"\n\n", "name", file_name);
+  printer.Print("#include \"$name$.service.prod.h\"\n\n", "name", file_name);
 
   printer.Print("namespace ceq::rt::rpc {\n\n");
 
@@ -276,20 +281,4 @@ void GenerateServiceSource(GeneratorContext* generator_context, const FileDescri
   printer.Print("\n}  // namespace ceq::rt::rpc\n");
 }
 
-bool RpcGenerator::Generate(const FileDescriptor* file, const std::string& parameter,
-                            GeneratorContext* generator_context, std::string* error) const {
-  if (HasStreaming(file)) {
-    *error = "streaming is not supported";
-    return false;
-  }
-
-  GenerateClientHeader(generator_context, file);
-  GenerateClientSource(generator_context, file);
-
-  GenerateServiceHeader(generator_context, file);
-  GenerateServiceSource(generator_context, file);
-
-  return true;
-}
-
-}  // namespace ceq::rt::rpc
+}  // namespace ceq::codegen::prod

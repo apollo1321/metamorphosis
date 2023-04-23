@@ -14,17 +14,17 @@ using namespace std::chrono_literals;
 namespace ceq::raft::test {
 
 void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_count,
-                       size_t max_crashed_host_count) noexcept {
-  std::vector<rt::rpc::Endpoint> raft_nodes;
+                        size_t max_crashed_host_count) noexcept {
+  std::vector<rt::Endpoint> raft_nodes;
   for (size_t index = 0; index < raft_nodes_count; ++index) {
-    raft_nodes.emplace_back(rt::rpc::Endpoint{"addr" + std::to_string(index), 42});
+    raft_nodes.emplace_back(rt::Endpoint{"addr" + std::to_string(index), 42});
   }
 
   std::vector<RaftHost> raft_hosts;
   for (size_t node_id = 0; node_id < raft_nodes.size(); ++node_id) {
     raft_hosts.emplace_back(raft::RaftConfig{.node_id = node_id,
                                              .raft_nodes = raft_nodes,
-                                             .election_timeout_interval = {150ms, 300ms},
+                                             .election_timeout = {150ms, 300ms},
                                              .heart_beat_period = 50ms,
                                              .rpc_timeout = 90ms,
                                              .log_db_path = "/tmp/raft_log",
@@ -65,7 +65,7 @@ void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_cou
 
 }  // namespace ceq::raft::test
 
-TEST(RaftHostPause, Replica3Client1Crashed1) {
+TEST(RaftHostCrash, Replica3Client1Crashed1) {
   for (size_t seed = 0; seed < 50; ++seed) {
     ceq::raft::test::RunTestWithCrashes(seed, 3, 1, 1);
     if (testing::Test::HasNonfatalFailure()) {
@@ -74,7 +74,7 @@ TEST(RaftHostPause, Replica3Client1Crashed1) {
   }
 }
 
-TEST(RaftHostPause, Replica3Client3Crashed1) {
+TEST(RaftHostCrash, Replica3Client3Crashed1) {
   for (size_t seed = 0; seed < 50; ++seed) {
     ceq::raft::test::RunTestWithCrashes(seed + 100, 3, 3, 1);
     if (testing::Test::HasNonfatalFailure()) {
@@ -83,7 +83,7 @@ TEST(RaftHostPause, Replica3Client3Crashed1) {
   }
 }
 
-TEST(RaftHostPause, Replica5Client3Crashed1) {
+TEST(RaftHostCrash, Replica5Client3Crashed1) {
   for (size_t seed = 0; seed < 50; ++seed) {
     ceq::raft::test::RunTestWithCrashes(seed + 200, 5, 3, 1);
     if (testing::Test::HasNonfatalFailure()) {
@@ -92,7 +92,7 @@ TEST(RaftHostPause, Replica5Client3Crashed1) {
   }
 }
 
-TEST(RaftHostPause, Replica5Client2Crashed2) {
+TEST(RaftHostCrash, Replica5Client2Crashed2) {
   for (size_t seed = 0; seed < 50; ++seed) {
     ceq::raft::test::RunTestWithCrashes(seed + 300, 5, 2, 2);
     if (testing::Test::HasNonfatalFailure()) {

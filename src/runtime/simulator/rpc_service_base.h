@@ -1,7 +1,7 @@
 #pragma once
 
 #include <runtime/rpc_server.h>
-#include <runtime/util/rpc_error.h>
+#include <runtime/util/rpc_error/rpc_error.h>
 #include <util/result.h>
 
 #include "rpc_server.h"

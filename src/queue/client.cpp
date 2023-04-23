@@ -1,15 +1,16 @@
 #include <iostream>
 
-#include <CLI/CLI.hpp>
-
 #include <queue/queue_service.client.h>
+#include <runtime/util/parse/parse.h>
+
+#include <CLI/CLI.hpp>
 
 using namespace ceq::rt;  // NOLINT
 
 int main(int argc, char** argv) {
   CLI::App app{"Queue service client"};
 
-  std::string address;
+  Endpoint address;
   app.add_option("-a,--address", address, "service ip address, addr:port")
       ->default_val("127.0.0.1:10050");
 

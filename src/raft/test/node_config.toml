@@ -1,0 +1,6 @@
+raft-nodes = ["127.0.0.1:10050", "127.0.0.1:10051", "192.168.1.89:10050"]
+election-timeout = "150ms-300ms"
+heart-beat-period = "100ms"
+rpc-timeout = "80ms"
+log-db-path = "/tmp/raft_log/"
+state-db-path = "/tmp/raft_state/"
