@@ -1,8 +1,6 @@
 #include "api.h"
 #include "world.h"
 
-#include <gtest/gtest.h>
-
 namespace ceq::rt::sim {
 
 void InitWorld(uint64_t seed, WorldOptions options) noexcept {

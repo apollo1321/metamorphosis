@@ -7,7 +7,6 @@
 #include <util/condition_check.h>
 
 namespace ceq::rt::sim {
-using rpc::Endpoint;
 
 void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
   boost::fibers::use_scheduling_algorithm<RuntimeSimulationScheduler>();

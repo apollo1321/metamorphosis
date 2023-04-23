@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <system_error>
+#include <tuple>
 #include <variant>
 
 #include "condition_check.h"
@@ -63,7 +64,16 @@ class [[nodiscard]] Result {
 
   // Panics on error, ignores result
   void ExpectOk() const noexcept {
-    VERIFY(HasValue(), "Result does not hold value");
+    constexpr bool kHasErrorMessage =  //
+        requires(const Error& error) {
+          { error.Message() } -> std::convertible_to<std::string>;
+        };
+
+    if constexpr (kHasErrorMessage) {
+      VERIFY(HasValue(), "Result does not hold value: " + std::get<1>(data_).Message());
+    } else {
+      VERIFY(HasValue(), "Result does not hold value");
+    }
   }
 
   // Panics on value, ignores result
@@ -117,7 +127,9 @@ class [[nodiscard]] Result {
     if (HasValue()) {
       return;
     }
-    if constexpr (std::is_base_of_v<Error, std::exception>) {
+    if constexpr (std::is_convertible_v<Error, std::string>) {
+      throw std::runtime_error{std::string(std::get<1>(data_))};
+    } else if constexpr (std::is_base_of_v<Error, std::exception>) {
       throw std::get<1>(data_);
     } else if constexpr (std::is_base_of_v<Error, std::error_code>) {
       throw std::system_error(std::get<1>(data_));

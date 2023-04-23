@@ -12,6 +12,14 @@ class ClientBase {
  public:
   explicit ClientBase(const Endpoint& endpoint) noexcept;
 
+  // Non-copyable
+  ClientBase(const ClientBase& other) noexcept = delete;
+  ClientBase& operator=(const ClientBase& other) noexcept = delete;
+
+  // Non-movable
+  ClientBase(ClientBase&& other) noexcept = delete;
+  ClientBase& operator=(ClientBase&& other) noexcept = delete;
+
   template <class Request, class Response>
   Result<Response, Error> MakeRequest(const Request& request, const ServiceName& service_name,
                                       const HandlerName& handler_name,

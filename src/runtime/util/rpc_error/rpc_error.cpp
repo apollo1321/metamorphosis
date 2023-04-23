@@ -32,4 +32,5 @@ std::string Error::Message() const noexcept {
   }
   return result;
 }
+
 }  // namespace ceq::rt::rpc

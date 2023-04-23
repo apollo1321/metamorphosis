@@ -1,7 +1,10 @@
 #include "rpc_server.h"
 
 #include <algorithm>
+#include <exception>
 #include <thread>
+
+#include <sstream>
 
 #ifdef SIMULATION
 #include "simulator/rpc_server.h"
@@ -10,6 +13,7 @@
 #endif
 
 namespace ceq::rt::rpc {
+
 
 ServerRunConfig::ServerRunConfig() noexcept {
   queue_count = std::max(std::thread::hardware_concurrency() / 2, 1u);

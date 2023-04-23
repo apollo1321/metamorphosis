@@ -5,13 +5,13 @@
 #include <runtime/logger.h>
 #include <runtime/simulator/api.h>
 
-#include <raft/client.h>
-#include <raft/node.h>
+#include <raft/client/client.h>
+#include <raft/node/node.h>
 #include <raft/raft.client.h>
 #include <raft/raft.pb.h>
+#include <raft/test/rsm.h>
 
 #include "history_checker.h"
-#include "rsm.h"
 
 namespace ceq::raft::test {
 
@@ -28,7 +28,7 @@ struct RaftHost final : public rt::sim::IHostRunnable {
 };
 
 struct RaftClientHost final : public rt::sim::IHostRunnable {
-  explicit RaftClientHost(const std::vector<rt::rpc::Endpoint>& raft_nodes,
+  explicit RaftClientHost(const std::vector<rt::Endpoint>& raft_nodes,
                           std::vector<RequestInfo>& history, rt::Duration timeout,
                           size_t retry_count) noexcept
       : raft_nodes{raft_nodes}, history{history}, timeout{timeout}, retry_count{retry_count} {
@@ -46,30 +46,29 @@ struct RaftClientHost final : public rt::sim::IHostRunnable {
       RequestInfo info;
       info.command = command.data();
       info.start = rt::sim::GetGlobalTime();
-      auto response = client.Apply(ToAny(command), timeout, retry_count);
+      auto response = client.Apply<RsmResult>(command, timeout, retry_count);
       if (response.HasError()) {
         LOG("CLIENT: request error: {}", response.GetError().Message());
       } else {
-        auto result = FromAny<RsmResult>(response.GetValue());
-
-        LOG("CLIENT: response = {}", result);
+        auto& value = response.GetValue();
+        LOG("CLIENT: response = {}", value);
 
         info.end = rt::sim::GetGlobalTime();
-        info.result.resize(result.log_entries_size());
-        std::copy(result.log_entries().begin(), result.log_entries().end(), info.result.begin());
+        info.result.resize(value.log_entries_size());
+        std::copy(value.log_entries().begin(), value.log_entries().end(), info.result.begin());
         history.emplace_back(std::move(info));
       }
     }
   }
 
-  std::vector<rt::rpc::Endpoint> raft_nodes;
+  std::vector<rt::Endpoint> raft_nodes;
   std::vector<RequestInfo>& history;
   rt::Duration timeout;
   size_t retry_count;
 };
 
 struct CrashSupervisor final : public rt::sim::IHostRunnable {
-  explicit CrashSupervisor(const std::vector<rt::rpc::Endpoint>& raft_nodes,
+  explicit CrashSupervisor(const std::vector<rt::Endpoint>& raft_nodes,
                            rt::Duration max_pause_time) noexcept
       : raft_nodes{raft_nodes}, max_pause_time{max_pause_time} {
   }
@@ -86,7 +85,7 @@ struct CrashSupervisor final : public rt::sim::IHostRunnable {
     }
   }
 
-  rt::rpc::Address GetRandomHost() noexcept {
+  rt::Address GetRandomHost() noexcept {
     size_t index =
         std::uniform_int_distribution<size_t>(0, raft_nodes.size() - 1)(rt::GetGenerator());
     return raft_nodes[index].address;
@@ -97,7 +96,7 @@ struct CrashSupervisor final : public rt::sim::IHostRunnable {
         0, max_pause_time.count())(rt::GetGenerator())};
   }
 
-  std::vector<rt::rpc::Endpoint> raft_nodes;
+  std::vector<rt::Endpoint> raft_nodes;
   rt::Duration max_pause_time;
 };
 

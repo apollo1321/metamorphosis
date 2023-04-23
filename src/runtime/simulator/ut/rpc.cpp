@@ -46,7 +46,7 @@ TEST(SimulatorRpc, SimplyWorks) {
   struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
       SleepFor(1s);  // Wait for server to start up
-      rpc::EchoServiceClient client(rpc::Endpoint{"addr1", 42});
+      rpc::EchoServiceClient client(Endpoint{"addr1", 42});
 
       EchoRequest request;
       request.set_msg("Client");
@@ -87,7 +87,7 @@ TEST(SimulatorRpc, DeliveryTime) {
   struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
       SleepFor(1s);  // Wait for server to start up
-      rpc::EchoServiceClient client(rpc::Endpoint{"addr1", 42});
+      rpc::EchoServiceClient client(Endpoint{"addr1", 42});
 
       auto start = Now();
 
@@ -141,7 +141,7 @@ TEST(SimulatorRpc, NetworkErrorProba) {
   struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
       SleepFor(1s);  // Wait for server to start up
-      rpc::EchoServiceClient client(rpc::Endpoint{"addr1", 42});
+      rpc::EchoServiceClient client(Endpoint{"addr1", 42});
 
       size_t error_count = 0;
       for (size_t i = 0; i < 10000; ++i) {
@@ -211,13 +211,13 @@ TEST(SimulatorRpc, ManyClientsManyServers) {
     void Main() noexcept override {
       SleepFor(1s);
 
-      rpc::EchoServiceClient host1client1(rpc::Endpoint{"addr1", 1});
-      rpc::EchoServiceClient host1client2(rpc::Endpoint{"addr1", 2});
-      rpc::EchoServiceClient host1client3(rpc::Endpoint{"addr1", 3});
+      rpc::EchoServiceClient host1client1(Endpoint{"addr1", 1});
+      rpc::EchoServiceClient host1client2(Endpoint{"addr1", 2});
+      rpc::EchoServiceClient host1client3(Endpoint{"addr1", 3});
 
-      rpc::EchoServiceClient host2client1(rpc::Endpoint{"addr2", 1});
-      rpc::EchoServiceClient host2client2(rpc::Endpoint{"addr2", 2});
-      rpc::EchoServiceClient host2client3(rpc::Endpoint{"addr2", 3});
+      rpc::EchoServiceClient host2client1(Endpoint{"addr2", 1});
+      rpc::EchoServiceClient host2client2(Endpoint{"addr2", 2});
+      rpc::EchoServiceClient host2client3(Endpoint{"addr2", 3});
 
       auto start_time = Now();
 
@@ -282,7 +282,7 @@ TEST(SimulatorRpc, EchoProxy) {
 
     ceq::Result<EchoReply, rpc::Error> Forward1(const EchoRequest& request) noexcept override {
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
-      rpc::EchoServiceClient client(rpc::Endpoint{"addr1", 1});
+      rpc::EchoServiceClient client(Endpoint{"addr1", 1});
       auto reply = client.Echo(request);
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
       *reply.GetValue().mutable_msg() += " Forward1";
@@ -291,7 +291,7 @@ TEST(SimulatorRpc, EchoProxy) {
 
     ceq::Result<EchoReply, rpc::Error> Forward2(const EchoRequest& request) noexcept override {
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
-      rpc::EchoServiceClient client(rpc::Endpoint{"addr2", 2});
+      rpc::EchoServiceClient client(Endpoint{"addr2", 2});
       auto reply = client.Echo(request);
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
       *reply.GetValue().mutable_msg() += " Forward2";
@@ -327,7 +327,7 @@ TEST(SimulatorRpc, EchoProxy) {
     void Main() noexcept override {
       SleepFor(1s);
 
-      rpc::EchoProxyClient client(rpc::Endpoint{"proxy_addr", 42});
+      rpc::EchoProxyClient client(Endpoint{"proxy_addr", 42});
 
       auto start_time = Now();
 
@@ -419,7 +419,7 @@ TEST(SimulatorRpc, CancelSimplyWorks) {
   struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
       SleepFor(1s);  // Wait for server to start up
-      rpc::EchoServiceClient client(rpc::Endpoint{"addr1", 42});
+      rpc::EchoServiceClient client(Endpoint{"addr1", 42});
 
       StopSource source;
 
@@ -458,7 +458,7 @@ TEST(SimulatorRpc, HandlerNotFound) {
 
   struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
-      rpc::EchoServiceClient client(rpc::Endpoint{"addr1", 42});
+      rpc::EchoServiceClient client(Endpoint{"addr1", 42});
       EchoRequest request;
       request.set_msg("Client");
       auto result = client.Echo(request);
@@ -479,7 +479,7 @@ TEST(SimulatorRpc, HandlerNotFound) {
 TEST(SimulatorRpc, ConnectionRefused) {
   struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
-      rpc::EchoServiceClient client(rpc::Endpoint{"addr1", 43});
+      rpc::EchoServiceClient client(Endpoint{"addr1", 43});
       EchoRequest request;
       request.set_msg("Client");
       auto result = client.Echo(request);

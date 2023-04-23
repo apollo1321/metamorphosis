@@ -10,8 +10,6 @@
 
 namespace ceq::rt::sim {
 
-using rpc::Address;
-
 /*
  * If not all fibers are joined (host was killed, paused or iteration_count is set), there is
  * expected memory leak. Run gtests with main() and then use _Exit() instead of return.

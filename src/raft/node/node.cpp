@@ -1,6 +1,7 @@
 #include "node.h"
 
 #include <chrono>
+#include <memory>
 #include <optional>
 #include <queue>
 #include <unordered_map>
@@ -10,7 +11,7 @@
 #include <raft/raft.service.h>
 
 #include <runtime/api.h>
-#include <runtime/util/event.h>
+#include <runtime/util/event/event.h>
 #include <runtime/util/serde/protobuf_serde.h>
 #include <runtime/util/serde/string_serde.h>
 #include <runtime/util/serde/u64_serde.h>
@@ -23,8 +24,8 @@
 
 namespace ceq::raft {
 
-using RaftStateDb = rt::kv::KVStorage<rt::kv::StringSerde, rt::kv::U64Serde>;
-using RaftLogDb = rt::kv::KVStorage<rt::kv::U64Serde, rt::kv::ProtobufSerde<LogEntry>>;
+using RaftStateDb = rt::kv::KVStorage<rt::serde::StringSerde, rt::serde::U64Serde>;
+using RaftLogDb = rt::kv::KVStorage<rt::serde::U64Serde, rt::serde::ProtobufSerde<LogEntry>>;
 
 struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftApiStub {
   enum class State {
@@ -53,7 +54,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     }
 
     for (auto& endpoint : config.raft_nodes) {
-      clients.emplace_back(endpoint);
+      clients.emplace_back(std::make_unique<rt::rpc::RaftInternalsClient>(endpoint));
     }
   }
 
@@ -317,7 +318,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       }
 
       rt::StopSource request_stop;
-      rt::StopCallback stop_propagate(stop_leader.GetToken(), [&]() {
+      rt::StopCallback request_stop_propagate(stop_leader.GetToken(), [&]() {
         request_stop.Stop();
       });
 
@@ -328,12 +329,14 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
       DEFER {
         request_stop.Stop();
-        request_timeout.join();
+        if (request_timeout.joinable()) {
+          request_timeout.join();
+        }
       };
 
       LOG("LEADER[{}]: start AppendEntries with next_index = {}, match_index = {}", node_id,
           next_index[node_id], match_index[node_id]);
-      auto result = clients[node_id].AppendEntries(request, request_stop.GetToken());
+      auto result = clients[node_id]->AppendEntries(request, request_stop.GetToken());
       LOG("LEADER[{}]: finished AppendEntries", node_id);
 
       if (state != State::Leader) {
@@ -343,6 +346,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
       if (result.HasError()) {
         LOG("LEADER[{}]: AppendEntries end with error: {}", node_id, result.GetError().Message());
+        request_timeout.join();  // Sleep for some time
         continue;
       }
 
@@ -372,7 +376,13 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
       if (next_index[node_id] == GetLogSize() + 1) {
         LOG("LEADER[{}]: all log replicated, wait on heart_beat_timeout", node_id);
+
         reset_heartbeat_timeout = rt::StopSource();
+
+        rt::StopCallback heart_beat_stop_propagate(stop_leader.GetToken(), [&]() {
+          reset_heartbeat_timeout.Stop();
+        });
+
         rt::SleepFor(config.heart_beat_period, reset_heartbeat_timeout.GetToken());
       }
     }
@@ -467,7 +477,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         requests.emplace_back([&, node_id]() {
           LOG("CANDIDATE: start RequestVote to node {}", node_id);
           Result<RequestVoteResult, rt::rpc::Error> result =
-              clients[node_id].RequestVote(request_vote, stop_election.GetToken());
+              clients[node_id]->RequestVote(request_vote, stop_election.GetToken());
 
           if (result.HasError()) {
             LOG("CANDIDATE: finished RequestVote to node {} with error: {}", node_id,
@@ -516,9 +526,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   }
 
   rt::Duration GetElectionTimeout() noexcept {
-    std::uniform_int_distribution<rt::Duration::rep> dist{
-        config.election_timeout_interval.first.count(),
-        config.election_timeout_interval.second.count()};
+    std::uniform_int_distribution<rt::Duration::rep> dist{config.election_timeout.from.count(),
+                                                          config.election_timeout.to.count()};
     return rt::Duration(dist(rt::GetGenerator()));
   }
 
@@ -566,7 +575,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   State state = State::Follower;
 
   RaftConfig config;
-  std::vector<rt::rpc::RaftInternalsClient> clients;
+  std::vector<std::unique_ptr<rt::rpc::RaftInternalsClient>> clients;
 
   rt::StopSource reset_election_timeout;
   rt::StopSource reset_heartbeat_timeout;
@@ -605,16 +614,16 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
 void RunMain(IStateMachine* state_machine, RaftConfig config) noexcept {
   rt::db::Options db_options{.create_if_missing = true};
-  auto raft_state_db = rt::kv::Open(config.raft_state_db_path, db_options, rt::kv::StringSerde{},
-                                    rt::kv::U64Serde{});
+  auto raft_state_db = rt::kv::Open(config.raft_state_db_path, db_options, rt::serde::StringSerde{},
+                                    rt::serde::U64Serde{});
   if (raft_state_db.HasError()) {
     LOG_CRITICAL("cannot open database at path {}: {}", config.raft_state_db_path,
                  raft_state_db.GetError().Message());
     return;
   }
 
-  auto raft_log_db = rt::kv::Open(config.log_db_path, db_options, rt::kv::U64Serde{},
-                                  rt::kv::ProtobufSerde<LogEntry>{});
+  auto raft_log_db = rt::kv::Open(config.log_db_path, db_options, rt::serde::U64Serde{},
+                                  rt::serde::ProtobufSerde<LogEntry>{});
   if (raft_log_db.HasError()) {
     LOG_CRITICAL("cannot open database at path {}: {}", config.log_db_path,
                  raft_log_db.GetError().Message());

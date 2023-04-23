@@ -4,8 +4,8 @@
 
 namespace ceq::rt::rpc {
 
-ClientBase::ClientBase(const std::string& address) noexcept
-    : channel_{grpc::CreateChannel(address, grpc::InsecureChannelCredentials())},
+ClientBase::ClientBase(const Endpoint& endpoint) noexcept
+    : channel_{grpc::CreateChannel(endpoint.ToString(), grpc::InsecureChannelCredentials())},
       dispatching_thread_([this]() {
         DispatchServiceResponses();
       }) {

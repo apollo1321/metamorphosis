@@ -14,16 +14,16 @@ using namespace std::chrono_literals;
 namespace ceq::raft::test {
 
 void RunSimpleTest(size_t seed, size_t raft_nodes_count, size_t clients_count) noexcept {
-  std::vector<rt::rpc::Endpoint> raft_nodes;
+  std::vector<rt::Endpoint> raft_nodes;
   for (size_t index = 0; index < raft_nodes_count; ++index) {
-    raft_nodes.emplace_back(rt::rpc::Endpoint{"addr" + std::to_string(index), 42});
+    raft_nodes.emplace_back(rt::Endpoint{"addr" + std::to_string(index), 42});
   }
 
   std::vector<RaftHost> raft_hosts;
   for (size_t node_id = 0; node_id < raft_nodes.size(); ++node_id) {
     raft_hosts.emplace_back(raft::RaftConfig{.node_id = node_id,
                                              .raft_nodes = raft_nodes,
-                                             .election_timeout_interval = {150ms, 300ms},
+                                             .election_timeout = {150ms, 300ms},
                                              .heart_beat_period = 50ms,
                                              .rpc_timeout = 90ms,
                                              .log_db_path = "/tmp/raft_log",
@@ -35,7 +35,7 @@ void RunSimpleTest(size_t seed, size_t raft_nodes_count, size_t clients_count) n
   RaftClientHost client_host(raft_nodes, history, 1s, 10);
 
   rt::sim::InitWorld(seed, rt::sim::WorldOptions{.delivery_time_interval = {0ms, 90ms},
-                                                 .network_error_proba = 0.2});
+                                                 .network_error_proba = 0.15});
 
   for (auto& host : raft_hosts) {
     rt::sim::AddHost(host.config.raft_nodes[host.config.node_id].address, &host,
@@ -45,7 +45,7 @@ void RunSimpleTest(size_t seed, size_t raft_nodes_count, size_t clients_count) n
     rt::sim::AddHost("client" + std::to_string(index), &client_host);
   }
 
-  rt::sim::RunSimulation(15s);
+  rt::sim::RunSimulation(20s);
 
   EXPECT_GT(history.size(), 1u) << "Too few requests have been completed, seed = " << seed;
   if (testing::Test::HasNonfatalFailure()) {

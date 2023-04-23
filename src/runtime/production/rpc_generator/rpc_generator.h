@@ -3,13 +3,16 @@
 #include <google/protobuf/compiler/code_generator.h>
 #include <google/protobuf/descriptor.h>
 
-namespace ceq::rt::rpc {
+using google::protobuf::FileDescriptor;
+using google::protobuf::compiler::GeneratorContext;
 
-class RpcGenerator : public google::protobuf::compiler::CodeGenerator {
- public:
-  bool Generate(const google::protobuf::FileDescriptor* file, const std::string& parameter,
-                google::protobuf::compiler::GeneratorContext* generator_context,
-                std::string* error) const override;
-};
+namespace ceq::codegen::prod {
 
-}  // namespace ceq::rt::rpc
+void GenerateClientHeader(GeneratorContext* generator_context, const FileDescriptor* file) noexcept;
+void GenerateClientSource(GeneratorContext* generator_context, const FileDescriptor* file) noexcept;
+void GenerateServiceHeader(GeneratorContext* generator_context,
+                           const FileDescriptor* file) noexcept;
+void GenerateServiceSource(GeneratorContext* generator_context,
+                           const FileDescriptor* file) noexcept;
+
+}  // namespace ceq::codegen::prod

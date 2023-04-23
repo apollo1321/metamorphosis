@@ -9,7 +9,7 @@
 #include <grpcpp/support/method_handler.h>
 
 #include <runtime/rpc_server.h>
-#include <runtime/util/rpc_error.h>
+#include <runtime/util/rpc_error/rpc_error.h>
 
 namespace ceq::rt::rpc {
 
