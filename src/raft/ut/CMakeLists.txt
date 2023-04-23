@@ -1,27 +1,18 @@
-generate_proto(test_rsm_proto test_rsm.proto TRUE)
-
-add_executable(test_raft_simple raft_simple.cpp)
-target_link_libraries(test_raft_simple 
-  raft_node 
-  raft_client 
-  test_rsm_proto
-  runtime_simulator 
+add_library(ceq_test_raft_base INTERFACE)
+target_link_libraries(ceq_test_raft_base INTERFACE
+  ceq_raft_node_sim
+  ceq_raft_client_sim
+  ceq_test_rsm_proto_sim
+  ceq_runtime_simulator 
   GTest::gtest_main
 )
-target_compile_definitions(test_raft_simple PRIVATE
-  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${LOG_LEVEL}
-)
-gtest_discover_tests(test_raft_simple)
 
-add_executable(test_raft_host_crash raft_host_crash.cpp)
-target_link_libraries(test_raft_host_crash 
-  raft_node 
-  raft_client 
-  test_rsm_proto
-  runtime_simulator 
-  GTest::gtest_main
-)
-target_compile_definitions(test_raft_host_crash PRIVATE
-  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${LOG_LEVEL}
-)
-gtest_discover_tests(test_raft_host_crash)
+# ------------------------------------------------------------------------------
+
+add_executable(ceq_test_raft_simple raft_simple.cpp)
+target_link_libraries(ceq_test_raft_simple ceq_test_raft_base)
+gtest_discover_tests(ceq_test_raft_simple)
+
+add_executable(ceq_test_raft_host_crash raft_host_crash.cpp)
+target_link_libraries(ceq_test_raft_host_crash ceq_test_raft_base)
+gtest_discover_tests(ceq_test_raft_host_crash)

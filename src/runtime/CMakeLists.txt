@@ -1,8 +1,27 @@
+add_library(ceq_runtime_base INTERFACE)
+target_link_libraries(ceq_runtime_base INTERFACE
+  ceq_lib
+  ceq_util
+  ceq_cancellation
+  ceq_endpoint
+  ceq_event
+  ceq_rpc_error
+  ceq_serde
+  ceq_chrono
+  libprotobuf
+  Boost::fiber
+  spdlog
+)
+
+target_compile_definitions(ceq_runtime_base INTERFACE
+  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${LOG_LEVEL}
+)
+
 # ------------------------------------------------------------------------------
 # production runtime
 # ------------------------------------------------------------------------------
 
-add_library(runtime_production
+add_library(ceq_runtime_production
   database.cpp
   logger.cpp
   rpc_server.cpp
@@ -15,18 +34,15 @@ add_library(runtime_production
   production/time.cpp
 )
 
-target_link_libraries(runtime_production
-  ceq_lib
-  ceq_util
-  ceq_cancellation
-  ceq_event
-  rpc_error
-  libprotobuf
+target_link_libraries(ceq_runtime_production
+  ceq_runtime_base
   grpc++_reflection
   grpc++
-  Boost::fiber
   rocksdb_lib
-  spdlog
+)
+
+target_compile_definitions(ceq_runtime_production PUBLIC 
+  PRODUCTION
 )
 
 add_subdirectory(production)
@@ -35,7 +51,7 @@ add_subdirectory(production)
 # simulator runtime
 # ------------------------------------------------------------------------------
 
-add_library(runtime_simulator
+add_library(ceq_runtime_simulator
   database.cpp
   logger.cpp
   rpc_server.cpp
@@ -52,19 +68,14 @@ add_library(runtime_simulator
   simulator/world.cpp
 )
 
-target_link_libraries(runtime_simulator
-  ceq_lib
-  ceq_util
-  ceq_cancellation
-  ceq_event
-  rpc_error
+target_link_libraries(ceq_runtime_simulator
+  ceq_runtime_base
   libprotobuf
   Boost::fiber
-  GTest::gtest_main
   spdlog
 )
 
-target_compile_definitions(runtime_simulator PUBLIC 
+target_compile_definitions(ceq_runtime_simulator PUBLIC 
   SIMULATION
 )
 
@@ -73,3 +84,4 @@ add_subdirectory(simulator)
 # ------------------------------------------------------------------------------
 
 add_subdirectory(util)
+add_subdirectory(rpc_generator)

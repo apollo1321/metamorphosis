@@ -1,12 +1,14 @@
 #include "client.h"
 
+#include <util/defer.h>
+
 namespace ceq::raft {
 
-RaftClient::RaftClient(const std::vector<rt::rpc::Endpoint>& raft_nodes) noexcept
+RaftClient::RaftClient(const std::vector<rt::Endpoint>& raft_nodes) noexcept
     : raft_nodes_{raft_nodes},
       client_id_{std::uniform_int_distribution<uint64_t>()(rt::GetGenerator())} {
-  for (const rt::rpc::Endpoint& ep : raft_nodes_) {
-    clients_.emplace_back(ep);
+  for (const rt::Endpoint& ep : raft_nodes_) {
+    clients_.emplace_back(std::make_unique<rt::rpc::RaftApiClient>(ep));
   }
 }
 
@@ -44,7 +46,7 @@ Result<google::protobuf::Any, rt::rpc::Error> RaftClient::Apply(
   for (size_t attempt_id = 0; attempt_id < retry_count && !stop_source.StopRequested();
        ++attempt_id) {
     LOG("EXECUTE: start attempt {} to {}", attempt_id, raft_nodes_[current_leader_].address);
-    auto& client = clients_[current_leader_];
+    auto& client = *clients_[current_leader_];
     auto result = client.Execute(request, stop_source.GetToken());
     if (result.HasError()) {
       LOG("EXECUTE: attempt {} finished with error: {}", attempt_id, result.GetError().Message());

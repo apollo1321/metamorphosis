@@ -1,7 +1,24 @@
-generate_proto(queue_service_proto queue_service.proto FALSE)
+generate_proto(ceq_queue_service_proto queue_service.proto)
 
-add_executable(queue_client client.cpp)
-target_link_libraries(queue_client ceq_lib queue_service_proto CLI11::CLI11 runtime_production)
+# ------------------------------------------------------------------------------
 
-add_executable(queue_service service.cpp)
-target_link_libraries(queue_service ceq_lib queue_service_proto CLI11::CLI11 runtime_production)
+add_executable(ceq_queue_client client.cpp)
+
+target_link_libraries(ceq_queue_client
+  ceq_lib
+  ceq_parse
+  ceq_queue_service_proto_prod
+  ceq_runtime_production
+  CLI11::CLI11
+)
+
+# ------------------------------------------------------------------------------
+
+add_executable(ceq_queue_service service.cpp)
+
+target_link_libraries(ceq_queue_service
+  ceq_lib
+  ceq_queue_service_proto_prod
+  ceq_runtime_production
+  CLI11::CLI11
+)

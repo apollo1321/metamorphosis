@@ -105,7 +105,7 @@ Result<rpc::SerializedData, rpc::Error> Host::ProcessRequest(
   return result;
 }
 
-Result<rpc::SerializedData, rpc::Error> Host::MakeRequest(const rpc::Endpoint& endpoint,
+Result<rpc::SerializedData, rpc::Error> Host::MakeRequest(const Endpoint& endpoint,
                                                           const rpc::SerializedData& data,
                                                           const rpc::ServiceName& service_name,
                                                           const rpc::HandlerName& handler_name,

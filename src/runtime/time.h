@@ -1,13 +1,9 @@
 #pragma once
 
-#include <chrono>
-
-#include "util/cancellation/stop_token.h"
+#include <runtime/util/cancellation/stop_token.h>
+#include <runtime/util/chrono/chrono.h>
 
 namespace ceq::rt {
-
-using Duration = std::chrono::microseconds;
-using Timestamp = std::chrono::time_point<std::chrono::steady_clock, Duration>;
 
 Timestamp Now() noexcept;
 bool SleepFor(Duration duration, StopToken stop_token = StopToken{}) noexcept;

@@ -1,17 +1,11 @@
 #pragma once
 
+#include <runtime/util/endpoint/endpoint.h>
+
 #include <cstdint>
 #include <string>
 
 namespace ceq::rt::rpc {
-
-using Port = uint16_t;
-using Address = std::string;
-
-struct Endpoint {
-  Address address;
-  Port port;
-};
 
 struct ServerRunConfig {
   ServerRunConfig() noexcept;

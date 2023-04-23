@@ -1,16 +1,18 @@
 #pragma once
 
+#include <runtime/util/serde/serde.h>
+
+#include <util/result.h>
+
 #include <filesystem>
 #include <span>
 #include <string>
 #include <vector>
 
-#include <util/result.h>
-
 namespace ceq::rt::db {
 
-using Data = std::vector<uint8_t>;
-using DataView = std::span<const uint8_t>;
+using serde::Data;
+using serde::DataView;
 
 class IIterator {
  public:

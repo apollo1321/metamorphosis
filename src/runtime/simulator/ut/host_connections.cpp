@@ -30,7 +30,7 @@ TEST(SimulatorHostConnections, SimplyWorks) {
 
   struct Client final : public sim::IHostRunnable {
     void Main() noexcept override {
-      auto make_request = [](rpc::Address addr) {
+      auto make_request = [](Address addr) {
         rpc::EchoServiceClient client({addr, 42});
         EchoRequest request;
         request.set_msg(addr);

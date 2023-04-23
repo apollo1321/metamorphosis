@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(PRODUCTION) && defined(SIMULATION)
+#error "production and simulation runtime cannot be used together"
+#endif
+
 #include "database.h"
 #include "kv_storage.h"
 #include "logger.h"
