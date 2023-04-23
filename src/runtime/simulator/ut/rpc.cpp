@@ -116,7 +116,7 @@ TEST(SimulatorRpc, DeliveryTime) {
   Host host;
   Client client;
 
-  sim::InitWorld(42, sim::WorldOptions{.delivery_time_interval = {5ms, 10ms}});
+  sim::InitWorld(42, sim::WorldOptions{.delivery_time = {5ms, 10ms}});
   sim::AddHost("addr1", &host);
   sim::AddHost("addr2", &client);
   sim::RunSimulation();
@@ -164,8 +164,7 @@ TEST(SimulatorRpc, NetworkErrorProba) {
   Host host;
   Client client;
 
-  sim::InitWorld(
-      3, sim::WorldOptions{.delivery_time_interval = {5ms, 10ms}, .network_error_proba = 0.3});
+  sim::InitWorld(3, sim::WorldOptions{.network_error_proba = 0.3, .delivery_time = {5ms, 10ms}});
   sim::AddHost("addr1", &host);
   sim::AddHost("addr2", &client);
   sim::RunSimulation();
@@ -258,7 +257,7 @@ TEST(SimulatorRpc, ManyClientsManyServers) {
   Host host;
   Client client;
 
-  sim::InitWorld(42, sim::WorldOptions{.delivery_time_interval = {5ms, 10ms}});
+  sim::InitWorld(42, sim::WorldOptions{.delivery_time = {5ms, 10ms}});
   sim::AddHost("addr1", &host);
   sim::AddHost("addr2", &host);
 
@@ -384,7 +383,7 @@ TEST(SimulatorRpc, EchoProxy) {
 
   std::vector<std::unique_ptr<Client>> clients;
 
-  sim::InitWorld(42, sim::WorldOptions{.delivery_time_interval = {5ms, 10ms}});
+  sim::InitWorld(42, sim::WorldOptions{.delivery_time = {5ms, 10ms}});
   sim::AddHost("addr1", &host1);
   sim::AddHost("addr2", &host2);
   sim::AddHost("proxy_addr", &proxy_host);
@@ -491,6 +490,65 @@ TEST(SimulatorRpc, ConnectionRefused) {
   Client client;
 
   sim::InitWorld(42);
+  sim::AddHost("addr2", &client);
+  sim::RunSimulation();
+}
+
+TEST(SimulatorRpc, LongDeliveryTime) {
+  struct Host final : public sim::IHostRunnable {
+    void Main() noexcept override {
+      rpc::Server server;
+
+      EchoService service;
+
+      server.Register(&service);
+      server.Run(42);
+
+      SleepFor(1h);
+
+      server.ShutDown();
+    }
+  };
+
+  struct Client final : public sim::IHostRunnable {
+    void Main() noexcept override {
+      SleepFor(1s);  // Wait for server to start up
+      rpc::EchoServiceClient client(Endpoint{"addr1", 42});
+
+      size_t long_count = 0;
+      constexpr size_t kIterCount = 1000;
+
+      for (size_t ind = 0; ind < kIterCount; ++ind) {
+        auto start = Now();
+
+        EchoRequest request;
+        request.set_msg("Client");
+        auto result = client.Echo(request);
+        EXPECT_EQ(result.GetValue().msg(), "Hello, Client");
+
+        auto duration = Now() - start;
+
+        if (duration <= 20ms) {
+          EXPECT_GE(duration, 10ms);
+        } else {
+          ++long_count;
+          EXPECT_GE(duration, 105ms);
+          EXPECT_LE(duration, 400ms);
+        }
+      }
+
+      EXPECT_GT(long_count, 10);
+      EXPECT_LT(long_count, 300);
+    }
+  };
+
+  Host host;
+  Client client;
+
+  sim::InitWorld(42, sim::WorldOptions{.delivery_time = {5ms, 10ms},
+                                       .long_delivery_time = {100ms, 200ms},
+                                       .long_delivery_time_proba = 0.1});
+  sim::AddHost("addr1", &host);
   sim::AddHost("addr2", &client);
   sim::RunSimulation();
 }

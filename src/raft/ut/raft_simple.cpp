@@ -34,8 +34,12 @@ void RunSimpleTest(size_t seed, size_t raft_nodes_count, size_t clients_count) n
 
   RaftClientHost client_host(raft_nodes, history, 1s, 10);
 
-  rt::sim::InitWorld(seed, rt::sim::WorldOptions{.delivery_time_interval = {0ms, 90ms},
-                                                 .network_error_proba = 0.15});
+  rt::sim::InitWorld(seed, rt::sim::WorldOptions{
+                               .network_error_proba = 0.1,
+                               .delivery_time = {0ms, 50ms},
+                               .long_delivery_time = {100ms, 500ms},
+                               .long_delivery_time_proba = 0.1,
+                           });
 
   for (auto& host : raft_hosts) {
     rt::sim::AddHost(host.config.raft_nodes[host.config.node_id].address, &host,

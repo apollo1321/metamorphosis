@@ -8,6 +8,7 @@ target_link_libraries(ceq_runtime_base INTERFACE
   ceq_rpc_error
   ceq_serde
   ceq_chrono
+  ceq_print
   libprotobuf
   Boost::fiber
   spdlog
@@ -24,6 +25,7 @@ target_compile_definitions(ceq_runtime_base INTERFACE
 add_library(ceq_runtime_production
   database.cpp
   logger.cpp
+  random.cpp
   rpc_server.cpp
   production/database.cpp
   production/logger.cpp
@@ -54,6 +56,7 @@ add_subdirectory(production)
 add_library(ceq_runtime_simulator
   database.cpp
   logger.cpp
+  random.cpp
   rpc_server.cpp
   simulator/api.cpp
   simulator/database.cpp
