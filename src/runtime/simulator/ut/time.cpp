@@ -81,7 +81,7 @@ TEST(SimulatorTime, HostOrdering) {
   Host2 host2(ids);
 
   sim::InitWorld(42);
-  sim::AddHost("addr1", &host1, sim::HostOptions{.start_time_interval = {10s, 20s}});
+  sim::AddHost("addr1", &host1, sim::HostOptions{.start_time = {10s, 20s}});
   sim::AddHost("addr2", &host2);
   sim::RunSimulation();
 
@@ -349,7 +349,7 @@ TEST(SimulatorTime, Dispatch) {
     Host host(hosts);
 
     sim::HostOptions options{
-        .start_time_interval = {1h, 2h},
+        .start_time = {1h, 2h},
         .drift_interval = {0.001, 0.002},
     };
 

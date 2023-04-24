@@ -24,7 +24,7 @@ struct IHostRunnable {
 };
 
 struct HostOptions {
-  std::pair<Duration, Duration> start_time_interval;
+  Interval start_time;
   std::pair<double, double> drift_interval;
   Duration max_sleep_lag = Duration::zero();
 
@@ -37,8 +37,12 @@ struct HostOptions {
 };
 
 struct WorldOptions {
-  std::pair<Duration, Duration> delivery_time_interval;
   double network_error_proba = 0.;
+
+  Interval delivery_time;
+
+  Interval long_delivery_time;
+  double long_delivery_time_proba = 0.;
 };
 
 void InitWorld(uint64_t seed, WorldOptions options = WorldOptions{}) noexcept;

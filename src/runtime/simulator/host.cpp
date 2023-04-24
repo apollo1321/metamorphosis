@@ -12,13 +12,8 @@ namespace ceq::rt::sim {
 
 Host::Host(const Address& address, IHostRunnable* host_main, const HostOptions& options) noexcept
     : logger_{CreateLogger(address)}, host_main_{host_main}, address_{address} {
-  std::uniform_real_distribution<double> drift_dist{options.drift_interval.first,
-                                                    options.drift_interval.second};
-  std::uniform_int_distribution<Duration::rep> skew_dist{
-      options.start_time_interval.first.count(), options.start_time_interval.second.count()};
-
-  drift_ = drift_dist(rt::GetGenerator());
-  start_time_ = Timestamp(static_cast<Duration>(skew_dist(GetGenerator())));
+  drift_ = GetRandomFloat(options.drift_interval.first, options.drift_interval.second);
+  start_time_ = Timestamp(GetRandomDuration(options.start_time));
   max_sleep_lag_ = options.max_sleep_lag;
 
   StartHost();

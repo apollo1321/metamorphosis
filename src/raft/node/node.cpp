@@ -526,9 +526,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   }
 
   rt::Duration GetElectionTimeout() noexcept {
-    std::uniform_int_distribution<rt::Duration::rep> dist{config.election_timeout.from.count(),
-                                                          config.election_timeout.to.count()};
-    return rt::Duration(dist(rt::GetGenerator()));
+    return rt::GetRandomDuration(config.election_timeout);
   }
 
   size_t MajorityCount() const noexcept {
