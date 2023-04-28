@@ -1,4 +1,4 @@
-# Cost-effective distributed queue
+# Metamorphosis
 
 ## Purpose
 
