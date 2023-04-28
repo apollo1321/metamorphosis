@@ -63,15 +63,15 @@ struct Iterator final : public IIterator {
   sim::HostDatabase::Map::iterator iterator;
 };
 
-Result<Database::DatabaseImpl*, Error> Database::DatabaseImpl::Open(std::filesystem::path path,
-                                                                    Options options) noexcept {
+Result<Database::DatabaseImpl*, DBError> Database::DatabaseImpl::Open(std::filesystem::path path,
+                                                                      Options options) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
   auto path_str = path.string();
   auto& databases = sim::GetCurrentHost()->databases;
   auto it = databases.find(path_str);
 
   if (options.create_if_missing == false && it == databases.end()) {
-    return Err(Error::ErrorType::InvalidArgument, "database is missing");
+    return Err(DBErrorType::InvalidArgument, "database is missing");
   }
 
   if (it == databases.end()) {
@@ -81,12 +81,12 @@ Result<Database::DatabaseImpl*, Error> Database::DatabaseImpl::Open(std::filesys
     VERIFY(it->second.epoch <= sim::GetCurrentEpoch(), "invalid state");
 
     if (it->second.epoch == sim::GetCurrentEpoch()) {
-      return Err(Error::ErrorType::Internal, "database is opened twice");
+      return Err(DBErrorType::Internal, "database is opened twice");
     }
   }
 
   if (options.comparator->Name() != it->second.comparator_name) {
-    return Err(Error::ErrorType::InvalidArgument,
+    return Err(DBErrorType::InvalidArgument,
                "comparator names does not match: " + it->second.comparator_name +
                    " != " + options.comparator->Name());
   }
@@ -101,22 +101,22 @@ std::unique_ptr<IIterator> Database::DatabaseImpl::NewIterator() noexcept {
   return std::make_unique<Iterator>(db_->data);
 }
 
-Status<Error> Database::DatabaseImpl::Put(DataView key, DataView value) noexcept {
+Status<DBError> Database::DatabaseImpl::Put(DataView key, DataView value) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
   db_->data[Data(key.begin(), key.end())] = Data(value.begin(), value.end());
   return Ok();
 }
 
-Result<Data, Error> Database::DatabaseImpl::Get(DataView key) noexcept {
+Result<Data, DBError> Database::DatabaseImpl::Get(DataView key) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
   auto it = db_->data.find(Data(key.begin(), key.end()));
   if (it == db_->data.end()) {
-    return Err(Error::ErrorType::NotFound);
+    return Err(DBErrorType::NotFound);
   }
   return Ok(it->second);
 }
 
-Status<Error> Database::DatabaseImpl::DeleteRange(DataView start_key, DataView end_key) noexcept {
+Status<DBError> Database::DatabaseImpl::DeleteRange(DataView start_key, DataView end_key) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
   auto start_it = db_->data.find(Data(start_key.begin(), start_key.end()));
   if (start_it == db_->data.end()) {
@@ -127,7 +127,7 @@ Status<Error> Database::DatabaseImpl::DeleteRange(DataView start_key, DataView e
   return Ok();
 }
 
-Status<Error> Database::DatabaseImpl::Delete(DataView key) noexcept {
+Status<DBError> Database::DatabaseImpl::Delete(DataView key) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
   db_->data.erase(Data(key.begin(), key.end()));
   return Ok();

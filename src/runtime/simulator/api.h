@@ -71,6 +71,9 @@ void KillHost(const Address& address) noexcept;
 void StartHost(const Address& address) noexcept;
 
 void CloseLink(const Address& from, const Address& to) noexcept;
+void CloseLinkBidirectional(const Address& first, const Address& second) noexcept;
+
 void RestoreLink(const Address& from, const Address& to) noexcept;
+void RestoreLinkBidirectional(const Address& first, const Address& second) noexcept;
 
 }  // namespace ceq::rt::sim

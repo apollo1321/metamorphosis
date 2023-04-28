@@ -19,19 +19,27 @@ struct RequestInfo {
   std::vector<uint64_t> result;
 };
 
+/**
+ * https://jepsen.io/consistency/models/linearizable
+ *
+ * Linearizability:
+ * For any concurrent history H that the implementation generates, there is a linear history S from
+ * the specification in which all commands return the same values, and if in H one command precedes
+ * the other in real time, then in S these commands are in the same relative order.
+ */
 bool CheckLinearizability(std::vector<RequestInfo> history) noexcept {
-  // Check that rsm append received command to it's log.
+  // The linear history of commands is the order in which a command is added to the log.
+  std::sort(history.begin(), history.end(), [](auto& left, auto& right) {
+    return left.result.size() < right.result.size();
+  });
+
+  // Check that RSM append received command to it's log.
   for (auto& data : history) {
     EXPECT_EQ(data.result.back(), data.command);
     if (testing::Test::HasNonfatalFailure()) {
       return false;
     }
   }
-
-  // The linear history of commands is the order in which a command is added to the log.
-  std::sort(history.begin(), history.end(), [](auto& left, auto& right) {
-    return left.result.size() < right.result.size();
-  });
 
   // Check that all logs has the same prefix.
   for (size_t command_index = 0; command_index + 1 < history.size(); ++command_index) {

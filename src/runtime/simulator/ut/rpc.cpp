@@ -15,7 +15,7 @@ struct EchoService final : public rpc::EchoServiceStub {
   explicit EchoService(std::string msg = "") : msg{msg} {
   }
 
-  ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
+  ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
     EchoReply reply;
     reply.set_msg("Hello, " + request.msg());
     if (!msg.empty()) {
@@ -149,7 +149,7 @@ TEST(SimulatorRpc, NetworkErrorProba) {
         request.set_msg("Client");
         auto result = client.Echo(request);
         if (result.HasError()) {
-          EXPECT_EQ(result.GetError().error_type, rpc::Error::ErrorType::NetworkError);
+          EXPECT_EQ(result.GetError().error_type, rpc::RpcErrorType::NetworkError);
           ++error_count;
         } else {
           EXPECT_EQ(result.GetValue().msg(), "Hello, Client");
@@ -279,7 +279,7 @@ TEST(SimulatorRpc, EchoProxy) {
       server.ShutDown();
     }
 
-    ceq::Result<EchoReply, rpc::Error> Forward1(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::RpcError> Forward1(const EchoRequest& request) noexcept override {
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
       rpc::EchoServiceClient client(Endpoint{"addr1", 1});
       auto reply = client.Echo(request);
@@ -288,7 +288,7 @@ TEST(SimulatorRpc, EchoProxy) {
       return reply;
     }
 
-    ceq::Result<EchoReply, rpc::Error> Forward2(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::RpcError> Forward2(const EchoRequest& request) noexcept override {
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
       rpc::EchoServiceClient client(Endpoint{"addr2", 2});
       auto reply = client.Echo(request);
@@ -409,9 +409,9 @@ TEST(SimulatorRpc, CancelSimplyWorks) {
       server.ShutDown();
     }
 
-    ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       SleepFor(5s);
-      return ceq::Err(rpc::Error::ErrorType::Internal);
+      return ceq::Err(rpc::RpcErrorType::Internal);
     }
   };
 
@@ -430,7 +430,7 @@ TEST(SimulatorRpc, CancelSimplyWorks) {
       EchoRequest request;
       request.set_msg("Client");
       auto result = client.Echo(request, source.GetToken());
-      EXPECT_EQ(result.GetError().error_type, rpc::Error::ErrorType::Cancelled);
+      EXPECT_EQ(result.GetError().error_type, rpc::RpcErrorType::Cancelled);
 
       cancel_task.wait();
     }
@@ -462,7 +462,7 @@ TEST(SimulatorRpc, HandlerNotFound) {
       request.set_msg("Client");
       auto result = client.Echo(request);
       EXPECT_TRUE(result.HasError());
-      EXPECT_EQ(result.GetError().error_type, rpc::Error::ErrorType::HandlerNotFound);
+      EXPECT_EQ(result.GetError().error_type, rpc::RpcErrorType::HandlerNotFound);
     }
   };
 
@@ -483,7 +483,7 @@ TEST(SimulatorRpc, ConnectionRefused) {
       request.set_msg("Client");
       auto result = client.Echo(request);
       EXPECT_TRUE(result.HasError());
-      EXPECT_EQ(result.GetError().error_type, rpc::Error::ErrorType::ConnectionRefused);
+      EXPECT_EQ(result.GetError().error_type, rpc::RpcErrorType::ConnectionRefused);
     }
   };
 

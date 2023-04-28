@@ -33,7 +33,7 @@ void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_cou
 
   std::vector<RequestInfo> history;
 
-  RaftClientHost client_host(raft_nodes, history, 1s, 10);
+  RaftClientHost client_host(raft_nodes, history, RaftClient::Config{1s, 300ms, 10});
 
   CrashSupervisor supervisor(raft_nodes, 2s);
 

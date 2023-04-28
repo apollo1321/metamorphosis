@@ -32,7 +32,7 @@ void RunSimpleTest(size_t seed, size_t raft_nodes_count, size_t clients_count) n
 
   std::vector<RequestInfo> history;
 
-  RaftClientHost client_host(raft_nodes, history, 1s, 10);
+  RaftClientHost client_host(raft_nodes, history, RaftClient::Config{1s, 300ms, 10});
 
   rt::sim::InitWorld(seed, rt::sim::WorldOptions{
                                .network_error_proba = 0.1,

@@ -8,14 +8,14 @@ namespace ceq::rt::db {
 
 class Database::DatabaseImpl {
  public:
-  static Result<DatabaseImpl*, Error> Open(std::filesystem::path path, Options options) noexcept;
+  static Result<DatabaseImpl*, DBError> Open(std::filesystem::path path, Options options) noexcept;
 
   std::unique_ptr<IIterator> NewIterator() noexcept;
 
-  Status<Error> Put(DataView key, DataView value) noexcept;
-  Result<Data, Error> Get(DataView key) noexcept;
-  Status<Error> DeleteRange(DataView start_key, DataView end_key) noexcept;
-  Status<Error> Delete(DataView key) noexcept;
+  Status<DBError> Put(DataView key, DataView value) noexcept;
+  Result<Data, DBError> Get(DataView key) noexcept;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
+  Status<DBError> Delete(DataView key) noexcept;
 
  private:
   DatabaseImpl() = default;

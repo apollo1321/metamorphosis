@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 
   rpc::QueueServiceClient client(address);
 
-  auto handle_error = [](rpc::Error error) {
+  auto handle_error = [](rpc::RpcError error) {
     std::cerr << "RPC Error: " << error.Message() << std::endl;
   };
 

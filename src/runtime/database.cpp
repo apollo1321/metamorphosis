@@ -8,18 +8,18 @@
 
 namespace ceq::rt::db {
 
-Error::Error(ErrorType error_type, const std::string& message) noexcept
+DBError::DBError(DBErrorType error_type, const std::string& message) noexcept
     : error_type{error_type}, status_message{std::move(message)} {
 }
 
-std::string Error::Message() const noexcept {
+std::string DBError::Message() const noexcept {
   std::string result = [&] {
     switch (error_type) {
-      case ErrorType::Internal:
+      case DBErrorType::Internal:
         return "Internal";
-      case ErrorType::NotFound:
+      case DBErrorType::NotFound:
         return "NotFound";
-      case ErrorType::InvalidArgument:
+      case DBErrorType::InvalidArgument:
         return "InvalidArgument";
       default:
         VERIFY(false, "invalid error type");
@@ -44,19 +44,19 @@ std::unique_ptr<IIterator> Database::NewIterator() noexcept {
   return impl_->NewIterator();
 }
 
-Status<Error> Database::Put(DataView key, DataView value) noexcept {
+Status<DBError> Database::Put(DataView key, DataView value) noexcept {
   return impl_->Put(key, value);
 }
 
-Result<Data, Error> Database::Get(DataView key) noexcept {
+Result<Data, DBError> Database::Get(DataView key) noexcept {
   return impl_->Get(key);
 }
 
-Status<Error> Database::DeleteRange(DataView start_key, DataView end_key) noexcept {
+Status<DBError> Database::DeleteRange(DataView start_key, DataView end_key) noexcept {
   return impl_->DeleteRange(start_key, end_key);
 }
 
-Status<Error> Database::Delete(DataView key) noexcept {
+Status<DBError> Database::Delete(DataView key) noexcept {
   return impl_->Delete(key);
 }
 
@@ -64,7 +64,7 @@ Database::~Database() {
   delete impl_;
 }
 
-Result<Database, Error> Open(std::filesystem::path path, Options options) noexcept {
+Result<Database, DBError> Open(std::filesystem::path path, Options options) noexcept {
   VERIFY(options.comparator != nullptr, "comparator is nulltpr");
   auto impl = Database::DatabaseImpl::Open(std::move(path), options);
   if (impl.HasError()) {

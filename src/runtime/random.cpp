@@ -16,4 +16,9 @@ double GetRandomFloat(double from, double to) noexcept {
   return dist(GetGenerator());
 }
 
+uint64_t GetRandomInt(uint64_t from, uint64_t to) noexcept {
+  std::uniform_int_distribution<uint64_t> dist(from, to);
+  return dist(GetGenerator());
+}
+
 }  // namespace ceq::rt

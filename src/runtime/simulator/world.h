@@ -29,11 +29,11 @@ class World {
 
   void RunSimulation(Duration duration) noexcept;
 
-  Result<rpc::SerializedData, rpc::Error> MakeRequest(Address from, Endpoint endpoint,
-                                                      rpc::SerializedData data,
-                                                      rpc::ServiceName service_name,
-                                                      rpc::HandlerName handler_name,
-                                                      StopToken stop_token) noexcept;
+  Result<rpc::SerializedData, rpc::RpcError> MakeRequest(Address from, Endpoint endpoint,
+                                                         rpc::SerializedData data,
+                                                         rpc::ServiceName service_name,
+                                                         rpc::HandlerName handler_name,
+                                                         StopToken stop_token) noexcept;
 
   Host* GetHost(const Address& address) noexcept;
 
