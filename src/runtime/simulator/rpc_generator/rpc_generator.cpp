@@ -45,7 +45,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
       printer.Print(vars,
-                    "Result<$output_type$, Error> $method_name$(const $input_type$& input, "
+                    "Result<$output_type$, RpcError> $method_name$(const $input_type$& input, "
                     "StopToken stop_token = {}) noexcept;\n");
     }
 
@@ -84,7 +84,7 @@ void GenerateClientSource(GeneratorContext* generator_context,
 
       printer.Print("\n");
       printer.Print(vars,
-                    "Result<$output_type$, Error> $service_class$::$method_name$(const "
+                    "Result<$output_type$, RpcError> $service_class$::$method_name$(const "
                     "$input_type$& input, StopToken stop_token) noexcept {\n");
       printer.Indent();
       printer.Print(vars,
@@ -135,7 +135,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context,
       AddMethodInfo(vars, service->method(method_id));
 
       printer.Print(vars,
-                    "virtual Result<$output_type$, Error> $method_name$(const $input_type$& "
+                    "virtual Result<$output_type$, RpcError> $method_name$(const $input_type$& "
                     "request) noexcept = 0;\n");
     }
     printer.Print("\n");
@@ -145,8 +145,8 @@ void GenerateServiceHeader(GeneratorContext* generator_context,
     printer.Indent();
 
     printer.Print(vars,
-                  "Result<SerializedData, Error> ProcessRequest(const SerializedData& data, const "
-                  "HandlerName& handler_name) noexcept override;\n");
+                  "Result<SerializedData, RpcError> ProcessRequest(const SerializedData& data, "
+                  "const HandlerName& handler_name) noexcept override;\n");
 
     printer.Outdent();
     printer.Print("};\n");
@@ -184,7 +184,7 @@ void GenerateServiceSource(GeneratorContext* generator_context,
                   "Server::Service{\"$service_name$\"} {}\n\n");
 
     printer.Print(vars,
-                  "Result<SerializedData, Error> $service_class$::ProcessRequest(const "
+                  "Result<SerializedData, RpcError> $service_class$::ProcessRequest(const "
                   "SerializedData& data, const HandlerName& handler_name) noexcept {\n");
     printer.Indent();
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
@@ -198,7 +198,7 @@ void GenerateServiceSource(GeneratorContext* generator_context,
       printer.Outdent();
       printer.Print(vars, "}\n");
     }
-    printer.Print(vars, "return Err(Error::ErrorType::HandlerNotFound);\n");
+    printer.Print(vars, "return Err(RpcErrorType::HandlerNotFound);\n");
     printer.Outdent();
     printer.Print("}\n");
   }

@@ -21,7 +21,7 @@ TEST(SimulatorHostConnections, SimplyWorks) {
       server.ShutDown();
     }
 
-    ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       reply.set_msg(request.msg());
       return ceq::Ok(std::move(reply));
@@ -42,7 +42,7 @@ TEST(SimulatorHostConnections, SimplyWorks) {
 
       SleepFor(5s);
 
-      EXPECT_EQ(make_request("addr1").GetError().error_type, rpc::Error::ErrorType::NetworkError);
+      EXPECT_EQ(make_request("addr1").GetError().error_type, rpc::RpcErrorType::NetworkError);
       EXPECT_EQ(make_request("addr2").GetValue().msg(), "addr2");
 
       SleepFor(5s);
@@ -52,8 +52,8 @@ TEST(SimulatorHostConnections, SimplyWorks) {
 
       SleepFor(5s);
 
-      EXPECT_EQ(make_request("addr1").GetError().error_type, rpc::Error::ErrorType::NetworkError);
-      EXPECT_EQ(make_request("addr2").GetError().error_type, rpc::Error::ErrorType::NetworkError);
+      EXPECT_EQ(make_request("addr1").GetError().error_type, rpc::RpcErrorType::NetworkError);
+      EXPECT_EQ(make_request("addr2").GetError().error_type, rpc::RpcErrorType::NetworkError);
 
       SleepFor(5s);
 

@@ -21,9 +21,9 @@ class ClientBase {
   ClientBase& operator=(ClientBase&& other) noexcept = delete;
 
   template <class Request, class Response>
-  Result<Response, Error> MakeRequest(const Request& request, const ServiceName& service_name,
-                                      const HandlerName& handler_name,
-                                      StopToken stop_token = {}) noexcept {
+  Result<Response, RpcError> MakeRequest(const Request& request, const ServiceName& service_name,
+                                         const HandlerName& handler_name,
+                                         StopToken stop_token = {}) noexcept {
     SerializedData data;
     data.resize(request.ByteSizeLong());
     VERIFY(request.SerializeToArray(data.data(), data.size()), "serialization error");
@@ -35,16 +35,16 @@ class ClientBase {
 
     Response proto_result;
     if (!proto_result.ParseFromArray(result.GetValue().data(), result.GetValue().size())) {
-      return Err(Error::ErrorType::ParseError);
+      return Err(RpcErrorType::ParseError);
     }
     return Ok(std::move(proto_result));
   }
 
  private:
-  Result<SerializedData, Error> MakeRequest(const SerializedData& data,
-                                            const ServiceName& service_name,
-                                            const HandlerName& handler_name,
-                                            StopToken stop_token = {}) noexcept;
+  Result<SerializedData, RpcError> MakeRequest(const SerializedData& data,
+                                               const ServiceName& service_name,
+                                               const HandlerName& handler_name,
+                                               StopToken stop_token = {}) noexcept;
 
  private:
   Endpoint endpoint_;

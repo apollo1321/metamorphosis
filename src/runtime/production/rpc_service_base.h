@@ -36,7 +36,7 @@ class Server::Service : public grpc::Service {
 
       auto reply = handler(request);
 
-      Error err;
+      RpcError err;
       if (reply.HasValue()) {
         responder.Finish(reply.GetValue(), grpc::Status(), this);
       } else {

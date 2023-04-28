@@ -51,8 +51,8 @@ struct Iterator final : public IIterator {
   std::unique_ptr<rocksdb::Iterator> impl;
 };
 
-Result<Database::DatabaseImpl*, Error> Database::DatabaseImpl::Open(std::filesystem::path path,
-                                                                    Options options) noexcept {
+Result<Database::DatabaseImpl*, DBError> Database::DatabaseImpl::Open(std::filesystem::path path,
+                                                                      Options options) noexcept {
   auto result = new Database::DatabaseImpl;
   DEFER {
     delete result;
@@ -67,11 +67,11 @@ Result<Database::DatabaseImpl*, Error> Database::DatabaseImpl::Open(std::filesys
   rocksdb::DB* tmp{};
   auto status = rocksdb::DB::Open(rocks_options, path, &tmp);
   if (status.IsInvalidArgument()) {
-    return Err(Error::ErrorType::InvalidArgument, status.ToString());
+    return Err(DBErrorType::InvalidArgument, status.ToString());
   }
 
   if (!status.ok()) {
-    return Err(Error::ErrorType::Internal, status.ToString());
+    return Err(DBErrorType::Internal, status.ToString());
   }
 
   result->database_ = std::unique_ptr<rocksdb::DB>(tmp);
@@ -84,31 +84,31 @@ std::unique_ptr<IIterator> Database::DatabaseImpl::NewIterator() noexcept {
   return std::make_unique<Iterator>(database_->NewIterator(read_options_));
 }
 
-Status<Error> Database::DatabaseImpl::Put(DataView key, DataView value) noexcept {
+Status<DBError> Database::DatabaseImpl::Put(DataView key, DataView value) noexcept {
   Slice key_slice{reinterpret_cast<const char*>(key.data()), key.size()};
   Slice value_slice{reinterpret_cast<const char*>(value.data()), value.size()};
   auto status = database_->Put(write_options_, key_slice, value_slice);
   if (!status.ok()) {
-    return Err(Error::ErrorType::Internal, status.ToString());
+    return Err(DBErrorType::Internal, status.ToString());
   }
   return Ok();
 }
 
-Result<Data, Error> Database::DatabaseImpl::Get(DataView key) noexcept {
+Result<Data, DBError> Database::DatabaseImpl::Get(DataView key) noexcept {
   std::string result;
   Slice key_impl{reinterpret_cast<const char*>(key.data()), key.size()};
   auto status = database_->Get(read_options_, key_impl, &result);
 
   if (status.IsNotFound()) {
-    return Err(Error::ErrorType::NotFound);
+    return Err(DBErrorType::NotFound);
   }
   if (!status.ok()) {
-    return Err(Error::ErrorType::Internal, status.ToString());
+    return Err(DBErrorType::Internal, status.ToString());
   }
   return Ok(Data{result.begin(), result.end()});
 }
 
-Status<Error> Database::DatabaseImpl::DeleteRange(DataView start_key, DataView end_key) noexcept {
+Status<DBError> Database::DatabaseImpl::DeleteRange(DataView start_key, DataView end_key) noexcept {
   Slice start_key_slice{reinterpret_cast<const char*>(start_key.data()), start_key.size()};
   Slice end_key_slice{reinterpret_cast<const char*>(end_key.data()), end_key.size()};
 
@@ -116,16 +116,16 @@ Status<Error> Database::DatabaseImpl::DeleteRange(DataView start_key, DataView e
                                        start_key_slice, end_key_slice);
 
   if (!status.ok()) {
-    return Err(Error::ErrorType::Internal, status.ToString());
+    return Err(DBErrorType::Internal, status.ToString());
   }
   return Ok();
 }
 
-Status<Error> Database::DatabaseImpl::Delete(DataView key) noexcept {
+Status<DBError> Database::DatabaseImpl::Delete(DataView key) noexcept {
   Slice key_slice{reinterpret_cast<const char*>(key.data()), key.size()};
   auto status = database_->Delete(write_options_, key_slice);
   if (!status.ok()) {
-    return Err(Error::ErrorType::Internal, status.ToString());
+    return Err(DBErrorType::Internal, status.ToString());
   }
   return Ok();
 }

@@ -83,14 +83,14 @@ void Host::UnregisterServer(uint16_t port) noexcept {
   servers_.erase(port);
 }
 
-Result<rpc::SerializedData, rpc::Error> Host::ProcessRequest(
+Result<rpc::SerializedData, rpc::RpcError> Host::ProcessRequest(
     uint16_t port, const rpc::SerializedData& data, const rpc::ServiceName& service_name,
     const rpc::HandlerName& handler_name) noexcept {
   VERIFY(GetCurrentHost() == this, "invalid current_host");
   StopFiberIfNecessary();
 
   if (!servers_.contains(port)) {
-    return Err(rpc::Error::ErrorType::ConnectionRefused);
+    return Err(rpc::RpcErrorType::ConnectionRefused);
   }
 
   auto result = servers_[port]->ProcessRequest(data, service_name, handler_name);
@@ -100,11 +100,11 @@ Result<rpc::SerializedData, rpc::Error> Host::ProcessRequest(
   return result;
 }
 
-Result<rpc::SerializedData, rpc::Error> Host::MakeRequest(const Endpoint& endpoint,
-                                                          const rpc::SerializedData& data,
-                                                          const rpc::ServiceName& service_name,
-                                                          const rpc::HandlerName& handler_name,
-                                                          StopToken stop_token) noexcept {
+Result<rpc::SerializedData, rpc::RpcError> Host::MakeRequest(const Endpoint& endpoint,
+                                                             const rpc::SerializedData& data,
+                                                             const rpc::ServiceName& service_name,
+                                                             const rpc::HandlerName& handler_name,
+                                                             StopToken stop_token) noexcept {
   VERIFY(GetCurrentHost() == this, "invalid current_host");
   StopFiberIfNecessary();
 
