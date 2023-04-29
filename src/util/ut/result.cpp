@@ -97,3 +97,119 @@ TEST(Result, RethowsError) {
     FAIL();
   }
 }
+
+TEST(Result, AndThen) {
+  struct Val1 {
+    int val1{};
+  };
+
+  struct Val2 {
+    int val2{};
+  };
+
+  {
+    ceq::Result<Val1, std::string> res1 = ceq::Ok(Val1{1});
+
+    auto res2 = std::move(res1).AndThen([](Val1&& v) -> ceq::Result<Val2, std::string> {
+      return ceq::Ok(Val2{v.val1 + 1});
+    });
+
+    EXPECT_EQ(res2.GetValue().val2, 2);
+  }
+
+  {
+    ceq::Result<Val1, std::string> res1 = ceq::Ok(Val1{0});
+
+    auto res2 = std::move(res1).AndThen([](Val1&& v) -> ceq::Result<Val2, std::string> {
+      return ceq::Err("abc");
+    });
+
+    EXPECT_EQ(res2.GetError(), "abc");
+  }
+
+  {
+    ceq::Result<Val1, std::string> res1 = ceq::Err("abc");
+
+    auto res2 = std::move(res1).AndThen([](Val1&& v) -> ceq::Result<Val2, std::string> {
+      ADD_FAILURE();
+      return ceq::Ok(Val2{1});
+    });
+
+    EXPECT_EQ(res2.GetError(), "abc");
+  }
+}
+
+TEST(Result, OrElse) {
+  struct Err1 {
+    int val1{};
+  };
+
+  struct Err2 {
+    int val2{};
+  };
+
+  ceq::Result<std::string, Err1> res1 = ceq::Err(Err1{1});
+
+  auto res2 = std::move(res1)
+                  .AndThen([](std::string&&) -> ceq::Result<std::string, Err1> {
+                    ADD_FAILURE();
+                    return ceq::Ok("abc");
+                  })
+                  .OrElse([](Err1&& error) -> ceq::Result<std::string, Err2> {
+                    return ceq::Err(Err2{error.val1 + 1});
+                  });
+
+  EXPECT_EQ(res2.GetError().val2, 2);
+}
+
+TEST(Result, Transform) {
+  struct Val1 {
+    int val1{};
+  };
+
+  struct Val2 {
+    int val2{};
+  };
+
+  ceq::Result<Val1, std::string> res1 = ceq::Ok(Val1{1});
+
+  auto res2 = std::move(res1)
+                  .Transform([](Val1&& val) -> Val2 {
+                    return Val2{val.val1 + 1};
+                  })
+                  .Transform([](Val2&& val) -> Val2 {
+                    return Val2{val.val2 + 1};
+                  })
+                  .TransformError([](std::string&&) -> int {
+                    ADD_FAILURE();
+                    return 1;
+                  });
+
+  EXPECT_EQ(res2.GetValue().val2, 3);
+}
+
+TEST(Result, TransformError) {
+  struct Val1 {
+    int val1{};
+  };
+
+  struct Val2 {
+    int val2{};
+  };
+
+  ceq::Result<std::string, Val1> res1 = ceq::Err(Val1{1});
+
+  auto res2 = std::move(res1)
+                  .TransformError([](Val1&& val) -> Val2 {
+                    return Val2{val.val1 + 1};
+                  })
+                  .TransformError([](Val2&& val) -> Val2 {
+                    return Val2{val.val2 + 1};
+                  })
+                  .Transform([](std::string&&) -> int {
+                    ADD_FAILURE();
+                    return 1;
+                  });
+
+  EXPECT_EQ(res2.GetError().val2, 3);
+}
