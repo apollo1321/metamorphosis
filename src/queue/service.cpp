@@ -31,11 +31,11 @@ class QueueService final : public rpc::QueueServiceStub {
     }
   }
 
-  Result<AppendReply, rpc::Error> Append(const AppendRequest& request) noexcept override {
+  Result<AppendReply, rpc::RpcError> Append(const AppendRequest& request) noexcept override {
     const uint64_t index = end_index_.fetch_add(1);
     auto result = kv_storage_.Put(index, request.data());
     if (result.HasError()) {
-      return Err(rpc::Error::ErrorType::Internal, result.GetError().Message());
+      return Err(rpc::RpcErrorType::Internal, result.GetError().Message());
     }
 
     AppendReply reply;
@@ -43,30 +43,30 @@ class QueueService final : public rpc::QueueServiceStub {
     return Ok(reply);
   }
 
-  Result<ReadReply, rpc::Error> Read(const ReadRequest& request) noexcept override {
+  Result<ReadReply, rpc::RpcError> Read(const ReadRequest& request) noexcept override {
     auto result = kv_storage_.Get(request.id());
     ReadReply reply;
     if (result.HasValue()) {
       reply.set_data(result.GetValue());
       reply.set_status(ReadStatus::OK);
       return Ok(std::move(reply));
-    } else if (result.GetError().error_type == db::Error::ErrorType::NotFound) {
+    } else if (result.GetError().error_type == db::DBErrorType::NotFound) {
       reply.set_status(ReadStatus::NO_DATA);
       return Ok(std::move(reply));
     } else {
-      return Err(rpc::Error::ErrorType::Internal, result.GetError().Message());
+      return Err(rpc::RpcErrorType::Internal, result.GetError().Message());
     }
   }
 
-  Result<google::protobuf::Empty, rpc::Error> Trim(const TrimRequest& request) noexcept override {
+  Result<google::protobuf::Empty, rpc::RpcError> Trim(const TrimRequest& request) noexcept override {
     auto result = kv_storage_.DeleteRange(0, request.id());
     if (result.HasError()) {
-      return ceq::Err(rpc::Error::ErrorType::Internal, result.GetError().Message());
+      return ceq::Err(rpc::RpcErrorType::Internal, result.GetError().Message());
     }
     return ceq::Ok(google::protobuf::Empty{});
   }
 
-  Result<google::protobuf::Empty, rpc::Error> ShutDown(
+  Result<google::protobuf::Empty, rpc::RpcError> ShutDown(
       const google::protobuf::Empty&) noexcept override {
     std::lock_guard guard(shut_down_mutex_);
     shut_down_ = true;

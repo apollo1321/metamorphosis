@@ -30,7 +30,7 @@ void Server::ServerImpl::ShutDown() noexcept {
   });
 }
 
-Result<SerializedData, Error> Server::ServerImpl::ProcessRequest(
+Result<SerializedData, RpcError> Server::ServerImpl::ProcessRequest(
     const SerializedData& data, const ServiceName& service_name,
     const HandlerName& handler_name) noexcept {
   {
@@ -44,7 +44,7 @@ Result<SerializedData, Error> Server::ServerImpl::ProcessRequest(
   };
 
   if (!services_.contains(service_name)) {
-    return Err(Error::ErrorType::HandlerNotFound, "Unknown service: " + service_name);
+    return Err(RpcErrorType::HandlerNotFound, "Unknown service: " + service_name);
   }
 
   return services_[service_name]->ProcessRequest(data, handler_name);

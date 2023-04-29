@@ -10,37 +10,62 @@
 
 namespace ceq::raft {
 
+enum class RaftClientErrorType {
+  GlobalTimeout,
+  RpcTimeout,
+  NotLeader,
+};
+
+struct RaftClientError {
+  explicit RaftClientError(rt::rpc::RpcError error) noexcept;
+  explicit RaftClientError(RaftClientErrorType error_type) noexcept;
+
+  std::string Message() const noexcept;
+
+  std::variant<RaftClientErrorType, rt::rpc::RpcError> error;
+};
+
 class RaftClient {
+ public:
+  struct Config {
+    Config(rt::Duration global_timeout, rt::Duration rpc_timeout, size_t retry_count) noexcept;
+
+    rt::Duration global_timeout;
+    rt::Duration rpc_timeout;
+    size_t retry_count;
+  };
+
  public:
   explicit RaftClient(const std::vector<rt::Endpoint>& raft_nodes) noexcept;
 
   template <class ProtoOut, class ProtoIn>
-  Result<ProtoOut, rt::rpc::Error> Apply(const ProtoIn& command, rt::Duration timeout,
-                                         size_t retry_count,
-                                         rt::StopToken stop_token = {}) noexcept {
-    auto any_command = rt::proto::ToAny(command);
-    if (any_command.HasError()) {
-      return Err(rt::rpc::Error::ErrorType::Internal, std::move(any_command.GetError()));
-    }
+  Result<ProtoOut, RaftClientError> Apply(const ProtoIn& command, const Config& config,
+                                          rt::StopToken stop_token = {}) noexcept {
+    using namespace rt::rpc;  // NOLINT
+    LOG("RAFT_CLIENT: start with command: {}", command);
 
-    auto any_result = Apply(any_command.GetValue(), timeout, retry_count, std::move(stop_token));
-    if (any_result.HasError()) {
-      return Err(std::move(any_result.GetError()));
-    }
-
-    auto result = rt::proto::FromAny<ProtoOut>(any_result.GetValue());
-
-    if (result.HasError()) {
-      return Err(rt::rpc::Error::ErrorType::Internal, std::move(result.GetError()));
-    }
-
-    return Ok(std::move(result.GetValue()));
+    return rt::proto::ToAny(command)
+        .TransformError([](std::string&& error) {
+          return RaftClientError(RpcError(RpcErrorType::ParseError, std::move(error)));
+        })
+        .AndThen([&](auto&& any_command) {
+          return Apply(any_command, config, std::move(stop_token));
+        })
+        .AndThen([&](auto&& any_response) {
+          return rt::proto::FromAny<ProtoOut>(any_response).TransformError([](std::string&& error) {
+            return RaftClientError(RpcError(RpcErrorType::ParseError, std::move(error)));
+          });
+        });
   }
 
  private:
-  Result<google::protobuf::Any, rt::rpc::Error> Apply(const google::protobuf::Any& command,
-                                                      rt::Duration timeout, size_t retry_count,
-                                                      rt::StopToken stop_token = {}) noexcept;
+  Result<google::protobuf::Any, RaftClientError> Apply(const google::protobuf::Any& command,
+                                                       const Config& config,
+                                                       rt::StopToken stop_token) noexcept;
+
+  Result<google::protobuf::Any, RaftClientError> StartAttempt(const Request& request,
+                                                              rt::Duration rpc_timeout,
+                                                              rt::StopToken stop_token);
 
  private:
   std::vector<rt::Endpoint> raft_nodes_;

@@ -16,7 +16,7 @@ TEST(ProductionDatabase, SimplyWorks) {
   auto& kv = maybe_kv.GetValue();
 
   EXPECT_TRUE(kv.Get(42).HasError());
-  EXPECT_EQ(kv.Get(42).GetError().error_type, db::Error::ErrorType::NotFound);
+  EXPECT_EQ(kv.Get(42).GetError().error_type, db::DBErrorType::NotFound);
 
   kv.Put(42, 24).ExpectOk();
   EXPECT_EQ(kv.Get(42).GetValue(), 24);
@@ -28,7 +28,7 @@ TEST(ProductionDatabase, SimplyWorks) {
 TEST(ProductionDatabase, MissingDb) {
   db::Options options{.create_if_missing = false};
   auto kv = kv::Open("/tmp/testing_missing_db", options, serde::U64Serde{}, serde::U64Serde{});
-  EXPECT_EQ(kv.GetError().error_type, db::Error::ErrorType::InvalidArgument);
+  EXPECT_EQ(kv.GetError().error_type, db::DBErrorType::InvalidArgument);
 }
 
 TEST(ProductionDatabase, DeleteRange) {
@@ -84,7 +84,7 @@ TEST(ProductionDatabase, OpenDatabaseTwice) {
           .GetValue();
   auto kv2 =
       kv::Open("/tmp/testing_open_database_twice", options, serde::U64Serde{}, serde::U64Serde{});
-  EXPECT_EQ(kv2.GetError().error_type, db::Error::ErrorType::Internal);
+  EXPECT_EQ(kv2.GetError().error_type, db::DBErrorType::Internal);
 }
 
 TEST(ProductionDatabase, StringSerde) {

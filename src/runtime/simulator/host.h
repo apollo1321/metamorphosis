@@ -22,15 +22,15 @@ class Host {
   Timestamp GetLocalTime() const noexcept;
   bool SleepUntil(Timestamp local_time, StopToken stop_token = StopToken{}) noexcept;
 
-  Result<rpc::SerializedData, rpc::Error> ProcessRequest(
+  Result<rpc::SerializedData, rpc::RpcError> ProcessRequest(
       uint16_t port, const rpc::SerializedData& data, const rpc::ServiceName& service_name,
       const rpc::HandlerName& handler_name) noexcept;
 
-  Result<rpc::SerializedData, rpc::Error> MakeRequest(const Endpoint& endpoint,
-                                                      const rpc::SerializedData& data,
-                                                      const rpc::ServiceName& service_name,
-                                                      const rpc::HandlerName& handler_name,
-                                                      StopToken stop_token) noexcept;
+  Result<rpc::SerializedData, rpc::RpcError> MakeRequest(const Endpoint& endpoint,
+                                                         const rpc::SerializedData& data,
+                                                         const rpc::ServiceName& service_name,
+                                                         const rpc::HandlerName& handler_name,
+                                                         StopToken stop_token) noexcept;
 
   void RegisterServer(rpc::Server::ServerImpl* server, uint16_t port) noexcept;
   void UnregisterServer(uint16_t port) noexcept;

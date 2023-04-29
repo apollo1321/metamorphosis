@@ -17,7 +17,7 @@ using ceq::Result;
 using namespace ceq::rt;  // NOLINT
 
 class EchoService final : public rpc::EchoServiceStub {
-  Result<EchoReply, rpc::Error> SayHello(const EchoRequest& request) noexcept override {
+  Result<EchoReply, rpc::RpcError> SayHello(const EchoRequest& request) noexcept override {
     EchoReply reply;
     reply.set_message("Hello from async server " + request.name());
     return ceq::Ok(reply);

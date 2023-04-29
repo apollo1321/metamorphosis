@@ -52,8 +52,18 @@ void CloseLink(const Address& from, const Address& to) noexcept {
   GetWorld()->CloseLink(from, to);
 }
 
+void CloseLinkBidirectional(const Address& first, const Address& second) noexcept {
+  CloseLink(first, second);
+  CloseLink(second, first);
+}
+
 void RestoreLink(const Address& from, const Address& to) noexcept {
   GetWorld()->RestoreLink(from, to);
+}
+
+void RestoreLinkBidirectional(const Address& first, const Address& second) noexcept {
+  RestoreLink(first, second);
+  RestoreLink(second, first);
 }
 
 }  // namespace ceq::rt::sim

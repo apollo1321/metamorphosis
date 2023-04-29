@@ -10,17 +10,19 @@
 
 namespace ceq::rt::kv {
 
+using db::DBError;
+using db::DBErrorType;
+
 using serde::CSerde;
 
 template <CSerde KeySerde, CSerde ValueSerde, class Cmp>
 class KVStorage;
 
 template <CSerde KeySerde, CSerde ValueSerde, class Cmp = std::less<>>
-Result<KVStorage<KeySerde, ValueSerde, Cmp>, db::Error> Open(std::filesystem::path path,
-                                                             db::Options options,
-                                                             KeySerde key_serde,
-                                                             ValueSerde value_serde,
-                                                             Cmp cmp = Cmp{}) noexcept;
+Result<KVStorage<KeySerde, ValueSerde, Cmp>, DBError> Open(std::filesystem::path path,
+                                                           db::Options options, KeySerde key_serde,
+                                                           ValueSerde value_serde,
+                                                           Cmp cmp = Cmp{}) noexcept;
 
 // Wrapper over Database
 template <CSerde KeySerde, CSerde ValueSerde, class Cmp = std::less<>>
@@ -39,7 +41,7 @@ class KVStorage {
     return Iterator(impl_.get(), db_->NewIterator());
   }
 
-  Status<db::Error> Put(const Key& key, const Value& value) noexcept {
+  Status<DBError> Put(const Key& key, const Value& value) noexcept {
     auto key_ser = impl_->key_serde.Serialize(key);
     auto value_ser = impl_->value_serde.Serialize(value);
     db::DataView key_view(key_ser.data(), key_ser.size());
@@ -47,7 +49,7 @@ class KVStorage {
     return db_->Put(key_view, value_view);
   }
 
-  Result<Value, db::Error> Get(const Key& key) noexcept {
+  Result<Value, DBError> Get(const Key& key) noexcept {
     auto key_ser = impl_->key_serde.Serialize(key);
     db::DataView key_view(key_ser.data(), key_ser.size());
     auto result = db_->Get(key_view);
@@ -57,7 +59,7 @@ class KVStorage {
     return Ok(impl_->value_serde.Deserialize(result.GetValue()));
   }
 
-  Status<db::Error> DeleteRange(const Key& start_key, const Key& end_key) noexcept {
+  Status<DBError> DeleteRange(const Key& start_key, const Key& end_key) noexcept {
     auto start_key_ser = impl_->key_serde.Serialize(start_key);
     auto end_key_ser = impl_->key_serde.Serialize(end_key);
     db::DataView start_key_view(start_key_ser.data(), start_key_ser.size());
@@ -65,7 +67,7 @@ class KVStorage {
     return db_->DeleteRange(start_key_view, end_key_view);
   }
 
-  Status<db::Error> Delete(const Key& key) noexcept {
+  Status<DBError> Delete(const Key& key) noexcept {
     auto key_ser = impl_->key_serde.Serialize(key);
     db::DataView key_view(key_ser.data(), key_ser.size());
     return db_->Delete(key_view);
@@ -152,19 +154,18 @@ class KVStorage {
   std::optional<db::Database> db_;
   std::unique_ptr<KVStorageImpl> impl_;
 
-  friend Result<KVStorage<KeySerde, ValueSerde, Cmp>, db::Error> Open<>(std::filesystem::path path,
-                                                                        db::Options options,
-                                                                        KeySerde key_serde,
-                                                                        ValueSerde value_serde,
-                                                                        Cmp cmp) noexcept;
+  friend Result<KVStorage<KeySerde, ValueSerde, Cmp>, DBError> Open<>(std::filesystem::path path,
+                                                                      db::Options options,
+                                                                      KeySerde key_serde,
+                                                                      ValueSerde value_serde,
+                                                                      Cmp cmp) noexcept;
 };
 
 template <CSerde KeySerde, CSerde ValueSerde, class Cmp>
-Result<KVStorage<KeySerde, ValueSerde, Cmp>, db::Error> Open(std::filesystem::path path,
-                                                             db::Options options,
-                                                             KeySerde key_serde,
-                                                             ValueSerde value_serde,
-                                                             Cmp cmp) noexcept {
+Result<KVStorage<KeySerde, ValueSerde, Cmp>, DBError> Open(std::filesystem::path path,
+                                                           db::Options options, KeySerde key_serde,
+                                                           ValueSerde value_serde,
+                                                           Cmp cmp) noexcept {
   VERIFY(options.comparator == nullptr, "KVStorage user-defined comparator are not allowed");
 
   KVStorage result(std::move(key_serde), std::move(value_serde), std::move(cmp));

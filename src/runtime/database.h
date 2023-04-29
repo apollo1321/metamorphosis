@@ -50,19 +50,19 @@ class IComparator {
   virtual ~IComparator() = default;
 };
 
-struct Error {
-  enum class ErrorType {
-    Internal,
-    InvalidArgument,
-    NotFound,
-  };
+enum class DBErrorType {
+  Internal,
+  InvalidArgument,
+  NotFound,
+};
 
-  explicit Error(ErrorType error_type = ErrorType::Internal,
-                 const std::string& message = "") noexcept;
+struct DBError {
+  explicit DBError(DBErrorType error_type = DBErrorType::Internal,
+                   const std::string& message = "") noexcept;
 
   std::string Message() const noexcept;
 
-  ErrorType error_type;
+  DBErrorType error_type;
   std::string status_message;
 };
 
@@ -80,10 +80,10 @@ class Database {
 
   std::unique_ptr<IIterator> NewIterator() noexcept;
 
-  Status<Error> Put(DataView key, DataView value) noexcept;
-  Result<Data, Error> Get(DataView key) noexcept;
-  Status<Error> DeleteRange(DataView start_key, DataView end_key) noexcept;
-  Status<Error> Delete(DataView key) noexcept;
+  Status<DBError> Put(DataView key, DataView value) noexcept;
+  Result<Data, DBError> Get(DataView key) noexcept;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
+  Status<DBError> Delete(DataView key) noexcept;
 
   ~Database();
 
@@ -96,9 +96,9 @@ class Database {
  private:
   DatabaseImpl* impl_{};
 
-  friend Result<Database, Error> Open(std::filesystem::path path, Options options) noexcept;
+  friend Result<Database, DBError> Open(std::filesystem::path path, Options options) noexcept;
 };
 
-Result<Database, Error> Open(std::filesystem::path path, Options options) noexcept;
+Result<Database, DBError> Open(std::filesystem::path path, Options options) noexcept;
 
 }  // namespace ceq::rt::db
