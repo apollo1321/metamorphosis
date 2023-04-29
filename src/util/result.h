@@ -1,11 +1,12 @@
 #pragma once
 
+#include "condition_check.h"
+
 #include <exception>
 #include <system_error>
 #include <tuple>
+#include <type_traits>
 #include <variant>
-
-#include "condition_check.h"
 
 namespace ceq {
 
@@ -159,6 +160,44 @@ class [[nodiscard]] Result {
 
   void Ignore() const noexcept {
     // Do nothing
+  }
+
+  // Monadic operations
+
+  template <class Func>
+  Result<typename std::invoke_result_t<Func, Value&&>::Value, Error> AndThen(Func&& func) && {
+    if (HasError()) {
+      return Err(std::move(GetError()));
+    } else {
+      return func(std::move(GetValue()));
+    }
+  }
+
+  template <class Func>
+  Result<Value, typename std::invoke_result_t<Func, Error&&>::Error> OrElse(Func&& func) && {
+    if (HasError()) {
+      return func(std::move(GetError()));
+    } else {
+      return Ok(std::move(GetValue()));
+    }
+  }
+
+  template <class Func>
+  Result<std::invoke_result_t<Func, Value&&>, Error> Transform(Func&& transform) && noexcept {
+    if (HasError()) {
+      return Err(std::move(GetError()));
+    } else {
+      return Ok(transform(std::move(GetValue())));
+    }
+  }
+
+  template <class Func>
+  Result<Value, std::invoke_result_t<Func, Error&&>> TransformError(Func&& transform) && noexcept {
+    if (HasError()) {
+      return Err(transform(std::move(GetError())));
+    } else {
+      return Ok(std::move(GetValue()));
+    }
   }
 
  protected:
