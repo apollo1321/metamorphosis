@@ -13,7 +13,7 @@ using namespace ceq::rt;  // NOLINT
 
 TEST(ProductionRpc, SimplyWorks) {
   struct EchoService final : public rpc::EchoServiceStub {
-    ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       reply.set_msg("Hello, " + request.msg());
       return ceq::Ok(std::move(reply));
@@ -40,7 +40,7 @@ TEST(ProductionRpc, SimplyWorks) {
 
 TEST(ProductionRpc, CancelSimplyWorks) {
   struct EchoService final : public rpc::EchoServiceStub {
-    ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       SleepFor(2s);
       reply.set_msg("Hello, " + request.msg());
@@ -72,7 +72,7 @@ TEST(ProductionRpc, CancelSimplyWorks) {
   auto result = client.Echo(request, stop.GetToken());
 
   EXPECT_TRUE(result.HasError());
-  EXPECT_EQ(result.GetError().error_type, rpc::Error::ErrorType::Cancelled);
+  EXPECT_EQ(result.GetError().error_type, rpc::RpcErrorType::Cancelled);
 
   EXPECT_LT(Now() - start, 1s);
   stop_task.join();
@@ -93,7 +93,7 @@ TEST(ProductionRpc, HandlerNotFound) {
   auto result = client.Echo(request);
 
   EXPECT_TRUE(result.HasError());
-  EXPECT_EQ(result.GetError().error_type, rpc::Error::ErrorType::HandlerNotFound);
+  EXPECT_EQ(result.GetError().error_type, rpc::RpcErrorType::HandlerNotFound);
 
   server.ShutDown();
 }
@@ -105,5 +105,5 @@ TEST(ProductionRpc, ConnectionRefused) {
   auto result = client.Echo(request);
 
   EXPECT_TRUE(result.HasError());
-  EXPECT_EQ(result.GetError().error_type, rpc::Error::ErrorType::ConnectionRefused);
+  EXPECT_EQ(result.GetError().error_type, rpc::RpcErrorType::ConnectionRefused);
 }

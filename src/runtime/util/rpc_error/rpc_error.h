@@ -4,22 +4,22 @@
 
 namespace ceq::rt::rpc {
 
-struct Error {
-  enum class ErrorType {
-    NetworkError,
-    ConnectionRefused,
-    HandlerNotFound,
-    Internal,
-    ParseError,
-    Cancelled,
-  };
+enum class RpcErrorType {
+  NetworkError,
+  ConnectionRefused,
+  HandlerNotFound,
+  Internal,
+  ParseError,
+  Cancelled,
+};
 
-  explicit Error(ErrorType error_type = ErrorType::Internal,
+struct RpcError {
+  explicit RpcError(RpcErrorType error_type = RpcErrorType::Internal,
                  const std::string& message = "") noexcept;
 
   std::string Message() const noexcept;
 
-  ErrorType error_type;
+  RpcErrorType error_type;
   std::string status_message;
 };
 

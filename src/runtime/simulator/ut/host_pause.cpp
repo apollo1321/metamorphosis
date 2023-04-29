@@ -90,7 +90,7 @@ TEST(SimulatorHostPause, PauseServer) {
       server.ShutDown();
     }
 
-    ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       reply.set_msg(request.msg());
       return ceq::Ok(std::move(reply));
@@ -139,7 +139,7 @@ TEST(SimulatorHostPause, PauseClient) {
       server.ShutDown();
     }
 
-    ceq::Result<EchoReply, rpc::Error> Echo(const EchoRequest& request) noexcept override {
+    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       SleepFor(1h);
       reply.set_msg(request.msg());

@@ -62,7 +62,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   // API
   //////////////////////////////////////////////////////////
 
-  Result<Response, rt::rpc::Error> Execute(const Request& request) noexcept override {
+  Result<Response, rt::rpc::RpcError> Execute(const Request& request) noexcept override {
     LOG("EXECUTE: start");
 
     Response response;
@@ -116,7 +116,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   // Internal RPC's
   //////////////////////////////////////////////////////////
 
-  Result<AppendEntriesResult, rt::rpc::Error> AppendEntries(
+  Result<AppendEntriesResult, rt::rpc::RpcError> AppendEntries(
       const AppendEntriesRequest& request) noexcept override {
     AppendEntriesResult result;
     result.set_term(GetCurrentTerm());
@@ -133,10 +133,12 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     reset_election_timeout.Stop();
 
     if (request.term() >= result.term()) {
-      LOG("APPEND_ENTRIES: request_term >= current_term; change to FOLLOWER");
-      state = State::Follower;
-      stop_election.Stop();
-      stop_leader.Stop();
+      if (state != State::Follower) {
+        LOG("APPEND_ENTRIES: request_term >= current_term; change to FOLLOWER");
+        state = State::Follower;
+        stop_election.Stop();
+        stop_leader.Stop();
+      }
       if (request.term() > result.term()) {
         raft_state.Put("current_term", request.term()).ExpectOk();
         raft_state.Delete("voted_for").ExpectOk();
@@ -188,7 +190,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     return Ok(std::move(result));
   }
 
-  Result<RequestVoteResult, rt::rpc::Error> RequestVote(
+  Result<RequestVoteResult, rt::rpc::RpcError> RequestVote(
       const RequestVoteRequest& request) noexcept override {
     LOG("REQUEST_VOTE: start, current_term = {}, candidate_id = {}, request_term = {}",
         GetCurrentTerm(), request.candidate_id(), request.term());
@@ -309,6 +311,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       request.set_prev_log_index(next_index[node_id] - 1);
       request.set_prev_log_term(
           next_index[node_id] == 1 ? 0 : raft_log.Get(next_index[node_id] - 1).GetValue().term());
+      request.set_leader_commit(commit_index);
 
       {
         const uint64_t log_size = GetLogSize();
@@ -334,8 +337,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         }
       };
 
-      LOG("LEADER[{}]: start AppendEntries with next_index = {}, match_index = {}", node_id,
-          next_index[node_id], match_index[node_id]);
+      LOG("LEADER[{}]: start AppendEntries with next_index = {}, log_size = {}", node_id,
+          next_index[node_id], request.entries_size());
       auto result = clients[node_id]->AppendEntries(request, request_stop.GetToken());
       LOG("LEADER[{}]: finished AppendEntries", node_id);
 
@@ -411,7 +414,9 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       }
     }
 
-    LOG("LEADER: updating commit index, prev = {}, new = {}", commit_index, new_commit_index);
+    if (commit_index != new_commit_index) {
+      LOG("LEADER: updating commit index, prev = {}, new = {}", commit_index, new_commit_index);
+    }
 
     for (uint64_t index = commit_index + 1; index <= new_commit_index; ++index) {
       auto result = rsm.Apply(raft_log.Get(index).GetValue().request());
@@ -476,7 +481,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         }
         requests.emplace_back([&, node_id]() {
           LOG("CANDIDATE: start RequestVote to node {}", node_id);
-          Result<RequestVoteResult, rt::rpc::Error> result =
+          Result<RequestVoteResult, rt::rpc::RpcError> result =
               clients[node_id]->RequestVote(request_vote, stop_election.GetToken());
 
           if (result.HasError()) {

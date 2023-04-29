@@ -36,8 +36,8 @@ class ClientBase {
 
  protected:
   template <class Request, class Response>
-  Result<Response, Error> MakeRequest(const Request& request, const char* method_name,
-                                      StopToken stop_token = {}) noexcept {
+  Result<Response, RpcError> MakeRequest(const Request& request, const char* method_name,
+                                         StopToken stop_token = {}) noexcept {
     using namespace grpc;            // NOLINT
     using namespace grpc::internal;  // NOLINT
 
@@ -66,15 +66,15 @@ class ClientBase {
 
     if (!status.ok()) {
       if (status.error_message().find("Connection refused") != std::string::npos) {
-        return Err(Error::ErrorType::ConnectionRefused, status.error_message());
+        return Err(RpcErrorType::ConnectionRefused, status.error_message());
       }
       switch (status.error_code()) {
         case grpc::CANCELLED:
-          return Err(Error::ErrorType::Cancelled, status.error_message());
+          return Err(RpcErrorType::Cancelled, status.error_message());
         case grpc::UNIMPLEMENTED:
-          return Err(Error::ErrorType::HandlerNotFound, status.error_message());
+          return Err(RpcErrorType::HandlerNotFound, status.error_message());
         default:
-          return Err(Error::ErrorType::Internal, status.error_message());
+          return Err(RpcErrorType::Internal, status.error_message());
       }
     }
 

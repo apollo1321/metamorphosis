@@ -77,13 +77,13 @@ bool World::ShouldMakeNetworkError() noexcept {
   return prob_dist(GetGenerator()) < options_.network_error_proba;
 }
 
-Result<rpc::SerializedData, rpc::Error> World::MakeRequest(Address from, Endpoint endpoint,
-                                                           rpc::SerializedData data,
-                                                           rpc::ServiceName service_name,
-                                                           rpc::HandlerName handler_name,
-                                                           StopToken stop_token) noexcept {
+Result<rpc::SerializedData, rpc::RpcError> World::MakeRequest(Address from, Endpoint endpoint,
+                                                              rpc::SerializedData data,
+                                                              rpc::ServiceName service_name,
+                                                              rpc::HandlerName handler_name,
+                                                              StopToken stop_token) noexcept {
   struct State {
-    Result<rpc::SerializedData, rpc::Error> result = Err(rpc::Error::ErrorType::Cancelled);
+    Result<rpc::SerializedData, rpc::RpcError> result = Err(rpc::RpcErrorType::Cancelled);
     Event event;
   };
 
@@ -101,19 +101,19 @@ Result<rpc::SerializedData, rpc::Error> World::MakeRequest(Address from, Endpoin
     const bool is_network_error = ShouldMakeNetworkError();
 
     if (is_network_error && std::uniform_real_distribution<double>(0., 1.)(GetGenerator()) < 0.5) {
-      state->result = Err(rpc::Error::ErrorType::NetworkError);
+      state->result = Err(rpc::RpcErrorType::NetworkError);
       state->event.Signal();
       return;
     }
 
     if (!hosts_.contains(endpoint.address)) {
-      state->result = Err(rpc::Error::ErrorType::ConnectionRefused);
+      state->result = Err(rpc::RpcErrorType::ConnectionRefused);
       state->event.Signal();
       return;
     }
 
     if (closed_links_.contains(std::make_pair(from, endpoint.address))) {
-      state->result = Err(rpc::Error::ErrorType::NetworkError);
+      state->result = Err(rpc::RpcErrorType::NetworkError);
       state->event.Signal();
       return;
     }
@@ -132,13 +132,13 @@ Result<rpc::SerializedData, rpc::Error> World::MakeRequest(Address from, Endpoin
     SleepUntil(GetGlobalTime() + GetRpcDelay(), stop_token);
 
     if (closed_links_.contains(std::make_pair(from, endpoint.address))) {
-      state->result = Err(rpc::Error::ErrorType::NetworkError);
+      state->result = Err(rpc::RpcErrorType::NetworkError);
       state->event.Signal();
       return;
     }
 
     if (is_network_error) {
-      state->result = Err(rpc::Error::ErrorType::NetworkError);
+      state->result = Err(rpc::RpcErrorType::NetworkError);
     } else {
       state->result = std::move(result);
     }

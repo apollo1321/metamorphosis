@@ -29,9 +29,9 @@ struct RaftHost final : public rt::sim::IHostRunnable {
 
 struct RaftClientHost final : public rt::sim::IHostRunnable {
   explicit RaftClientHost(const std::vector<rt::Endpoint>& raft_nodes,
-                          std::vector<RequestInfo>& history, rt::Duration timeout,
-                          size_t retry_count) noexcept
-      : raft_nodes{raft_nodes}, history{history}, timeout{timeout}, retry_count{retry_count} {
+                          std::vector<RequestInfo>& history,
+                          RaftClient::Config client_config) noexcept
+      : raft_nodes{raft_nodes}, history{history}, client_config{client_config} {
   }
 
   void Main() noexcept override {
@@ -46,7 +46,7 @@ struct RaftClientHost final : public rt::sim::IHostRunnable {
       RequestInfo info;
       info.command = command.data();
       info.start = rt::sim::GetGlobalTime();
-      auto response = client.Apply<RsmResult>(command, timeout, retry_count);
+      auto response = client.Apply<RsmResult>(command, client_config);
       if (response.HasError()) {
         LOG("CLIENT: request error: {}", response.GetError().Message());
       } else {
@@ -63,8 +63,7 @@ struct RaftClientHost final : public rt::sim::IHostRunnable {
 
   std::vector<rt::Endpoint> raft_nodes;
   std::vector<RequestInfo>& history;
-  rt::Duration timeout;
-  size_t retry_count;
+  RaftClient::Config client_config;
 };
 
 struct CrashSupervisor final : public rt::sim::IHostRunnable {

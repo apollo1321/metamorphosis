@@ -16,3 +16,7 @@ gtest_discover_tests(ceq_test_raft_simple)
 add_executable(ceq_test_raft_host_crash raft_host_crash.cpp)
 target_link_libraries(ceq_test_raft_host_crash ceq_test_raft_base)
 gtest_discover_tests(ceq_test_raft_host_crash)
+
+add_executable(ceq_test_raft_commit_index raft_commit_index.cpp)
+target_link_libraries(ceq_test_raft_commit_index ceq_test_raft_base)
+gtest_discover_tests(ceq_test_raft_commit_index)

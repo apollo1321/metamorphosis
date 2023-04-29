@@ -14,16 +14,16 @@ class Server::Service {
 
   const ServiceName& GetServiceName() noexcept;
 
-  virtual Result<SerializedData, Error> ProcessRequest(
+  virtual Result<SerializedData, RpcError> ProcessRequest(
       const SerializedData& data, const HandlerName& handler_name) noexcept = 0;
 
  protected:
   template <class Request, class Response, class Handler>
-  Result<SerializedData, Error> ProcessRequestWrapper(const SerializedData& data,
-                                                      Handler handler) noexcept {
+  Result<SerializedData, RpcError> ProcessRequestWrapper(const SerializedData& data,
+                                                         Handler handler) noexcept {
     Request request;
     if (!request.ParseFromArray(data.data(), data.size())) {
-      return Err(Error::ErrorType::ParseError);
+      return Err(RpcErrorType::ParseError);
     }
     auto result = handler(request);
     if (result.HasError()) {

@@ -4,24 +4,24 @@
 
 namespace ceq::rt::rpc {
 
-Error::Error(ErrorType error_type, const std::string& message) noexcept
+RpcError::RpcError(RpcErrorType error_type, const std::string& message) noexcept
     : error_type{error_type}, status_message{std::move(message)} {
 }
 
-std::string Error::Message() const noexcept {
+std::string RpcError::Message() const noexcept {
   std::string result = [&] {
     switch (error_type) {
-      case ErrorType::NetworkError:
+      case RpcErrorType::NetworkError:
         return "NetworkError";
-      case ErrorType::ConnectionRefused:
+      case RpcErrorType::ConnectionRefused:
         return "ConnectionRefused";
-      case ErrorType::HandlerNotFound:
+      case RpcErrorType::HandlerNotFound:
         return "HandlerNotFound";
-      case ErrorType::Internal:
+      case RpcErrorType::Internal:
         return "Internal";
-      case ErrorType::ParseError:
+      case RpcErrorType::ParseError:
         return "ParseError";
-      case ErrorType::Cancelled:
+      case RpcErrorType::Cancelled:
         return "Cancelled";
       default:
         VERIFY(false, "invalid error type");

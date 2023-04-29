@@ -31,9 +31,9 @@ class Server::ServerImpl {
   ~ServerImpl();
 
  private:
-  Result<SerializedData, Error> ProcessRequest(const SerializedData& data,
-                                               const ServiceName& service_name,
-                                               const HandlerName& handler_name) noexcept;
+  Result<SerializedData, RpcError> ProcessRequest(const SerializedData& data,
+                                                  const ServiceName& service_name,
+                                                  const HandlerName& handler_name) noexcept;
 
  private:
   std::unordered_map<ServiceName, Server::Service*> services_;
