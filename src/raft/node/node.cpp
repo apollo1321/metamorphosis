@@ -1,11 +1,6 @@
 #include "node.h"
 
-#include <chrono>
-#include <memory>
-#include <optional>
-#include <queue>
-#include <unordered_map>
-#include <vector>
+#include "state_machine.h"
 
 #include <raft/raft.client.h>
 #include <raft/raft.service.h>
@@ -20,7 +15,14 @@
 
 #include <boost/fiber/all.hpp>
 
-#include "state_machine.h"
+#include <google/protobuf/util/message_differencer.h>
+
+#include <chrono>
+#include <memory>
+#include <optional>
+#include <queue>
+#include <unordered_map>
+#include <vector>
 
 namespace ceq::raft {
 
@@ -167,19 +169,36 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     LOG("APPEND_ENTRIES: accept, writting entries to local log");
     result.set_success(true);
 
-    raft_log.DeleteRange(request.prev_log_index() + 1, std::numeric_limits<uint64_t>::max())
+    // Check that if leader tries to overwrite the commited log, it must be the same.
+    // The situation when the leader overwrites commited log may occur in case of rpc retries.
+    for (uint64_t index = request.prev_log_index() + 1;
+         index <= commit_index && index - request.prev_log_index() - 1 < request.entries_size();
+         ++index) {
+      using google::protobuf::util::MessageDifferencer;
+
+      LogEntry value_from_log = raft_log.Get(index).GetValue();
+      LogEntry value_from_request = request.entries()[index - request.prev_log_index() - 1];
+
+      VERIFY(MessageDifferencer::Equals(value_from_request, value_from_log),
+             "invalid state: committed log is inconsistent");
+    }
+
+    raft_log
+        .DeleteRange(std::max(request.prev_log_index(), commit_index) + 1,
+                     std::numeric_limits<uint64_t>::max())
         .ExpectOk();
-    for (uint64_t index = 0; index < request.entries().size(); ++index) {
-      raft_log.Put(request.prev_log_index() + index + 1, request.entries()[index]).ExpectOk();
+    for (uint64_t index = std::max(request.prev_log_index(), commit_index) + 1;
+         index - request.prev_log_index() - 1 < request.entries_size(); ++index) {
+      raft_log.Put(index, request.entries()[index - request.prev_log_index() - 1]).ExpectOk();
     }
 
-    uint64_t new_commit_index = commit_index;
-    if (request.leader_commit() > commit_index) {
-      new_commit_index = std::min<uint64_t>(request.leader_commit(), GetLogSize());
-    }
+    const uint64_t new_commit_index =
+        std::max(commit_index, std::min<uint64_t>(request.leader_commit(), GetLogSize()));
 
-    LOG("APPEND_ENTRIES: updating commit index, prev = {}, new = {}", commit_index,
-        new_commit_index);
+    if (commit_index != new_commit_index) {
+      LOG("APPEND_ENTRIES: updating commit index, prev = {}, new = {}", commit_index,
+          new_commit_index);
+    }
 
     for (size_t index = commit_index + 1; index <= new_commit_index; ++index) {
       rsm.Apply(raft_log.Get(index).GetValue().request());
