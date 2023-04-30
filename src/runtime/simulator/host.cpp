@@ -177,12 +177,10 @@ size_t Host::GetCurrentEpoch() const noexcept {
 }
 
 Host::~Host() {
-  if (main_fiber_.joinable()) {
-    KillHost();
-    if (paused_) {
-      ResumeHost();
-      boost::this_fiber::yield();  // Block all paused fibers forever
-    }
+  KillHost();
+  if (paused_) {
+    ResumeHost();
+    boost::this_fiber::yield();  // Block all paused fibers forever
   }
 }
 

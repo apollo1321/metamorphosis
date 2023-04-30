@@ -14,15 +14,15 @@ target_link_libraries(ceq_test_production_base_with_proto INTERFACE
 
 # ------------------------------------------------------------------------------
 
-add_executable(test_production_cancellation cancellation.cpp)
-target_link_libraries(test_production_cancellation ceq_test_production_base)
-gtest_discover_tests(test_production_cancellation)
+add_executable(ceq_test_production_cancellation cancellation.cpp)
+target_link_libraries(ceq_test_production_cancellation ceq_test_production_base)
+gtest_discover_tests(ceq_test_production_cancellation)
 
 
-add_executable(test_production_rpc rpc.cpp)
-target_link_libraries(test_production_rpc ceq_test_production_base_with_proto)
-gtest_discover_tests(test_production_rpc)
+add_executable(ceq_test_production_rpc rpc.cpp)
+target_link_libraries(ceq_test_production_rpc ceq_test_production_base_with_proto)
+gtest_discover_tests(ceq_test_production_rpc)
 
-add_executable(test_production_database database.cpp)
-target_link_libraries(test_production_database ceq_test_production_base)
-gtest_discover_tests(test_production_database)
+add_executable(ceq_test_production_database database.cpp)
+target_link_libraries(ceq_test_production_database ceq_test_production_base)
+gtest_discover_tests(ceq_test_production_database)
