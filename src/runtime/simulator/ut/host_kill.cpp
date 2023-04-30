@@ -55,6 +55,7 @@ TEST(SimulatorHostKill, KillWithoutRestarting) {
     void Main() noexcept override {
       SleepFor(1s);
       sim::KillHost("addr1");
+      sim::PauseHost("addr1");
     }
   };
 
