@@ -167,6 +167,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     LOG("APPEND_ENTRIES: accept, writting entries to local log");
     result.set_success(true);
 
+    VERIFY(commit_index <= request.prev_log_index(), "invalid state: commited log is inconsistent");
+
     raft_log.DeleteRange(request.prev_log_index() + 1, std::numeric_limits<uint64_t>::max())
         .ExpectOk();
     for (uint64_t index = 0; index < request.entries().size(); ++index) {
