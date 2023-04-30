@@ -52,11 +52,9 @@ class KVStorage {
   Result<Value, DBError> Get(const Key& key) noexcept {
     auto key_ser = impl_->key_serde.Serialize(key);
     db::DataView key_view(key_ser.data(), key_ser.size());
-    auto result = db_->Get(key_view);
-    if (result.HasError()) {
-      return Err(std::move(result.GetError()));
-    }
-    return Ok(impl_->value_serde.Deserialize(result.GetValue()));
+    return db_->Get(key_view).Transform([&](db::Data&& data) {
+      return impl_->value_serde.Deserialize(data);
+    });
   }
 
   Status<DBError> DeleteRange(const Key& start_key, const Key& end_key) noexcept {
