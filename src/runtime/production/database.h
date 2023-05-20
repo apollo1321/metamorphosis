@@ -4,34 +4,28 @@
 
 #include <runtime/database.h>
 
-namespace ceq::rt::db {
+namespace ceq::rt::prod::db {
 
-class WriteBatch::WriteBatchImpl {
- public:
-  Status<DBError> Put(DataView key, DataView value) noexcept;
-  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
-  Status<DBError> Delete(DataView key) noexcept;
+using namespace rt::db;  // NOLINT
 
- private:
-  rocksdb::WriteBatch write_batch_;
+struct WriteBatch final : public IWriteBatch {
+  Status<DBError> Put(DataView key, DataView value) noexcept override;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept override;
+  Status<DBError> Delete(DataView key) noexcept override;
 
-  friend class Database::DatabaseImpl;
+  rocksdb::WriteBatch write_batch;
 };
 
-class Database::DatabaseImpl {
- public:
-  static Result<DatabaseImpl*, DBError> Open(std::filesystem::path path, Options options) noexcept;
+struct Database final : public IDatabase {
+  std::unique_ptr<IIterator> NewIterator() noexcept override;
 
-  std::unique_ptr<IIterator> NewIterator() noexcept;
+  Status<DBError> Put(DataView key, DataView value) noexcept override;
+  Result<Data, DBError> Get(DataView key) noexcept override;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept override;
+  Status<DBError> Delete(DataView key) noexcept override;
 
-  Status<DBError> Put(DataView key, DataView value) noexcept;
-  Result<Data, DBError> Get(DataView key) noexcept;
-  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
-  Status<DBError> Delete(DataView key) noexcept;
-  Status<DBError> Write(WriteBatch::WriteBatchImpl& write_batch) noexcept;
-
- private:
-  DatabaseImpl() = default;
+  WriteBatchPtr MakeWriteBatch() noexcept override;
+  Status<DBError> Write(WriteBatchPtr write_batch) noexcept override;
 
   struct Comparator final : public rocksdb::Comparator {
     int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const override {
@@ -51,12 +45,13 @@ class Database::DatabaseImpl {
     IComparator* impl{};
   };
 
- private:
-  Comparator comparator_;
-  std::unique_ptr<rocksdb::DB> database_;
+  Comparator comparator;
+  std::unique_ptr<rocksdb::DB> database;
 
-  rocksdb::WriteOptions write_options_{};
-  rocksdb::ReadOptions read_options_{};
+  rocksdb::WriteOptions write_options{};
+  rocksdb::ReadOptions read_options{};
 };
 
-}  // namespace ceq::rt::db
+Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept;
+
+}  // namespace ceq::rt::prod::db
