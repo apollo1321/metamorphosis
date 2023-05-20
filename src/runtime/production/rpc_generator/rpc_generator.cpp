@@ -146,13 +146,16 @@ void GenerateServiceHeader(GeneratorContext* generator_context,
     printer.Indent();
 
     // Put methods rpc calls in queue
-    printer.Print(
-        vars, "void PutAllMethodsCallsInQueue(grpc::ServerCompletionQueue& queue) override;\n\n");
+    printer.Print(vars,
+                  "void PutAllMethodsCallsInQueue(grpc::ServerCompletionQueue& queue, Latch& "
+                  "latch) override;\n\n");
 
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
 
-      printer.Print(vars, "void Put$method_name$InQueue(grpc::ServerCompletionQueue& queue);\n");
+      printer.Print(
+          vars,
+          "void Put$method_name$InQueue(grpc::ServerCompletionQueue& queue, LatchGuard guard);\n");
     }
 
     // Make rpc calls struct for each method
@@ -163,11 +166,13 @@ void GenerateServiceHeader(GeneratorContext* generator_context,
       printer.Print(
           vars, "struct RpcCall$method_name$ : public RpcCall<$input_type$, $output_type$> {\n");
       printer.Indent();
-      printer.Print(
-          vars, "explicit RpcCall$method_name$($service_class$* handler) : handler{handler} {}\n");
+      printer.Print(vars,
+                    "explicit RpcCall$method_name$($service_class$* handler, LatchGuard guard) : "
+                    "RpcCall{std::move(guard)}, handler{handler} {}\n");
       printer.Print(vars, "void operator()() noexcept override;\n");
-      printer.Print(
-          vars, "void PutNewCallInQueue(grpc::ServerCompletionQueue& queue) noexcept override;\n");
+      printer.Print(vars,
+                    "void PutNewCallInQueue(grpc::ServerCompletionQueue& queue, LatchGuard guard) "
+                    "noexcept override;\n");
       printer.Print(vars, "$service_class$* handler;\n");
       printer.Outdent();
       printer.Print("};\n");
@@ -229,13 +234,13 @@ void GenerateServiceSource(GeneratorContext* generator_context,
     printer.Print("}\n\n");
 
     // Put methods rpc calls in queue
-    printer.Print(
-        vars,
-        "void $service_class$::PutAllMethodsCallsInQueue(grpc::ServerCompletionQueue& queue) {\n");
+    printer.Print(vars,
+                  "void $service_class$::PutAllMethodsCallsInQueue(grpc::ServerCompletionQueue& "
+                  "queue, Latch& latch) {\n");
     printer.Indent();
     for (int method_id = 0; method_id < service->method_count(); ++method_id) {
       AddMethodInfo(vars, service->method(method_id));
-      printer.Print(vars, "Put$method_name$InQueue(queue);\n");
+      printer.Print(vars, "Put$method_name$InQueue(queue, latch.MakeGuard());\n");
     }
     printer.Outdent();
     printer.Print("}\n\n");
@@ -244,11 +249,13 @@ void GenerateServiceSource(GeneratorContext* generator_context,
       AddMethodInfo(vars, service->method(method_id));
       vars["id"] = std::to_string(method_id);
 
+      printer.Print(vars,
+                    "void $service_class$::Put$method_name$InQueue(grpc::ServerCompletionQueue& "
+                    "queue, LatchGuard guard) {\n");
+      printer.Indent();
       printer.Print(
           vars,
-          "void $service_class$::Put$method_name$InQueue(grpc::ServerCompletionQueue& queue) {\n");
-      printer.Indent();
-      printer.Print(vars, "PutRpcCallInQueue(queue, $id$, new RpcCall$method_name${this});\n");
+          "PutRpcCallInQueue(queue, $id$, new RpcCall$method_name${this, std::move(guard)});\n");
       printer.Outdent();
       printer.Print("}\n");
     }
@@ -270,9 +277,9 @@ void GenerateServiceSource(GeneratorContext* generator_context,
       printer.Print(vars,
                     "void "
                     "$service_class$::RpcCall$method_name$::PutNewCallInQueue(grpc::"
-                    "ServerCompletionQueue& queue) noexcept {\n");
+                    "ServerCompletionQueue& queue, LatchGuard guard) noexcept {\n");
       printer.Indent();
-      printer.Print(vars, "handler->Put$method_name$InQueue(queue);\n");
+      printer.Print(vars, "handler->Put$method_name$InQueue(queue, std::move(guard));\n");
       printer.Outdent();
       printer.Print("}\n");
     }

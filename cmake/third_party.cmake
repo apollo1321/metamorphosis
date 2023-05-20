@@ -69,6 +69,7 @@ FetchContent_Declare(
   URL https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz
   URL_HASH MD5=cb629f38da6b7234a9e9eba271ded5d6
 )
+set(RE2_BUILD_TESTING OFF)
 FetchContent_Populate(re2)
 
 # ------------------------------------------------------------------------------
@@ -86,6 +87,11 @@ FetchContent_Populate(zlib)
 # grpc
 # ------------------------------------------------------------------------------
 
+FetchContent_Declare(
+  grpc
+  URL https://github.com/grpc/grpc/archive/refs/tags/v1.51.0.tar.gz
+  URL_HASH MD5=95d8b3c07d4d3d1bd80472b22e3f05af
+)
 # Set up projects root for grpc to add_subdirectory on them
 set(CARES_ROOT_DIR     ${cares_SOURCE_DIR})
 set(ABSL_ROOT_DIR      ${abseil_SOURCE_DIR})
@@ -94,11 +100,12 @@ set(PROTOBUF_ROOT_DIR  ${protobuf_SOURCE_DIR})
 set(RE2_ROOT_DIR       ${re2_SOURCE_DIR})
 set(ZLIB_ROOT_DIR      ${zlib_SOURCE_DIR})
 
-FetchContent_Declare(
-  grpc
-  URL https://github.com/grpc/grpc/archive/refs/tags/v1.51.0.tar.gz
-  URL_HASH MD5=95d8b3c07d4d3d1bd80472b22e3f05af
-)
+set(gRPC_BUILD_CSHARP_EXT              OFF CACHE INTERNAL "")
+set(gRPC_BUILD_GRPC_NODE_PLUGIN        OFF CACHE INTERNAL "")
+set(gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF CACHE INTERNAL "")
+set(gRPC_BUILD_GRPC_PHP_PLUGIN         OFF CACHE INTERNAL "")
+set(gRPC_BUILD_GRPC_PYTHON_PLUGIN      OFF CACHE INTERNAL "")
+set(gRPC_BUILD_GRPC_RUBY_PLUGIN        OFF CACHE INTERNAL "")
 FetchContent_MakeAvailable(protobuf grpc)
 
 # Fix gcc compilation bug
@@ -115,6 +122,21 @@ endif()
 # ------------------------------------------------------------------------------
 
 set(BOOST_VERSION boost-1.80.0)
+
+if (${CMAKE_BUILD_TYPE} STREQUAL "Asan")
+  add_compile_definitions(BOOST_USE_ASAN)
+elseif (${CMAKE_BUILD_TYPE} STREQUAL "Tsan")
+  add_compile_definitions(BOOST_USE_TSAN)
+endif()
+
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  # Not working correctly for darwin
+  if (${CMAKE_BUILD_TYPE} STREQUAL "Asan" OR ${CMAKE_BUILD_TYPE} STREQUAL "Tsan")
+    # Use appropriate context for tsan/asan
+    # ucontext is less performant than fcontext (which is set by default)
+    set(BOOST_CONTEXT_IMPLEMENTATION "ucontext" CACHE INTERNAL "")
+  endif()
+endif()
 
 FetchContent_Declare(
   boost-assert
@@ -416,6 +438,9 @@ FetchContent_Declare(
   URL_HASH MD5=c545f0a07a25ed3fd9f0e6355f0b1b2f
 )
 FetchContent_MakeAvailable(boost-filesystem)
+execute_process(
+  COMMAND patch ${boost-filesystem_SOURCE_DIR}/src/operations.cpp ${PROJECT_SOURCE_DIR}/cmake/operations.cpp.patch
+)
 
 FetchContent_Declare(
   boost-format
@@ -463,6 +488,8 @@ set(WITH_TESTS           OFF CACHE INTERNAL "")
 set(WITH_BENCHMARK_TOOLS OFF CACHE INTERNAL "")
 set(WITH_TOOLS           OFF CACHE INTERNAL "")
 set(FAIL_ON_WARNINGS     OFF CACHE INTERNAL "")
+set(ROCKSDB_BUILD_SHARED OFF CACHE INTERNAL "")
+set(USE_RTTI             ON  CACHE INTERNAL "")
 FetchContent_MakeAvailable(rocksdb)
 
 add_library(rocksdb_lib INTERFACE)

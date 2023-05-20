@@ -1,3 +1,5 @@
+#include "hosts.h"
+
 #include <cstdlib>
 
 #include <gtest/gtest.h>
@@ -6,8 +8,7 @@
 #include <runtime/api.h>
 #include <runtime/simulator/api.h>
 
-#include "history_checker.h"
-#include "hosts.h"
+#include <raft/test/util/history_checker.h>
 
 using namespace std::chrono_literals;
 
@@ -61,9 +62,9 @@ void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_cou
     return;
   }
 
-  if (!CheckLinearizability(std::move(history))) {
-    FAIL() << "linearizability check failed, seed = " << seed;
-    return;
+  auto check_result = CheckLinearizability(std::move(history));
+  if (check_result.HasError()) {
+    FAIL() << "linearizability check failed, seed = " << seed << ": " << check_result.GetError();
   }
 }
 

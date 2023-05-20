@@ -12,10 +12,15 @@ void Server::ServerImpl::Register(Server::Service* service) noexcept {
   services_[service->GetServiceName()] = service;
 }
 
-void Server::ServerImpl::Run(uint16_t port, const ServerRunConfig& /*config*/) noexcept {
+void Server::ServerImpl::Start(uint16_t port) noexcept {
   VERIFY(!std::exchange(running_, true), "RpcServer is already running");
   port_ = port;
-  sim::GetCurrentHost()->RegisterServer(this, port);
+  sim::GetCurrentHost()->RegisterServer(this, port_);
+}
+
+void Server::ServerImpl::Run() noexcept {
+  worker_started_.Signal();
+  shutdown_event_.Await();
 }
 
 void Server::ServerImpl::ShutDown() noexcept {
@@ -24,24 +29,15 @@ void Server::ServerImpl::ShutDown() noexcept {
 
   sim::GetCurrentHost()->UnregisterServer(port_);
 
-  std::unique_lock guard(shutdown_mutex_);
-  shutdown_cv_.wait(guard, [&]() {
-    return running_count_ == 0;
-  });
+  requests_latch_.AwaitZero();
+  shutdown_event_.Signal();
 }
 
 Result<SerializedData, RpcError> Server::ServerImpl::ProcessRequest(
     const SerializedData& data, const ServiceName& service_name,
     const HandlerName& handler_name) noexcept {
-  {
-    std::lock_guard guard(shutdown_mutex_);
-    ++running_count_;
-  }
-
-  DEFER {
-    std::lock_guard guard(shutdown_mutex_);
-    --running_count_;
-  };
+  auto guard = requests_latch_.MakeGuard();
+  worker_started_.Await();
 
   if (!services_.contains(service_name)) {
     return Err(RpcErrorType::HandlerNotFound, "Unknown service: " + service_name);

@@ -2,8 +2,10 @@ add_library(ceq_test_raft_base INTERFACE)
 target_link_libraries(ceq_test_raft_base INTERFACE
   ceq_raft_node_sim
   ceq_raft_client_sim
-  ceq_test_rsm_proto_sim
+  ceq_logging_state_machine_proto_sim
+  ceq_logging_state_machine
   ceq_runtime_simulator 
+  ceq_history_checker
   GTest::gtest_main
 )
 

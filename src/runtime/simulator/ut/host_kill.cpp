@@ -4,10 +4,6 @@
 #include <runtime/api.h>
 #include <runtime/simulator/api.h>
 
-#include <runtime/simulator/ut/test_service.client.h>
-#include <runtime/simulator/ut/test_service.pb.h>
-#include <runtime/simulator/ut/test_service.service.h>
-
 using namespace std::chrono_literals;
 
 using namespace ceq::rt;  // NOLINT

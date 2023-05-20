@@ -1,6 +1,8 @@
 #pragma once
 
-#include <memory>
+#include <runtime/rpc_server.h>
+#include <runtime/util/latch/latch.h>
+#include <runtime/util/rpc_error/rpc_error.h>
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/impl/codegen/config_protobuf.h>
@@ -8,26 +10,31 @@
 #include <grpcpp/support/async_unary_call.h>
 #include <grpcpp/support/method_handler.h>
 
-#include <runtime/rpc_server.h>
-#include <runtime/util/rpc_error/rpc_error.h>
+#include <memory>
 
 namespace ceq::rt::rpc {
 
 class Server::Service : public grpc::Service {
  protected:
   struct RpcCallBase {
-    virtual void PutNewCallInQueue(grpc::ServerCompletionQueue& queue) noexcept = 0;
+    explicit RpcCallBase(LatchGuard guard) noexcept : guard{std::move(guard)} {
+    }
+
+    virtual void PutNewCallInQueue(grpc::ServerCompletionQueue& queue,
+                                   LatchGuard guard) noexcept = 0;
 
     virtual void operator()() noexcept = 0;
 
     virtual ~RpcCallBase() = default;
 
     bool finished = false;
+
+    LatchGuard guard;
   };
 
   template <class Request, class Response>
   struct RpcCall : public RpcCallBase {
-    RpcCall() : responder(&context) {
+    explicit RpcCall(LatchGuard guard) : RpcCallBase(std::move(guard)), responder(&context) {
     }
 
     template <class Handler>
@@ -52,7 +59,7 @@ class Server::Service : public grpc::Service {
   };
 
  protected:
-  virtual void PutAllMethodsCallsInQueue(grpc::ServerCompletionQueue& queue) = 0;
+  virtual void PutAllMethodsCallsInQueue(grpc::ServerCompletionQueue& queue, Latch& latch) = 0;
 
   template <class RpcCall>
   void PutRpcCallInQueue(grpc::ServerCompletionQueue& queue, int method_id, RpcCall* rpc_call) {

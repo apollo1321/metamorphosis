@@ -85,9 +85,13 @@ TEST(SimulatorHostPause, PauseServer) {
     void Main() noexcept override {
       rpc::Server server;
       server.Register(this);
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
       SleepFor(10h);
       server.ShutDown();
+      worker.join();
     }
 
     ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
@@ -126,6 +130,7 @@ TEST(SimulatorHostPause, PauseClient) {
       EchoRequest request;
       request.set_msg("test");
       auto response = client.Echo(std::move(request));
+      response.ExpectOk();
       EXPECT_EQ(start + 2h + 30min, Now());
     }
   };
@@ -134,9 +139,13 @@ TEST(SimulatorHostPause, PauseClient) {
     void Main() noexcept override {
       rpc::Server server;
       server.Register(this);
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
       SleepFor(10h);
       server.ShutDown();
+      worker.join();
     }
 
     ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {

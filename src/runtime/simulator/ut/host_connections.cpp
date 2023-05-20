@@ -16,9 +16,13 @@ TEST(SimulatorHostConnections, SimplyWorks) {
     void Main() noexcept override {
       rpc::Server server;
       server.Register(this);
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
       SleepFor(10h);
       server.ShutDown();
+      worker.join();
     }
 
     ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
