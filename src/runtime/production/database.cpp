@@ -6,6 +6,36 @@ namespace ceq::rt::db {
 
 using rocksdb::Slice;
 
+Status<DBError> WriteBatch::WriteBatchImpl::Put(DataView key, DataView value) noexcept {
+  Slice key_slice{reinterpret_cast<const char*>(key.data()), key.size()};
+  Slice value_slice{reinterpret_cast<const char*>(value.data()), value.size()};
+  auto status = write_batch_.Put(key_slice, value_slice);
+  if (!status.ok()) {
+    return Err(DBErrorType::Internal, status.ToString());
+  }
+  return Ok();
+}
+
+Status<DBError> WriteBatch::WriteBatchImpl::DeleteRange(DataView start_key,
+                                                        DataView end_key) noexcept {
+  Slice start_key_slice{reinterpret_cast<const char*>(start_key.data()), start_key.size()};
+  Slice end_key_slice{reinterpret_cast<const char*>(end_key.data()), end_key.size()};
+  auto status = write_batch_.DeleteRange(start_key_slice, end_key_slice);
+  if (!status.ok()) {
+    return Err(DBErrorType::Internal, status.ToString());
+  }
+  return Ok();
+}
+
+Status<DBError> WriteBatch::WriteBatchImpl::Delete(DataView key) noexcept {
+  Slice key_slice{reinterpret_cast<const char*>(key.data()), key.size()};
+  auto status = write_batch_.Delete(key_slice);
+  if (!status.ok()) {
+    return Err(DBErrorType::Internal, status.ToString());
+  }
+  return Ok();
+}
+
 struct Iterator final : public IIterator {
   explicit Iterator(rocksdb::Iterator* impl) : impl{impl} {
   }
@@ -124,6 +154,14 @@ Status<DBError> Database::DatabaseImpl::DeleteRange(DataView start_key, DataView
 Status<DBError> Database::DatabaseImpl::Delete(DataView key) noexcept {
   Slice key_slice{reinterpret_cast<const char*>(key.data()), key.size()};
   auto status = database_->Delete(write_options_, key_slice);
+  if (!status.ok()) {
+    return Err(DBErrorType::Internal, status.ToString());
+  }
+  return Ok();
+}
+
+Status<DBError> Database::DatabaseImpl::Write(class WriteBatch& write_batch) noexcept {
+  auto status = database_->Write(write_options_, &write_batch);
   if (!status.ok()) {
     return Err(DBErrorType::Internal, status.ToString());
   }

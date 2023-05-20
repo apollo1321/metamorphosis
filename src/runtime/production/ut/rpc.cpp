@@ -24,7 +24,10 @@ TEST(ProductionRpc, SimplyWorks) {
   EchoService service;
   server.Register(&service);
 
-  server.Run(10050);
+  server.Start(10050);
+  std::thread worker([&]() {
+    server.Run();
+  });
 
   SleepFor(500ms);
 
@@ -36,6 +39,7 @@ TEST(ProductionRpc, SimplyWorks) {
   EXPECT_EQ(result.GetValue().msg(), "Hello, Client");
 
   server.ShutDown();
+  worker.join();
 }
 
 TEST(ProductionRpc, CancelSimplyWorks) {
@@ -53,7 +57,10 @@ TEST(ProductionRpc, CancelSimplyWorks) {
   rpc::Server server;
   server.Register(&service);
 
-  server.Run(10050);
+  server.Start(10050);
+  std::thread worker([&]() {
+    server.Run();
+  });
 
   SleepFor(500ms);
 
@@ -78,12 +85,16 @@ TEST(ProductionRpc, CancelSimplyWorks) {
   stop_task.join();
 
   server.ShutDown();
+  worker.join();
 }
 
 TEST(ProductionRpc, HandlerNotFound) {
   rpc::Server server;
 
-  server.Run(10050);
+  server.Start(10050);
+  std::thread worker([&]() {
+    server.Run();
+  });
 
   SleepFor(500ms);
 
@@ -96,6 +107,7 @@ TEST(ProductionRpc, HandlerNotFound) {
   EXPECT_EQ(result.GetError().error_type, rpc::RpcErrorType::HandlerNotFound);
 
   server.ShutDown();
+  worker.join();
 }
 
 TEST(ProductionRpc, ConnectionRefused) {

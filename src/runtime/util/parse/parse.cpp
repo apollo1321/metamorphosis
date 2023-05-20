@@ -34,7 +34,7 @@ std::istringstream& operator>>(std::istringstream& in, ceq::rt::Duration& durati
       {"ms", Duration(1'000)},
       {"s", Duration(1'000'000)},
       {"m", Duration(60 * 1'000'000)},
-      {"h", Duration(24 * 60 * 1'000'000)},
+      {"h", Duration(60 * 60 * 1'000'000)},
   };
 
   uint64_t value;

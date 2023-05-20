@@ -1,3 +1,5 @@
+#include "hosts.h"
+
 #include <cstdlib>
 
 #include <gtest/gtest.h>
@@ -6,8 +8,7 @@
 #include <runtime/api.h>
 #include <runtime/simulator/api.h>
 
-#include "history_checker.h"
-#include "hosts.h"
+#include <raft/test/util/history_checker.h>
 
 using namespace std::chrono_literals;
 using namespace ceq;              // NOLINT
@@ -188,9 +189,9 @@ struct Supervisor final : public rt::sim::IHostRunnable {
     info.command = data;
     RsmCommand cmd;
     cmd.set_data(info.command);
-    info.start = rt::Now();
+    info.invocation_time = rt::Now();
     auto response = client.Apply<RsmResult>(cmd, RaftClient::Config(10s, 300ms, 100)).GetValue();
-    info.end = rt::Now();
+    info.completion_time = rt::Now();
     info.result =
         std::vector<uint64_t>(response.log_entries().begin(), response.log_entries().end());
     return info;
@@ -260,9 +261,9 @@ TEST(RaftCommit, Replica5Client1) {
 
   EXPECT_TRUE(supervisor.finished);
 
-  if (!CheckLinearizability(std::move(history))) {
-    FAIL() << "linearizability check failed, seed = " << kSeed;
-    return;
+  auto check_result = CheckLinearizability(std::move(history));
+  if (check_result.HasError()) {
+    FAIL() << "linearizability check failed, seed = " << kSeed << ": " << check_result.GetError();
   }
 }
 

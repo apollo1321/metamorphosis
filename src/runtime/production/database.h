@@ -6,6 +6,18 @@
 
 namespace ceq::rt::db {
 
+class WriteBatch::WriteBatchImpl {
+ public:
+  Status<DBError> Put(DataView key, DataView value) noexcept;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
+  Status<DBError> Delete(DataView key) noexcept;
+
+ private:
+  rocksdb::WriteBatch write_batch_;
+
+  friend class Database::DatabaseImpl;
+};
+
 class Database::DatabaseImpl {
  public:
   static Result<DatabaseImpl*, DBError> Open(std::filesystem::path path, Options options) noexcept;
@@ -16,6 +28,7 @@ class Database::DatabaseImpl {
   Result<Data, DBError> Get(DataView key) noexcept;
   Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
   Status<DBError> Delete(DataView key) noexcept;
+  Status<DBError> Write(WriteBatch::WriteBatchImpl& write_batch) noexcept;
 
  private:
   DatabaseImpl() = default;

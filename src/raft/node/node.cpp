@@ -1,6 +1,6 @@
 #include "node.h"
 
-#include "state_machine.h"
+#include "state_machine_wrapper.h"
 
 #include <raft/raft.client.h>
 #include <raft/raft.service.h>
@@ -634,40 +634,46 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   impl::ExactlyOnceStateMachine rsm;
 };
 
-void RunMain(IStateMachine* state_machine, RaftConfig config) noexcept {
+Status<std::string> RunMain(IStateMachine* state_machine, RaftConfig config) noexcept {
   rt::db::Options db_options{.create_if_missing = true};
   auto raft_state_db = rt::kv::Open(config.raft_state_db_path, db_options, rt::serde::StringSerde{},
                                     rt::serde::U64Serde{});
   if (raft_state_db.HasError()) {
-    LOG_CRITICAL("cannot open database at path {}: {}", config.raft_state_db_path,
-                 raft_state_db.GetError().Message());
-    return;
+    std::string message =
+        fmt::format("cannot open state database at path {}: {}", config.raft_state_db_path,
+                    raft_state_db.GetError().Message());
+    LOG_CRITICAL(message);
+    return Err(std::move(message));
   }
 
   auto raft_log_db = rt::kv::Open(config.log_db_path, db_options, rt::serde::U64Serde{},
                                   rt::serde::ProtobufSerde<LogEntry>{});
   if (raft_log_db.HasError()) {
-    LOG_CRITICAL("cannot open database at path {}: {}", config.log_db_path,
-                 raft_log_db.GetError().Message());
-    return;
+    std::string message = fmt::format("cannot open log database at path {}: {}", config.log_db_path,
+                                      raft_log_db.GetError().Message());
+    LOG_CRITICAL(message);
+    return Err(std::move(message));
   }
 
   RaftNode node(state_machine, config, std::move(raft_state_db.GetValue()),
                 std::move(raft_log_db.GetValue()));
 
-  // Raft node does not support concurrent execution
-  rt::rpc::ServerRunConfig server_config;
-  server_config.worker_threads_count = 1;
-  server_config.threads_per_queue = 1;
-  server_config.queue_count = 1;
-
   rt::rpc::Server server;
   server.Register(static_cast<rt::rpc::RaftInternalsStub*>(&node));
   server.Register(static_cast<rt::rpc::RaftApiStub*>(&node));
-  server.Run(config.raft_nodes[config.node_id].port, server_config);
+  server.Start(config.raft_nodes[config.node_id].port);
+
+  // Raft node does not support concurrent execution
+  boost::fibers::fiber worker([&]() {
+    server.Run();
+  });
 
   node.StartNode();
+
   server.ShutDown();
+  worker.join();
+
+  return Ok();
 }
 
 }  // namespace ceq::raft

@@ -58,7 +58,8 @@ class QueueService final : public rpc::QueueServiceStub {
     }
   }
 
-  Result<google::protobuf::Empty, rpc::RpcError> Trim(const TrimRequest& request) noexcept override {
+  Result<google::protobuf::Empty, rpc::RpcError> Trim(
+      const TrimRequest& request) noexcept override {
     auto result = kv_storage_.DeleteRange(0, request.id());
     if (result.HasError()) {
       return ceq::Err(rpc::RpcErrorType::Internal, result.GetError().Message());
@@ -118,9 +119,15 @@ int main(int argc, char** argv) {
   rpc::Server server;
   server.Register(&service);
 
-  server.Run(port);
+  server.Start(port);
+  boost::fibers::fiber worker([&]() {
+    server.Run();
+  });
   std::cout << "Running queue service at 127.0.0.1:" << port << std::endl;
   service.WaitShutDown();
   std::cout << "Shut down" << std::endl;
   server.ShutDown();
+  worker.join();
+
+  return 0;
 }

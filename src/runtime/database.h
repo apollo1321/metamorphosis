@@ -71,6 +71,24 @@ struct Options {
   bool create_if_missing = true;
 };
 
+class WriteBatch {
+ public:
+  WriteBatch();
+
+  Status<DBError> Put(DataView key, DataView value) noexcept;
+  Result<Data, DBError> Get(DataView key) noexcept;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
+  Status<DBError> Delete(DataView key) noexcept;
+
+  ~WriteBatch();
+
+ private:
+  class WriteBatchImpl;
+
+ private:
+  WriteBatchImpl* impl_{};
+};
+
 // Imitation of the rocksdb API
 // https://github.com/facebook/rocksdb
 class Database {
@@ -85,6 +103,8 @@ class Database {
   Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
   Status<DBError> Delete(DataView key) noexcept;
 
+  Status<DBError> Write(WriteBatch write_batch) noexcept;
+
   ~Database();
 
  private:
@@ -97,6 +117,7 @@ class Database {
   DatabaseImpl* impl_{};
 
   friend Result<Database, DBError> Open(std::filesystem::path path, Options options) noexcept;
+  friend class WriteBatch;
 };
 
 Result<Database, DBError> Open(std::filesystem::path path, Options options) noexcept;

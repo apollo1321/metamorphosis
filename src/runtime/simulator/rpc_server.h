@@ -1,14 +1,16 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include <runtime/rpc_server.h>
+#include <runtime/util/event/event.h>
+#include <runtime/util/latch/latch.h>
+#include <runtime/util/rpc_error/rpc_error.h>
+#include <util/result.h>
 
 #include <boost/fiber/all.hpp>
 
-#include <runtime/rpc_server.h>
-#include <runtime/util/rpc_error/rpc_error.h>
-#include <util/result.h>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace ceq::rt::sim {
 class Host;
@@ -24,7 +26,9 @@ class Server::ServerImpl {
  public:
   void Register(Server::Service* service) noexcept;
 
-  void Run(uint16_t port, const ServerRunConfig& config) noexcept;
+  void Start(Port port) noexcept;
+
+  void Run() noexcept;
 
   void ShutDown() noexcept;
 
@@ -41,9 +45,11 @@ class Server::ServerImpl {
   bool running_ = false;
   bool finished_ = false;
 
-  boost::fibers::condition_variable shutdown_cv_;
-  boost::fibers::mutex shutdown_mutex_;
-  size_t running_count_ = 0;
+  Latch requests_latch_;
+  Latch workers_latch_;
+
+  Event worker_started_;
+  Event shutdown_event_;
 
   uint16_t port_ = 0;
 

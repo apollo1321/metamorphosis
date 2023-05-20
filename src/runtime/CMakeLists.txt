@@ -1,14 +1,15 @@
 add_library(ceq_runtime_base INTERFACE)
 target_link_libraries(ceq_runtime_base INTERFACE
-  ceq_lib
-  ceq_util
   ceq_cancellation
+  ceq_chrono
   ceq_endpoint
   ceq_event
+  ceq_latch
+  ceq_lib
+  ceq_print
   ceq_rpc_error
   ceq_serde
-  ceq_chrono
-  ceq_print
+  ceq_util
   libprotobuf
   Boost::fiber
   spdlog
