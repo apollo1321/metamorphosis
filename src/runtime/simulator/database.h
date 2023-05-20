@@ -1,52 +1,76 @@
 #pragma once
 
-#include <map>
-
 #include <runtime/database.h>
 
-namespace ceq::rt::sim {
+#include <map>
+#include <variant>
+
+namespace ceq::rt::sim::db {
+
+using namespace rt::db;  // NOLINT
 
 struct HostDatabase {
-  struct Compare {
-    explicit Compare(db::IComparator* comparator) noexcept : comparator{comparator} {
+  explicit HostDatabase(db::IComparator* comparator) noexcept
+      : data(Comparator(comparator)), comparator_name{comparator->Name()} {
+  }
+
+  struct Comparator {
+    explicit Comparator(db::IComparator* comparator) noexcept : comparator{comparator} {
     }
 
     bool operator()(const db::Data& left, const db::Data& right) const noexcept {
       return comparator->Compare(left, right) < 0;
     }
 
-    db::IComparator* comparator;
+    db::IComparator* comparator{};
   };
 
-  using Map = std::map<db::Data, db::Data, Compare>;
-
-  explicit HostDatabase(db::IComparator* comparator) : data(Compare(comparator)) {
-    comparator_name = comparator->Name();
-  }
+  using Map = std::map<db::Data, db::Data, Comparator>;
 
   std::string comparator_name;
   Map data;
 
-  size_t epoch = 0;
+  size_t epoch = 0;  // only for checks
 };
 
-}  // namespace ceq::rt::sim
+struct WriteBatch final : public IWriteBatch {
+  struct PutCmd {
+    Data key;
+    Data value;
+  };
 
-namespace ceq::rt::db {
+  struct DeleteRangeCmd {
+    Data start_key;
+    Data end_key;
+  };
 
-class Database::DatabaseImpl {
- public:
-  static Result<DatabaseImpl*, DBError> Open(std::filesystem::path path, Options options) noexcept;
+  struct DeleteCmd {
+    Data key;
+  };
 
-  std::unique_ptr<IIterator> NewIterator() noexcept;
+  Status<DBError> Put(DataView key, DataView value) noexcept override;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept override;
+  Status<DBError> Delete(DataView key) noexcept override;
 
-  Status<DBError> Put(DataView key, DataView value) noexcept;
-  Result<Data, DBError> Get(DataView key) noexcept;
-  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
-  Status<DBError> Delete(DataView key) noexcept;
-
- private:
-  sim::HostDatabase* db_;
+  std::vector<std::variant<PutCmd, DeleteRangeCmd, DeleteCmd>> commands;
 };
 
-}  // namespace ceq::rt::db
+struct Database final : public IDatabase {
+  explicit Database(HostDatabase* database) noexcept;
+
+  std::unique_ptr<IIterator> NewIterator() noexcept override;
+
+  Status<DBError> Put(DataView key, DataView value) noexcept override;
+  Result<Data, DBError> Get(DataView key) noexcept override;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept override;
+  Status<DBError> Delete(DataView key) noexcept override;
+
+  WriteBatchPtr MakeWriteBatch() noexcept override;
+  Status<DBError> Write(WriteBatchPtr write_batch) noexcept override;
+
+  HostDatabase* database{};
+};
+
+Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept;
+
+}  // namespace ceq::rt::sim::db

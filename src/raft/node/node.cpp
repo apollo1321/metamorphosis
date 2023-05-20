@@ -26,8 +26,8 @@
 
 namespace ceq::raft {
 
-using RaftStateDb = rt::kv::KVStorage<rt::serde::StringSerde, rt::serde::U64Serde>;
-using RaftLogDb = rt::kv::KVStorage<rt::serde::U64Serde, rt::serde::ProtobufSerde<LogEntry>>;
+using RaftStateDbPtr = rt::kv::KVStoragePtr<rt::serde::StringSerde, rt::serde::U64Serde>;
+using RaftLogDbPtr = rt::kv::KVStoragePtr<rt::serde::U64Serde, rt::serde::ProtobufSerde<LogEntry>>;
 
 struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftApiStub {
   enum class State {
@@ -41,17 +41,17 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     google::protobuf::Any result{};
   };
 
-  explicit RaftNode(IStateMachine* state_machine, RaftConfig config, RaftStateDb state_db,
-                    RaftLogDb log_db)
+  explicit RaftNode(IStateMachine* state_machine, RaftConfig config, RaftStateDbPtr state_db,
+                    RaftLogDbPtr log_db)
       : config{config},
         rsm{state_machine},
         raft_state{std::move(state_db)},
         raft_log{std::move(log_db)} {
     {
       // Setup current_term
-      auto result = raft_state.Get("current_term");
+      auto result = raft_state->Get("current_term");
       if (result.HasError()) {
-        raft_state.Put("current_term", 0).ExpectOk();
+        raft_state->Put("current_term", 0).ExpectOk();
       }
     }
 
@@ -81,7 +81,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       LogEntry entry;
       entry.set_term(current_term);
       *entry.mutable_request() = request;
-      raft_log.Put(new_log_index, entry).ExpectOk();
+      raft_log->Put(new_log_index, entry).ExpectOk();
     }
 
     LOG("EXECUTE: append command to log, index = {}", new_log_index);
@@ -142,8 +142,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         stop_leader.Stop();
       }
       if (request.term() > result.term()) {
-        raft_state.Put("current_term", request.term()).ExpectOk();
-        raft_state.Delete("voted_for").ExpectOk();
+        auto write_batch = raft_state->MakeWriteBatch();
+        write_batch.Put("current_term", request.term()).ExpectOk();
+        write_batch.Delete("voted_for").ExpectOk();
+        raft_state->Write(std::move(write_batch)).ExpectOk();
       }
     }
 
@@ -157,7 +159,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     }
 
     if (request.prev_log_index() != 0) {
-      const uint64_t log_term = raft_log.Get(request.prev_log_index()).GetValue().term();
+      const uint64_t log_term = raft_log->Get(request.prev_log_index()).GetValue().term();
       if (log_term != request.prev_log_term()) {
         LOG("APPEND_ENTRIES: dismiss: prev_log_term = {} != request_prev_log_term = {}", log_term,
             request.prev_log_term());
@@ -176,21 +178,23 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
          ++index) {
       using google::protobuf::util::MessageDifferencer;
 
-      LogEntry value_from_log = raft_log.Get(index).GetValue();
+      LogEntry value_from_log = raft_log->Get(index).GetValue();
       LogEntry value_from_request = request.entries()[index - request.prev_log_index() - 1];
 
       VERIFY(MessageDifferencer::Equals(value_from_request, value_from_log),
              "invalid state: committed log is inconsistent");
     }
 
-    raft_log
+    auto write_batch = raft_log->MakeWriteBatch();
+    write_batch
         .DeleteRange(std::max(request.prev_log_index(), commit_index) + 1,
                      std::numeric_limits<uint64_t>::max())
         .ExpectOk();
     for (uint64_t index = std::max(request.prev_log_index(), commit_index) + 1;
          index - request.prev_log_index() - 1 < request.entries_size(); ++index) {
-      raft_log.Put(index, request.entries()[index - request.prev_log_index() - 1]).ExpectOk();
+      write_batch.Put(index, request.entries()[index - request.prev_log_index() - 1]).ExpectOk();
     }
+    raft_log->Write(std::move(write_batch)).ExpectOk();
 
     const uint64_t new_commit_index =
         std::max(commit_index, std::min<uint64_t>(request.leader_commit(), GetLogSize()));
@@ -201,7 +205,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     }
 
     for (size_t index = commit_index + 1; index <= new_commit_index; ++index) {
-      rsm.Apply(raft_log.Get(index).GetValue().request());
+      rsm.Apply(raft_log->Get(index).GetValue().request());
     }
 
     commit_index = new_commit_index;
@@ -223,8 +227,11 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     if (request.term() > result.term()) {
       LOG("REQUEST_VOTE: request_term > current_term; change to FOLLOWER");
-      raft_state.Put("current_term", request.term()).ExpectOk();
-      raft_state.Delete("voted_for").ExpectOk();
+      auto write_batch = raft_state->MakeWriteBatch();
+      write_batch.Put("current_term", request.term()).ExpectOk();
+      write_batch.Delete("voted_for").ExpectOk();
+      raft_state->Write(std::move(write_batch)).ExpectOk();
+
       state = State::Follower;
       reset_election_timeout.Stop();
       stop_election.Stop();
@@ -268,7 +275,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       result.set_vote_granted(true);
     }
     if (result.vote_granted()) {
-      raft_state.Put("voted_for", request.candidate_id()).ExpectOk();
+      raft_state->Put("voted_for", request.candidate_id()).ExpectOk();
     }
     return Ok(std::move(result));
   }
@@ -329,13 +336,13 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       request.set_leader_id(config.node_id);
       request.set_prev_log_index(next_index[node_id] - 1);
       request.set_prev_log_term(
-          next_index[node_id] == 1 ? 0 : raft_log.Get(next_index[node_id] - 1).GetValue().term());
+          next_index[node_id] == 1 ? 0 : raft_log->Get(next_index[node_id] - 1).GetValue().term());
       request.set_leader_commit(commit_index);
 
       {
         const uint64_t log_size = GetLogSize();
         for (size_t index = next_index[node_id]; index <= log_size; ++index) {
-          *request.add_entries() = raft_log.Get(index).GetValue();
+          *request.add_entries() = raft_log->Get(index).GetValue();
         }
       }
 
@@ -376,8 +383,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       if (response.term() > GetCurrentTerm()) {
         LOG("LEADER[{}]: received greater term = {}, change state to FOLLOWER", node_id,
             response.term());
-        raft_state.Put("current_term", response.term()).ExpectOk();
-        raft_state.Delete("voted_for").ExpectOk();
+        auto write_batch = raft_state->MakeWriteBatch();
+        write_batch.Put("current_term", response.term()).ExpectOk();
+        write_batch.Delete("voted_for").ExpectOk();
+        raft_state->Write(std::move(write_batch)).ExpectOk();
         state = State::Follower;
         stop_leader.Stop();
         continue;
@@ -438,7 +447,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     }
 
     for (uint64_t index = commit_index + 1; index <= new_commit_index; ++index) {
-      auto result = rsm.Apply(raft_log.Get(index).GetValue().request());
+      auto result = rsm.Apply(raft_log->Get(index).GetValue().request());
       auto it = pending_requests.find(index);
       if (it != pending_requests.end()) {
         it->second->result = std::move(result);
@@ -472,8 +481,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     };
 
     while (state == State::Candidate) {
-      raft_state.Put("current_term", GetCurrentTerm() + 1).ExpectOk();
-      raft_state.Put("voted_for", config.node_id).ExpectOk();
+      auto write_batch = raft_state->MakeWriteBatch();
+      write_batch.Put("current_term", GetCurrentTerm() + 1).ExpectOk();
+      write_batch.Put("voted_for", config.node_id).ExpectOk();
+      raft_state->Write(std::move(write_batch)).ExpectOk();
 
       LOG("CANDIDATE: start new elections with term {}", GetCurrentTerm());
 
@@ -518,8 +529,10 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
             LOG("CANDIDATE: finished RequestVote to node {}, received term {}, change state to "
                 "FOLLOWER",
                 node_id, result.GetValue().term());
-            raft_state.Put("current_term", result.GetValue().term()).ExpectOk();
-            raft_state.Delete("voted_for").ExpectOk();
+            auto write_batch = raft_state->MakeWriteBatch();
+            write_batch.Put("current_term", result.GetValue().term()).ExpectOk();
+            write_batch.Delete("voted_for").ExpectOk();
+            raft_state->Write(std::move(write_batch)).ExpectOk();
             state = State::Follower;
             stop_election.Stop();
             return;
@@ -559,7 +572,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
   uint64_t GetLastLogTerm() noexcept {
     uint64_t result = 0;
-    auto iterator = raft_log.NewIterator();
+    auto iterator = raft_log->NewIterator();
     iterator.SeekToLast();
     if (iterator.Valid()) {
       result = iterator.GetValue().term();
@@ -569,7 +582,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
   uint64_t GetLogSize() noexcept {
     uint64_t result = 0;
-    auto iterator = raft_log.NewIterator();
+    auto iterator = raft_log->NewIterator();
     iterator.SeekToLast();
     if (iterator.Valid()) {
       result = iterator.GetKey();
@@ -578,11 +591,11 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   }
 
   uint64_t GetCurrentTerm() noexcept {
-    return raft_state.Get("current_term").GetValue();
+    return raft_state->Get("current_term").GetValue();
   }
 
   std::optional<uint64_t> GetVotedFor() noexcept {
-    auto result = raft_state.Get("voted_for");
+    auto result = raft_state->Get("voted_for");
     if (result.HasError()) {
       return std::nullopt;
     }
@@ -609,9 +622,9 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   //////////////////////////////////////////////////////////
 
   // Contains two keys: "current_term: and "voted_for"
-  RaftStateDb raft_state;
+  RaftStateDbPtr raft_state;
   // Key is log id
-  RaftLogDb raft_log;
+  RaftLogDbPtr raft_log;
 
   //////////////////////////////////////////////////////////
   // Volatile state

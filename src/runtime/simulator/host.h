@@ -50,7 +50,7 @@ class Host {
   ~Host();
 
  public:
-  std::map<std::string, HostDatabase> databases;
+  std::map<std::string, db::HostDatabase> databases;
 
  private:
   void RunMain() noexcept;

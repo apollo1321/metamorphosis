@@ -71,55 +71,36 @@ struct Options {
   bool create_if_missing = true;
 };
 
-class WriteBatch {
+class IWriteBatch {
  public:
-  WriteBatch();
+  virtual Status<DBError> Put(DataView key, DataView value) noexcept = 0;
+  virtual Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept = 0;
+  virtual Status<DBError> Delete(DataView key) noexcept = 0;
 
-  Status<DBError> Put(DataView key, DataView value) noexcept;
-  Result<Data, DBError> Get(DataView key) noexcept;
-  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
-  Status<DBError> Delete(DataView key) noexcept;
-
-  ~WriteBatch();
-
- private:
-  class WriteBatchImpl;
-
- private:
-  WriteBatchImpl* impl_{};
+  virtual ~IWriteBatch() = default;
 };
+
+using WriteBatchPtr = std::unique_ptr<IWriteBatch>;
 
 // Imitation of the rocksdb API
 // https://github.com/facebook/rocksdb
-class Database {
+class IDatabase {
  public:
-  Database(Database&& other) noexcept;
-  Database& operator=(Database&& other) noexcept;
+  virtual std::unique_ptr<IIterator> NewIterator() noexcept = 0;
 
-  std::unique_ptr<IIterator> NewIterator() noexcept;
+  virtual Status<DBError> Put(DataView key, DataView value) noexcept = 0;
+  virtual Result<Data, DBError> Get(DataView key) noexcept = 0;
+  virtual Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept = 0;
+  virtual Status<DBError> Delete(DataView key) noexcept = 0;
 
-  Status<DBError> Put(DataView key, DataView value) noexcept;
-  Result<Data, DBError> Get(DataView key) noexcept;
-  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept;
-  Status<DBError> Delete(DataView key) noexcept;
+  virtual WriteBatchPtr MakeWriteBatch() noexcept = 0;
+  virtual Status<DBError> Write(WriteBatchPtr write_batch) noexcept = 0;
 
-  Status<DBError> Write(WriteBatch write_batch) noexcept;
-
-  ~Database();
-
- private:
-  class DatabaseImpl;
-
- private:
-  Database() noexcept = default;
-
- private:
-  DatabaseImpl* impl_{};
-
-  friend Result<Database, DBError> Open(std::filesystem::path path, Options options) noexcept;
-  friend class WriteBatch;
+  virtual ~IDatabase() = default;
 };
 
-Result<Database, DBError> Open(std::filesystem::path path, Options options) noexcept;
+using DatabasePtr = std::unique_ptr<IDatabase>;
+
+Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept;
 
 }  // namespace ceq::rt::db
