@@ -18,7 +18,7 @@ include(cmake/code_generation.cmake)
 
 enable_testing()
 
-set(LOG_LEVEL ERROR CACHE STRING "Set the logging level")
+set(LOG_LEVEL INFO CACHE STRING "Set the logging level")
 set_property(CACHE LOG_LEVEL PROPERTY STRINGS INFO ERROR CRITICAL OFF)
 
 option(MORF_PRECOMPILE "Compile only third party" OFF)

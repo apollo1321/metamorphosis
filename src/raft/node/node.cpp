@@ -65,11 +65,11 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   //////////////////////////////////////////////////////////
 
   Result<Response, rt::rpc::RpcError> Execute(const Request& request) noexcept override {
-    LOG("EXECUTE: start");
+    LOG_DBG("EXECUTE: start");
 
     Response response;
     if (state != State::Leader) {
-      LOG("EXECUTE: fail: not a leader");
+      LOG_DBG("EXECUTE: fail: not a leader");
       response.set_status(Response_Status_NotALeader);
       return Ok(std::move(response));
     }
@@ -84,7 +84,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       raft_log->Put(new_log_index, entry).ExpectOk();
     }
 
-    LOG("EXECUTE: append command to log, index = {}", new_log_index);
+    LOG_DBG("EXECUTE: append command to log, index = {}", new_log_index);
 
     PendingRequest pending_request;
 
@@ -96,18 +96,18 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     reset_heartbeat_timeout.Stop();
 
-    LOG("EXECUTE: await replicating command to replicas");
+    LOG_DBG("EXECUTE: await replicating command to replicas");
     pending_request.replication_finished.Await();
 
     pending_requests.erase(new_log_index);
 
     if (current_term != GetCurrentTerm()) {
       response.set_status(Response_Status_NotALeader);
-      LOG("EXECUTE: fail: current replica is not a leader");
+      LOG_DBG("EXECUTE: fail: current replica is not a leader");
       return Ok(std::move(response));
     }
 
-    LOG("EXECUTE: success");
+    LOG_DBG("EXECUTE: success");
     response.set_status(Response_Status_Commited);
     *response.mutable_result() = std::move(pending_request.result);
 
@@ -123,11 +123,11 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     AppendEntriesResult result;
     result.set_term(GetCurrentTerm());
 
-    LOG("APPEND_ENTRIES: start, current_term = {}, request_term = {}", result.term(),
-        request.term());
+    LOG("APPEND_ENTRIES: start, current_term = {}, request_term = {}, log_size = {}", result.term(),
+        request.term(), request.entries_size());
 
     if (request.term() < result.term()) {
-      LOG("APPEND_ENTRIES: dismiss, request_term < current_term");
+      LOG_DBG("APPEND_ENTRIES: dismiss, request_term < current_term");
       result.set_success(false);
       return Ok(std::move(result));
     }
@@ -136,7 +136,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     if (request.term() >= result.term()) {
       if (state != State::Follower) {
-        LOG("APPEND_ENTRIES: request_term >= current_term; change to FOLLOWER");
+        LOG_DBG("APPEND_ENTRIES: request_term >= current_term; change to FOLLOWER");
         state = State::Follower;
         stop_election.Stop();
         stop_leader.Stop();
@@ -152,8 +152,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     VERIFY(request.prev_log_index() != 0 || request.prev_log_term() == 0, "invalid prev_log_term");
 
     if (request.prev_log_index() > GetLogSize()) {
-      LOG("APPEND_ENTRIES: dismiss: prev_log_index = {} > log_size = {}", request.prev_log_index(),
-          GetLogSize());
+      LOG_DBG("APPEND_ENTRIES: dismiss: prev_log_index = {} > log_size = {}",
+              request.prev_log_index(), GetLogSize());
       result.set_success(false);
       return Ok(std::move(result));
     }
@@ -161,14 +161,14 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     if (request.prev_log_index() != 0) {
       const uint64_t log_term = raft_log->Get(request.prev_log_index()).GetValue().term();
       if (log_term != request.prev_log_term()) {
-        LOG("APPEND_ENTRIES: dismiss: prev_log_term = {} != request_prev_log_term = {}", log_term,
-            request.prev_log_term());
+        LOG_DBG("APPEND_ENTRIES: dismiss: prev_log_term = {} != request_prev_log_term = {}",
+                log_term, request.prev_log_term());
         result.set_success(false);
         return Ok(std::move(result));
       }
     }
 
-    LOG("APPEND_ENTRIES: accept, writting entries to local log");
+    LOG_DBG("APPEND_ENTRIES: accept, writting entries to local log");
     result.set_success(true);
 
     // Check that if leader tries to overwrite the commited log, it must be the same.
@@ -200,8 +200,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
         std::max(commit_index, std::min<uint64_t>(request.leader_commit(), GetLogSize()));
 
     if (commit_index != new_commit_index) {
-      LOG("APPEND_ENTRIES: updating commit index, prev = {}, new = {}", commit_index,
-          new_commit_index);
+      LOG_DBG("APPEND_ENTRIES: updating commit index, prev = {}, new = {}", commit_index,
+              new_commit_index);
     }
 
     for (size_t index = commit_index + 1; index <= new_commit_index; ++index) {
@@ -220,13 +220,13 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     RequestVoteResult result;
     result.set_term(GetCurrentTerm());
     if (request.term() < result.term()) {
-      LOG("REQUEST_VOTE: dismiss: request_term < current_term");
+      LOG_DBG("REQUEST_VOTE: dismiss: request_term < current_term");
       result.set_vote_granted(false);
       return Ok(std::move(result));
     }
 
     if (request.term() > result.term()) {
-      LOG("REQUEST_VOTE: request_term > current_term; change to FOLLOWER");
+      LOG_DBG("REQUEST_VOTE: request_term > current_term; change to FOLLOWER");
       auto write_batch = raft_state->MakeWriteBatch();
       write_batch.Put("current_term", request.term()).ExpectOk();
       write_batch.Delete("voted_for").ExpectOk();
@@ -241,37 +241,37 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     const auto voted_for = GetVotedFor();
 
     if (voted_for == request.candidate_id()) {
-      LOG("REQUEST_VOTE: accept: voted_for == candidate_id");
+      LOG_DBG("REQUEST_VOTE: accept: voted_for == candidate_id");
       result.set_vote_granted(true);
       return Ok(std::move(result));
     }
 
     if (voted_for) {
-      LOG("REQUEST_VOTE: dismiss: already voted_for = {}", *voted_for);
+      LOG_DBG("REQUEST_VOTE: dismiss: already voted_for = {}", *voted_for);
       result.set_vote_granted(false);
       return Ok(std::move(result));
     }
 
     const uint64_t last_log_term = GetLastLogTerm();
     if (last_log_term > request.last_log_term()) {
-      LOG("REQUEST_VOTE: dismiss: current last_log_term = {} > candidate last_log_term = {}",
-          last_log_term, request.last_log_term());
+      LOG_DBG("REQUEST_VOTE: dismiss: current last_log_term = {} > candidate last_log_term = {}",
+              last_log_term, request.last_log_term());
       result.set_vote_granted(false);
     } else if (last_log_term == request.last_log_term()) {
-      LOG("REQUEST_VOTE: current last_log_term = {} == candidate last_log_term = {}", last_log_term,
-          request.last_log_term());
+      LOG_DBG("REQUEST_VOTE: current last_log_term = {} == candidate last_log_term = {}",
+              last_log_term, request.last_log_term());
       if (GetLogSize() <= request.last_log_index()) {
-        LOG("REQUEST_VOTE: accept: current log_size = {} <= candidate log_size {}", GetLogSize(),
-            request.last_log_index());
+        LOG_DBG("REQUEST_VOTE: accept: current log_size = {} <= candidate log_size {}",
+                GetLogSize(), request.last_log_index());
         result.set_vote_granted(true);
       } else {
-        LOG("REQUEST_VOTE: dismiss: current log_size = {} > candidate log_size {}", GetLogSize(),
-            request.last_log_index());
+        LOG_DBG("REQUEST_VOTE: dismiss: current log_size = {} > candidate log_size {}",
+                GetLogSize(), request.last_log_index());
         result.set_vote_granted(false);
       }
     } else {
-      LOG("REQUEST_VOTE: accept: current last_log_term = {} < candidate last_log_term = {}",
-          last_log_term, request.last_log_term());
+      LOG_DBG("REQUEST_VOTE: accept: current last_log_term = {} < candidate last_log_term = {}",
+              last_log_term, request.last_log_term());
       result.set_vote_granted(true);
     }
     if (result.vote_granted()) {
@@ -303,7 +303,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   void StartLeader() noexcept {
     LOG("LEADER: start with term {}", GetCurrentTerm());
     DEFER {
-      LOG("LEADER: finished");
+      LOG_DBG("LEADER: finished");
     };
 
     next_index = std::vector<uint64_t>(config.raft_nodes.size(), GetLogSize() + 1);
@@ -366,23 +366,24 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       LOG("LEADER[{}]: start AppendEntries with next_index = {}, log_size = {}", node_id,
           next_index[node_id], request.entries_size());
       auto result = clients[node_id]->AppendEntries(request, request_stop.GetToken());
-      LOG("LEADER[{}]: finished AppendEntries", node_id);
+      LOG_DBG("LEADER[{}]: finished AppendEntries", node_id);
 
       if (state != State::Leader) {
-        LOG("LEADER[{}]: not a leader", node_id);
+        LOG_DBG("LEADER[{}]: not a leader", node_id);
         continue;
       }
 
       if (result.HasError()) {
-        LOG("LEADER[{}]: AppendEntries end with error: {}", node_id, result.GetError().Message());
+        LOG_ERR("LEADER[{}]: AppendEntries end with error: {}", node_id,
+                result.GetError().Message());
         request_timeout.join();  // Sleep for some time
         continue;
       }
 
       AppendEntriesResult& response = result.GetValue();
       if (response.term() > GetCurrentTerm()) {
-        LOG("LEADER[{}]: received greater term = {}, change state to FOLLOWER", node_id,
-            response.term());
+        LOG_DBG("LEADER[{}]: received greater term = {}, change state to FOLLOWER", node_id,
+                response.term());
         auto write_batch = raft_state->MakeWriteBatch();
         write_batch.Put("current_term", response.term()).ExpectOk();
         write_batch.Delete("voted_for").ExpectOk();
@@ -393,20 +394,20 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       }
 
       if (!response.success()) {
-        LOG("LEADER[{}]: log is inconsistent, decrement next_index", node_id);
+        LOG_DBG("LEADER[{}]: log is inconsistent, decrement next_index", node_id);
         VERIFY(next_index[node_id] >= 2, "invalid state");
         --next_index[node_id];
       } else {
         match_index[node_id] = request.prev_log_index() + request.entries_size();
         next_index[node_id] += request.entries_size();
-        LOG("LEADER[{}]: success, update match_index = {} and next_index = {}", node_id,
-            match_index[node_id], next_index[node_id]);
+        LOG_DBG("LEADER[{}]: success, update match_index = {} and next_index = {}", node_id,
+                match_index[node_id], next_index[node_id]);
 
         UpdateCommitIndex();
       }
 
       if (next_index[node_id] == GetLogSize() + 1) {
-        LOG("LEADER[{}]: all log replicated, wait on heart_beat_timeout", node_id);
+        LOG_DBG("LEADER[{}]: all log replicated, wait on heart_beat_timeout", node_id);
 
         reset_heartbeat_timeout = rt::StopSource();
 
@@ -443,7 +444,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     }
 
     if (commit_index != new_commit_index) {
-      LOG("LEADER: updating commit index, prev = {}, new = {}", commit_index, new_commit_index);
+      LOG_DBG("LEADER: updating commit index, prev = {}, new = {}", commit_index, new_commit_index);
     }
 
     for (uint64_t index = commit_index + 1; index <= new_commit_index; ++index) {
@@ -461,23 +462,23 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   void StartFollower() noexcept {
     LOG("FOLLOWER: start with term {}", GetCurrentTerm());
     DEFER {
-      LOG("FOLLOWER: finished");
+      LOG_DBG("FOLLOWER: finished");
     };
 
     while (state == State::Follower) {
       reset_election_timeout = rt::StopSource();
       if (!rt::SleepFor(GetElectionTimeout(), reset_election_timeout.GetToken())) {
-        LOG("FOLLOWER: election timeout expired, change state to CANDIDATE");
+        LOG_DBG("FOLLOWER: election timeout expired, change state to CANDIDATE");
         state = State::Candidate;
       } else {
-        LOG("FOLLOWER: election timeout was cancelled, continue as FOLLOWER");
+        LOG_DBG("FOLLOWER: election timeout was cancelled, continue as FOLLOWER");
       }
     }
   }
 
   void StartCandidate() noexcept {
     DEFER {
-      LOG("CANDIDATE: finished");
+      LOG_DBG("CANDIDATE: finished");
     };
 
     while (state == State::Candidate) {
@@ -510,23 +511,24 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
           continue;
         }
         requests.emplace_back([&, node_id]() {
-          LOG("CANDIDATE: start RequestVote to node {}", node_id);
+          LOG_DBG("CANDIDATE: start RequestVote to node {}", node_id);
           Result<RequestVoteResult, rt::rpc::RpcError> result =
               clients[node_id]->RequestVote(request_vote, stop_election.GetToken());
 
           if (result.HasError()) {
-            LOG("CANDIDATE: finished RequestVote to node {} with error: {}", node_id,
-                result.GetError().Message());
+            LOG_ERR("CANDIDATE: finished RequestVote to node {} with error: {}", node_id,
+                    result.GetError().Message());
             return;
           }
 
           if (state != State::Candidate) {
-            LOG("CANDIDATE: finished RequestVote to node {}, not a CANDIDATE", node_id);
+            LOG_DBG("CANDIDATE: finished RequestVote to node {}, not a CANDIDATE", node_id);
             return;
           }
 
           if (GetCurrentTerm() < result.GetValue().term()) {
-            LOG("CANDIDATE: finished RequestVote to node {}, received term {}, change state to "
+            LOG_DBG(
+                "CANDIDATE: finished RequestVote to node {}, received term {}, change state to "
                 "FOLLOWER",
                 node_id, result.GetValue().term());
             auto write_batch = raft_state->MakeWriteBatch();
@@ -546,7 +548,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
           }
 
           if (votes_count >= MajorityCount()) {
-            LOG("CANDIDATE: got majority of votes, change state to LEADER");
+            LOG_DBG("CANDIDATE: got majority of votes, change state to LEADER");
             state = State::Leader;
             current_term_start_index = GetLogSize() + 1;
             stop_election.Stop();
@@ -647,6 +649,14 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   impl::ExactlyOnceStateMachine rsm;
 };
 
+std::string ToString(const std::vector<rt::Endpoint>& nodes) {
+  std::string result;
+  for (const auto& node : nodes) {
+    result += node.ToString() + " ";
+  }
+  return result;
+}
+
 Status<std::string> RunMain(IStateMachine* state_machine, RaftConfig config) noexcept {
   rt::db::Options db_options{.create_if_missing = true};
   auto raft_state_db = rt::kv::Open(config.raft_state_db_path, db_options, rt::serde::StringSerde{},
@@ -655,7 +665,7 @@ Status<std::string> RunMain(IStateMachine* state_machine, RaftConfig config) noe
     std::string message =
         fmt::format("cannot open state database at path {}: {}", config.raft_state_db_path,
                     raft_state_db.GetError().Message());
-    LOG_CRITICAL(message);
+    LOG_CRIT(message);
     return Err(std::move(message));
   }
 
@@ -664,12 +674,14 @@ Status<std::string> RunMain(IStateMachine* state_machine, RaftConfig config) noe
   if (raft_log_db.HasError()) {
     std::string message = fmt::format("cannot open log database at path {}: {}", config.log_db_path,
                                       raft_log_db.GetError().Message());
-    LOG_CRITICAL(message);
+    LOG_CRIT(message);
     return Err(std::move(message));
   }
 
   RaftNode node(state_machine, config, std::move(raft_state_db.GetValue()),
                 std::move(raft_log_db.GetValue()));
+
+  LOG("Starting raft node, cluster: {}, node_id: {}", ToString(config.raft_nodes), config.node_id);
 
   rt::rpc::Server server;
   server.Register(static_cast<rt::rpc::RaftInternalsStub*>(&node));

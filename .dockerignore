@@ -1,0 +1,10 @@
+**/*.py
+*build*/
+.root
+.cache
+compile_commands.json
+*.aux
+*.log
+*.pdf
+*.gz
+.DS_Store

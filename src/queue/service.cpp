@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
 
   auto db = kv::Open(db_path, options, serde::U64Serde{}, serde::StringSerde{});
   if (db.HasError()) {
-    LOG_CRITICAL("Cannot open database: {}", db.GetError().Message());
+    LOG_CRIT("Cannot open database: {}", db.GetError().Message());
     return 1;
   }
 

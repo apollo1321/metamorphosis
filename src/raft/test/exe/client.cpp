@@ -36,11 +36,11 @@ int main(int argc, char** argv) {
 
   auto interactive =
       app.add_subcommand("interactive", "read commands from command line and perform requests");
-  auto random =
-      app.add_subcommand("random",
-                         "Generate random messages and print debug info to stdout in format:\n"
-                         "OK: <invocation_time> <completion_time> <command> [ <cmd0> <cmd1> ... ]\n"
-                         "ERR: <error_message>");
+  auto random = app.add_subcommand(
+      "random",
+      "Generate random messages and print debug info to stdout in format:\n"
+      "OK: <invocation_time> <completion_time> <command> [ <cnt> <cmd0> <cmd1> ... ]\n"
+      "ERR: <error_message>");
 
   app.require_subcommand(1);
 
@@ -74,10 +74,12 @@ int main(int argc, char** argv) {
       if (result.HasError()) {
         fmt::print("ERROR: {}\n", result.GetError().Message());
       } else {
-        fmt::print("OK: {} {} {} [ {} ]\n", invocation_time.time_since_epoch().count(),
+        fmt::print("OK: {} {} {} [ {} {} ]\n", invocation_time.time_since_epoch().count(),
                    completion_time.time_since_epoch().count(), command.data(),
+                   result.GetValue().log_entries_size(),
                    fmt::join(result.GetValue().log_entries(), " "));
       }
+      std::fflush(nullptr);
     }
   }
 

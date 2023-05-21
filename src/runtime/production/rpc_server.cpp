@@ -20,7 +20,7 @@ void Server::ServerImpl::Start(Port port) noexcept {
   for (auto& service : services_) {
     builder.RegisterService(service);
   }
-  builder.AddListeningPort("127.0.0.1:" + std::to_string(port), grpc::InsecureServerCredentials());
+  builder.AddListeningPort("[::]:" + std::to_string(port), grpc::InsecureServerCredentials());
 
   queue_ = builder.AddCompletionQueue();
   server_ = builder.BuildAndStart();

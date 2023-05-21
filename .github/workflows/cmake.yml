@@ -11,9 +11,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-22.04]
         compiler: [clang, gcc]
-        build_type: [Asan, Release]
+        build_type: [Asan, Tsan, Release]
+        exclude:
+          - compiler: gcc
+            build_type: Tsan
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repo
@@ -53,4 +56,4 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build-${{ matrix.build_type }}
-      run: ctest --output-on-failure
+      run: TSAN_OPTIONS=report_atomic_races=0 ctest --output-on-failure

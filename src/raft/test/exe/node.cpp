@@ -32,7 +32,6 @@ int main(int argc, char** argv) {
   // Database
   std::filesystem::path storage_path_prefix;
   app.add_option("--store-path", storage_path_prefix, "Raft storage path prefix")
-      ->check(CLI::ExistingDirectory)
       ->default_val("/tmp/raft_storage/");
 
   app.set_config("--config", "", "Read toml config");

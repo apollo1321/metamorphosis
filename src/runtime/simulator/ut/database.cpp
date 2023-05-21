@@ -16,7 +16,7 @@ TEST(SimulatorDatabase, SimplyWorks) {
       auto maybe_kv =
           kv::Open("/tmp/testing_simply_works", options, serde::U64Serde{}, serde::U64Serde{});
       if (maybe_kv.HasError()) {
-        LOG_CRITICAL("error while opening db: {}", maybe_kv.GetError().Message());
+        LOG_CRIT("error while opening db: {}", maybe_kv.GetError().Message());
       }
       auto& kv = maybe_kv.GetValue();
 
@@ -239,7 +239,7 @@ TEST(SimulatorDatabase, WriteBatch) {
       auto maybe_kv =
           kv::Open("/tmp/testing_write_batch", options, serde::U64Serde{}, serde::U64Serde{});
       if (maybe_kv.HasError()) {
-        LOG_CRITICAL("error while opening db: {}", maybe_kv.GetError().Message());
+        LOG_CRIT("error while opening db: {}", maybe_kv.GetError().Message());
       }
       auto& kv = maybe_kv.GetValue();
 
