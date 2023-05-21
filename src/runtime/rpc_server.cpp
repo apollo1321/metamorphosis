@@ -14,13 +14,6 @@
 
 namespace ceq::rt::rpc {
 
-
-ServerRunConfig::ServerRunConfig() noexcept {
-  queue_count = std::max(std::thread::hardware_concurrency() / 2, 1u);
-  worker_threads_count = std::max(std::thread::hardware_concurrency() / 4, 1u);
-  threads_per_queue = 2;
-}
-
 Server::Server() noexcept : impl_{new ServerImpl} {
 }
 
@@ -28,8 +21,14 @@ void Server::Register(Service* service) noexcept {
   impl_->Register(service);
 }
 
-void Server::Run(Port port, ServerRunConfig run_config) noexcept {
-  impl_->Run(port, run_config);
+// Start accepting requests
+void Server::Start(Port port) noexcept {
+  impl_->Start(port);
+}
+
+// Start processing service handlers, may be called from different threads
+void Server::Run() noexcept {
+  impl_->Run();
 }
 
 void Server::ShutDown() noexcept {

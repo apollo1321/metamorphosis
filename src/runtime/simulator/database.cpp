@@ -1,16 +1,16 @@
 #include "database.h"
 #include "host.h"
 
-namespace ceq::rt::db {
+namespace ceq::rt::sim::db {
 
 // Iterator simply makes copy of all data. Should be enough for tests.
 struct Iterator final : public IIterator {
-  explicit Iterator(sim::HostDatabase::Map storage) : storage{std::move(storage)} {
+  explicit Iterator(HostDatabase::Map storage) : storage{std::move(storage)} {
     iterator = storage.end();
   }
 
   void SeekToLast() noexcept override {
-    sim::GetCurrentHost()->StopFiberIfNecessary();
+    rt::sim::GetCurrentHost()->StopFiberIfNecessary();
     iterator = storage.end();
     if (!storage.empty()) {
       iterator = std::prev(iterator);
@@ -18,18 +18,18 @@ struct Iterator final : public IIterator {
   }
 
   virtual void SeekToFirst() noexcept override {
-    sim::GetCurrentHost()->StopFiberIfNecessary();
+    rt::sim::GetCurrentHost()->StopFiberIfNecessary();
     iterator = storage.begin();
   }
 
   virtual void Next() noexcept override {
-    sim::GetCurrentHost()->StopFiberIfNecessary();
+    rt::sim::GetCurrentHost()->StopFiberIfNecessary();
     EnsureIteratorIsValid();
     iterator = std::next(iterator);
   }
 
   virtual void Prev() noexcept override {
-    sim::GetCurrentHost()->StopFiberIfNecessary();
+    rt::sim::GetCurrentHost()->StopFiberIfNecessary();
     EnsureIteratorIsValid();
     if (iterator == storage.begin()) {
       iterator = storage.end();
@@ -39,19 +39,19 @@ struct Iterator final : public IIterator {
   }
 
   virtual db::Data GetKey() noexcept override {
-    sim::GetCurrentHost()->StopFiberIfNecessary();
+    rt::sim::GetCurrentHost()->StopFiberIfNecessary();
     EnsureIteratorIsValid();
     return iterator->first;
   }
 
   virtual db::Data GetValue() noexcept override {
-    sim::GetCurrentHost()->StopFiberIfNecessary();
+    rt::sim::GetCurrentHost()->StopFiberIfNecessary();
     EnsureIteratorIsValid();
     return iterator->second;
   }
 
   virtual bool Valid() const noexcept override {
-    sim::GetCurrentHost()->StopFiberIfNecessary();
+    rt::sim::GetCurrentHost()->StopFiberIfNecessary();
     return iterator != storage.end();
   }
 
@@ -59,15 +59,93 @@ struct Iterator final : public IIterator {
     VERIFY(Valid(), "iterator is invalid");
   }
 
-  sim::HostDatabase::Map storage;
-  sim::HostDatabase::Map::iterator iterator;
+  HostDatabase::Map storage;
+  HostDatabase::Map::iterator iterator;
 };
 
-Result<Database::DatabaseImpl*, DBError> Database::DatabaseImpl::Open(std::filesystem::path path,
-                                                                      Options options) noexcept {
+Status<DBError> WriteBatch::Put(DataView key, DataView value) noexcept {
+  commands.emplace_back(PutCmd{Data{key.begin(), key.end()}, Data{value.begin(), value.end()}});
+  return Ok();
+}
+
+Status<DBError> WriteBatch::DeleteRange(DataView start_key, DataView end_key) noexcept {
+  commands.emplace_back(DeleteRangeCmd{Data{start_key.begin(), start_key.end()},
+                                       Data{end_key.begin(), end_key.end()}});
+  return Ok();
+}
+
+Status<DBError> WriteBatch::Delete(DataView key) noexcept {
+  commands.emplace_back(DeleteCmd{Data{key.begin(), key.end()}});
+  return Ok();
+}
+
+Database::Database(HostDatabase* database) noexcept : database{database} {
+}
+
+std::unique_ptr<IIterator> Database::NewIterator() noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
+  return std::make_unique<Iterator>(database->data);
+}
+
+Status<DBError> Database::Put(DataView key, DataView value) noexcept {
+  sim::GetCurrentHost()->StopFiberIfNecessary();
+  database->data[Data(key.begin(), key.end())] = Data(value.begin(), value.end());
+  return Ok();
+}
+
+Result<Data, DBError> Database::Get(DataView key) noexcept {
+  sim::GetCurrentHost()->StopFiberIfNecessary();
+  auto it = database->data.find(Data(key.begin(), key.end()));
+  if (it == database->data.end()) {
+    return Err(DBErrorType::NotFound);
+  }
+  return Ok(it->second);
+}
+
+Status<DBError> Database::DeleteRange(DataView start_key, DataView end_key) noexcept {
+  sim::GetCurrentHost()->StopFiberIfNecessary();
+  auto start_it = database->data.lower_bound(Data(start_key.begin(), start_key.end()));
+  if (start_it == database->data.end()) {
+    return Ok();
+  }
+  auto end_it = database->data.lower_bound(Data(end_key.begin(), end_key.end()));
+  database->data.erase(start_it, end_it);
+  return Ok();
+}
+
+Status<DBError> Database::Delete(DataView key) noexcept {
+  sim::GetCurrentHost()->StopFiberIfNecessary();
+  database->data.erase(Data(key.begin(), key.end()));
+  return Ok();
+}
+
+WriteBatchPtr Database::MakeWriteBatch() noexcept {
+  return std::make_unique<WriteBatch>();
+}
+
+Status<DBError> Database::Write(WriteBatchPtr write_batch) noexcept {
+  auto& commands = static_cast<WriteBatch*>(write_batch.get())->commands;
+  for (auto& command : commands) {
+    if (std::holds_alternative<WriteBatch::PutCmd>(command)) {
+      auto& cmd = std::get<WriteBatch::PutCmd>(command);
+      Put(cmd.key, cmd.value).ExpectOk();
+    } else if (std::holds_alternative<WriteBatch::DeleteRangeCmd>(command)) {
+      auto& cmd = std::get<WriteBatch::DeleteRangeCmd>(command);
+      DeleteRange(cmd.start_key, cmd.end_key).ExpectOk();
+    } else if (std::holds_alternative<WriteBatch::DeleteCmd>(command)) {
+      auto& cmd = std::get<WriteBatch::DeleteCmd>(command);
+      Delete(cmd.key).ExpectOk();
+    } else {
+      VERIFY(false, "unexpected batch command");
+    }
+  }
+  return Ok();
+}
+
+Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept {
+  rt::sim::GetCurrentHost()->StopFiberIfNecessary();
   auto path_str = path.string();
-  auto& databases = sim::GetCurrentHost()->databases;
+  auto& databases = rt::sim::GetCurrentHost()->databases;
   auto it = databases.find(path_str);
 
   if (options.create_if_missing == false && it == databases.end()) {
@@ -76,14 +154,14 @@ Result<Database::DatabaseImpl*, DBError> Database::DatabaseImpl::Open(std::files
 
   if (it == databases.end()) {
     it = databases.emplace(path_str, options.comparator).first;
-    it->second.epoch = sim::GetCurrentEpoch();
   } else {
-    VERIFY(it->second.epoch <= sim::GetCurrentEpoch(), "invalid state");
+    VERIFY(it->second.epoch <= rt::sim::GetCurrentEpoch(), "invalid state");
 
-    if (it->second.epoch == sim::GetCurrentEpoch()) {
+    if (it->second.epoch == rt::sim::GetCurrentEpoch()) {
       return Err(DBErrorType::Internal, "database is opened twice");
     }
   }
+  it->second.epoch = rt::sim::GetCurrentEpoch();
 
   if (options.comparator->Name() != it->second.comparator_name) {
     return Err(DBErrorType::InvalidArgument,
@@ -91,46 +169,7 @@ Result<Database::DatabaseImpl*, DBError> Database::DatabaseImpl::Open(std::files
                    " != " + options.comparator->Name());
   }
 
-  auto result = new DatabaseImpl;
-  result->db_ = &it->second;
-  return Ok(result);
+  return Ok(DatabasePtr(new Database{&it->second}));
 }
 
-std::unique_ptr<IIterator> Database::DatabaseImpl::NewIterator() noexcept {
-  sim::GetCurrentHost()->StopFiberIfNecessary();
-  return std::make_unique<Iterator>(db_->data);
-}
-
-Status<DBError> Database::DatabaseImpl::Put(DataView key, DataView value) noexcept {
-  sim::GetCurrentHost()->StopFiberIfNecessary();
-  db_->data[Data(key.begin(), key.end())] = Data(value.begin(), value.end());
-  return Ok();
-}
-
-Result<Data, DBError> Database::DatabaseImpl::Get(DataView key) noexcept {
-  sim::GetCurrentHost()->StopFiberIfNecessary();
-  auto it = db_->data.find(Data(key.begin(), key.end()));
-  if (it == db_->data.end()) {
-    return Err(DBErrorType::NotFound);
-  }
-  return Ok(it->second);
-}
-
-Status<DBError> Database::DatabaseImpl::DeleteRange(DataView start_key, DataView end_key) noexcept {
-  sim::GetCurrentHost()->StopFiberIfNecessary();
-  auto start_it = db_->data.find(Data(start_key.begin(), start_key.end()));
-  if (start_it == db_->data.end()) {
-    return Ok();
-  }
-  auto end_it = db_->data.find(Data(end_key.begin(), end_key.end()));
-  db_->data.erase(start_it, end_it);
-  return Ok();
-}
-
-Status<DBError> Database::DatabaseImpl::Delete(DataView key) noexcept {
-  sim::GetCurrentHost()->StopFiberIfNecessary();
-  db_->data.erase(Data(key.begin(), key.end()));
-  return Ok();
-}
-
-}  // namespace ceq::rt::db
+}  // namespace ceq::rt::sim::db

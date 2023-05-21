@@ -16,13 +16,13 @@
 using namespace ceq;      // NOLINT
 using namespace ceq::rt;  // NOLINT
 
-using KVStorage = kv::KVStorage<serde::U64Serde, serde::StringSerde>;
+using KVStoragePtr = kv::KVStoragePtr<serde::U64Serde, serde::StringSerde>;
 
 class QueueService final : public rpc::QueueServiceStub {
  public:
-  explicit QueueService(KVStorage storage) noexcept : kv_storage_(std::move(storage)) {
+  explicit QueueService(KVStoragePtr storage) noexcept : kv_storage_(std::move(storage)) {
     // Read end index
-    auto iterator = kv_storage_.NewIterator();
+    auto iterator = kv_storage_->NewIterator();
     iterator.SeekToLast();
     if (!iterator.Valid()) {
       end_index_ = 0;
@@ -33,7 +33,7 @@ class QueueService final : public rpc::QueueServiceStub {
 
   Result<AppendReply, rpc::RpcError> Append(const AppendRequest& request) noexcept override {
     const uint64_t index = end_index_.fetch_add(1);
-    auto result = kv_storage_.Put(index, request.data());
+    auto result = kv_storage_->Put(index, request.data());
     if (result.HasError()) {
       return Err(rpc::RpcErrorType::Internal, result.GetError().Message());
     }
@@ -44,7 +44,7 @@ class QueueService final : public rpc::QueueServiceStub {
   }
 
   Result<ReadReply, rpc::RpcError> Read(const ReadRequest& request) noexcept override {
-    auto result = kv_storage_.Get(request.id());
+    auto result = kv_storage_->Get(request.id());
     ReadReply reply;
     if (result.HasValue()) {
       reply.set_data(result.GetValue());
@@ -58,8 +58,9 @@ class QueueService final : public rpc::QueueServiceStub {
     }
   }
 
-  Result<google::protobuf::Empty, rpc::RpcError> Trim(const TrimRequest& request) noexcept override {
-    auto result = kv_storage_.DeleteRange(0, request.id());
+  Result<google::protobuf::Empty, rpc::RpcError> Trim(
+      const TrimRequest& request) noexcept override {
+    auto result = kv_storage_->DeleteRange(0, request.id());
     if (result.HasError()) {
       return ceq::Err(rpc::RpcErrorType::Internal, result.GetError().Message());
     }
@@ -85,7 +86,7 @@ class QueueService final : public rpc::QueueServiceStub {
  private:
   std::atomic<uint64_t> end_index_{};
 
-  KVStorage kv_storage_;
+  KVStoragePtr kv_storage_;
 
   // ShutDown
   std::condition_variable shut_down_cv_;
@@ -109,7 +110,7 @@ int main(int argc, char** argv) {
 
   auto db = kv::Open(db_path, options, serde::U64Serde{}, serde::StringSerde{});
   if (db.HasError()) {
-    LOG_CRITICAL("Cannot open database: {}", db.GetError().Message());
+    LOG_CRIT("Cannot open database: {}", db.GetError().Message());
     return 1;
   }
 
@@ -118,9 +119,15 @@ int main(int argc, char** argv) {
   rpc::Server server;
   server.Register(&service);
 
-  server.Run(port);
+  server.Start(port);
+  boost::fibers::fiber worker([&]() {
+    server.Run();
+  });
   std::cout << "Running queue service at 127.0.0.1:" << port << std::endl;
   service.WaitShutDown();
   std::cout << "Shut down" << std::endl;
   server.ShutDown();
+  worker.join();
+
+  return 0;
 }

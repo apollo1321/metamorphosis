@@ -62,4 +62,7 @@ function(generate_proto TARGET PROTO)
     ${SERVICE_SIM_SRC}
   )
   target_link_libraries(${TARGET}_sim ceq_runtime_simulator)
+
+  add_library(${TARGET} ${PROTO_SRC})
+  target_link_libraries(${TARGET} libprotobuf)
 endfunction()

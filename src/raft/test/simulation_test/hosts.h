@@ -1,17 +1,18 @@
 #pragma once
 
-#include <vector>
-
-#include <runtime/logger.h>
-#include <runtime/simulator/api.h>
-
 #include <raft/client/client.h>
 #include <raft/node/node.h>
 #include <raft/raft.client.h>
 #include <raft/raft.pb.h>
-#include <raft/test/rsm.h>
 
-#include "history_checker.h"
+#include <runtime/logger.h>
+#include <runtime/simulator/api.h>
+
+#include <raft/test/util/history_checker.h>
+#include <raft/test/util/logging_state_machine.h>
+#include <raft/test/util/logging_state_machine.pb.h>
+
+#include <vector>
 
 namespace ceq::raft::test {
 
@@ -20,8 +21,8 @@ struct RaftHost final : public rt::sim::IHostRunnable {
   }
 
   void Main() noexcept override {
-    TestStateMachine state_machine;
-    raft::RunMain(&state_machine, config);
+    LoggingStateMachine state_machine;
+    raft::RunMain(&state_machine, config).ExpectOk();
   }
 
   raft::RaftConfig config;
@@ -45,7 +46,7 @@ struct RaftClientHost final : public rt::sim::IHostRunnable {
 
       RequestInfo info;
       info.command = command.data();
-      info.start = rt::sim::GetGlobalTime();
+      info.invocation_time = rt::sim::GetGlobalTime();
       auto response = client.Apply<RsmResult>(command, client_config);
       if (response.HasError()) {
         LOG("CLIENT: request error: {}", response.GetError().Message());
@@ -53,7 +54,7 @@ struct RaftClientHost final : public rt::sim::IHostRunnable {
         auto& value = response.GetValue();
         LOG("CLIENT: response = {}", value);
 
-        info.end = rt::sim::GetGlobalTime();
+        info.completion_time = rt::sim::GetGlobalTime();
         info.result.resize(value.log_entries_size());
         std::copy(value.log_entries().begin(), value.log_entries().end(), info.result.begin());
         history.emplace_back(std::move(info));

@@ -29,13 +29,8 @@ struct ClientConfig {
   size_t thread_count;
 };
 
-void BenchEchoService(rpc::ServerRunConfig server_config, ClientConfig client_config,
-                      uint16_t port) {
+void BenchEchoService(ClientConfig client_config, uint16_t port) {
   std::cout << "=================================\n";
-  std::cout << "Server config: \n";
-  std::cout << "\tqueue_count = " << server_config.queue_count << '\n';
-  std::cout << "\tthreads_per_queue = " << server_config.threads_per_queue << '\n';
-  std::cout << "\tworker_threads_count = " << server_config.worker_threads_count << '\n';
   std::cout << "Clients config: \n";
   std::cout << "\tfiber_count = " << client_config.fiber_count << '\n';
   std::cout << "\tthread_count = " << client_config.thread_count << '\n';
@@ -44,7 +39,10 @@ void BenchEchoService(rpc::ServerRunConfig server_config, ClientConfig client_co
   rpc::Server server;
   server.Register(&service);
 
-  server.Run(port, server_config);
+  server.Start(port);
+  boost::fibers::fiber worker([&]() {
+    server.Run();
+  });
 
   std::atomic<bool> running{true};
   std::atomic<size_t> count{};
@@ -93,6 +91,7 @@ void BenchEchoService(rpc::ServerRunConfig server_config, ClientConfig client_co
 
   std::cout << "Stoping server\n";
   server.ShutDown();
+  worker.join();
 
   std::chrono::duration<double> duration = end_time - start_time;
   std::cout << "RPS: " << count_result / duration.count() << "\n\n";
@@ -104,16 +103,6 @@ int main(int argc, char** argv) {
   uint16_t port;
   app.add_option("-p,--port", port, "free port")->default_val(10050);
 
-  auto server = app.add_subcommand("server", "server config");
-  rpc::ServerRunConfig server_config{};
-
-  server->add_option("-q,--queues", server_config.queue_count, "completion queue count")
-      ->default_val(1);
-  server->add_option("-t,--threads", server_config.threads_per_queue, "threads per queue")
-      ->default_val(1);
-  server->add_option("-w,--workers", server_config.worker_threads_count, "worker threads count")
-      ->default_val(1);
-
   ClientConfig client_config{};
   auto client = app.add_subcommand("client", "client config");
 
@@ -123,5 +112,5 @@ int main(int argc, char** argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  BenchEchoService(server_config, client_config, port);
+  BenchEchoService(client_config, port);
 }

@@ -1,6 +1,7 @@
 #include "client.h"
 
 #include <util/defer.h>
+#include "runtime/util/print/print.h"
 
 namespace ceq::raft {
 
@@ -28,8 +29,11 @@ std::string RaftClientError::Message() const noexcept {
 }
 
 RaftClient::Config::Config(rt::Duration global_timeout, rt::Duration rpc_timeout,
-                           size_t retry_count) noexcept
-    : global_timeout{global_timeout}, rpc_timeout{rpc_timeout}, retry_count{retry_count} {
+                           size_t retry_count, rt::BackoffParams backoff_params) noexcept
+    : global_timeout{global_timeout},
+      rpc_timeout{rpc_timeout},
+      retry_count{retry_count},
+      backoff_params(backoff_params) {
 }
 
 enum class RequestState {
@@ -83,6 +87,8 @@ Result<google::protobuf::Any, RaftClientError> RaftClient::Apply(
 
   std::optional<Result<google::protobuf::Any, RaftClientError>> result;
 
+  rt::Backoff backoff(config.backoff_params, rt::GetGenerator());
+
   size_t attempt_id = 0;
   do {
     LOG("RAFT_CLIENT: start attempt {} to {}", attempt_id, raft_nodes_[current_leader_].address);
@@ -92,8 +98,12 @@ Result<google::protobuf::Any, RaftClientError> RaftClient::Apply(
     if (result->HasError()) {
       current_leader_ = (current_leader_ + 1) % clients_.size();
 
-      LOG("RAFT_CLIENT: attempt {} finished with error: {}", attempt_id,
-          result->GetError().Message());
+      LOG_ERR("RAFT_CLIENT: attempt {} finished with error: {}", attempt_id,
+              result->GetError().Message());
+
+      auto sleep_time = backoff.Next();
+      LOG_DBG("RAFT_CLIENT: sleep for {}", rt::ToString(sleep_time));
+      rt::SleepFor(sleep_time, stop_source.GetToken());
     } else {
       LOG("RAFT_CLIENT: attempt {} finished with success", attempt_id);
     }
@@ -112,7 +122,7 @@ Result<google::protobuf::Any, RaftClientError> RaftClient::Apply(
   }
 
   if (result->HasError()) {
-    LOG("RAFT_CLIENT: finished all attempts, last error: ", result->GetError().Message());
+    LOG_ERR("RAFT_CLIENT: finished all attempts, last error: {}", result->GetError().Message());
   } else {
     LOG("RAFT_CLIENT: finished all attempts, success");
   }

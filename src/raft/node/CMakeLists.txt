@@ -2,7 +2,7 @@
 # production node
 # ------------------------------------------------------------------------------
 
-add_library(ceq_raft_node_prod node.cpp state_machine.cpp)
+add_library(ceq_raft_node_prod node.cpp state_machine_wrapper.cpp)
 target_link_libraries(ceq_raft_node_prod
   ceq_lib
   ceq_raft_proto_prod
@@ -13,7 +13,7 @@ target_link_libraries(ceq_raft_node_prod
 # simulator node
 # ------------------------------------------------------------------------------
 
-add_library(ceq_raft_node_sim node.cpp state_machine.cpp)
+add_library(ceq_raft_node_sim node.cpp state_machine_wrapper.cpp)
 target_link_libraries(ceq_raft_node_sim
   ceq_lib
   ceq_raft_proto_sim

@@ -11,18 +11,18 @@ TEST(ProductionDatabase, SimplyWorks) {
   auto maybe_kv =
       kv::Open("/tmp/testing_simply_works", options, serde::U64Serde{}, serde::U64Serde{});
   if (maybe_kv.HasError()) {
-    LOG_CRITICAL("error while opening db: {}", maybe_kv.GetError().Message());
+    LOG_CRIT("error while opening db: {}", maybe_kv.GetError().Message());
   }
   auto& kv = maybe_kv.GetValue();
 
-  EXPECT_TRUE(kv.Get(42).HasError());
-  EXPECT_EQ(kv.Get(42).GetError().error_type, db::DBErrorType::NotFound);
+  EXPECT_TRUE(kv->Get(42).HasError());
+  EXPECT_EQ(kv->Get(42).GetError().error_type, db::DBErrorType::NotFound);
 
-  kv.Put(42, 24).ExpectOk();
-  EXPECT_EQ(kv.Get(42).GetValue(), 24);
+  kv->Put(42, 24).ExpectOk();
+  EXPECT_EQ(kv->Get(42).GetValue(), 24);
 
-  kv.Delete(42).ExpectOk();
-  EXPECT_TRUE(kv.Get(42).HasError());
+  kv->Delete(42).ExpectOk();
+  EXPECT_TRUE(kv->Get(42).HasError());
 }
 
 TEST(ProductionDatabase, MissingDb) {
@@ -36,15 +36,15 @@ TEST(ProductionDatabase, DeleteRange) {
   auto kv = kv::Open("/tmp/testing_delete_range", options, serde::U64Serde{}, serde::U64Serde{})
                 .GetValue();
 
-  kv.Put(42, 24).ExpectOk();
-  EXPECT_EQ(kv.Get(42).GetValue(), 24);
+  kv->Put(42, 24).ExpectOk();
+  EXPECT_EQ(kv->Get(42).GetValue(), 24);
 
-  kv.DeleteRange(42, 43).ExpectOk();
-  EXPECT_TRUE(kv.Get(42).HasError());
+  kv->DeleteRange(42, 43).ExpectOk();
+  EXPECT_TRUE(kv->Get(42).HasError());
 
-  kv.Put(43, 24).ExpectOk();
-  kv.DeleteRange(42, 43).ExpectOk();
-  EXPECT_EQ(kv.Get(43).GetValue(), 24);
+  kv->Put(43, 24).ExpectOk();
+  kv->DeleteRange(42, 43).ExpectOk();
+  EXPECT_EQ(kv->Get(43).GetValue(), 24);
 }
 
 TEST(ProductionDatabase, Iterator) {
@@ -53,16 +53,16 @@ TEST(ProductionDatabase, Iterator) {
       kv::Open("/tmp/testing_iterator", options, serde::U64Serde{}, serde::U64Serde{}).GetValue();
 
   for (uint64_t index = 0; index < 200; ++index) {
-    kv.Put(index, index + 200).ExpectOk();
+    kv->Put(index, index + 200).ExpectOk();
   }
 
-  auto iterator = kv.NewIterator();
+  auto iterator = kv->NewIterator();
   iterator.SeekToFirst();
 
   // Change db
 
   for (uint64_t index = 50; index < 100; ++index) {
-    kv.Delete(index).ExpectOk();
+    kv->Delete(index).ExpectOk();
   }
 
   // Check that changes does not affect iterator
@@ -74,7 +74,7 @@ TEST(ProductionDatabase, Iterator) {
   }
   EXPECT_FALSE(iterator.Valid());
 
-  kv.DeleteRange(0, 200).ExpectOk();
+  kv->DeleteRange(0, 200).ExpectOk();
 }
 
 TEST(ProductionDatabase, OpenDatabaseTwice) {
@@ -92,11 +92,11 @@ TEST(ProductionDatabase, StringSerde) {
   auto kv = kv::Open("/tmp/testing_string_serde", options, serde::StringSerde{}, serde::U64Serde{})
                 .GetValue();
 
-  kv.Put("bbb", 2).ExpectOk();
-  kv.Put("aaa", 1).ExpectOk();
-  kv.Put("ccc", 3).ExpectOk();
+  kv->Put("bbb", 2).ExpectOk();
+  kv->Put("aaa", 1).ExpectOk();
+  kv->Put("ccc", 3).ExpectOk();
 
-  auto iterator = kv.NewIterator();
+  auto iterator = kv->NewIterator();
   iterator.SeekToFirst();
 
   EXPECT_TRUE(iterator.Valid());
@@ -115,4 +115,39 @@ TEST(ProductionDatabase, StringSerde) {
   iterator.Next();
 
   EXPECT_FALSE(iterator.Valid());
+}
+
+TEST(ProductionDatabase, WriteBatch) {
+  db::Options options{.create_if_missing = true};
+  auto maybe_kv =
+      kv::Open("/tmp/testing_write_batch", options, serde::U64Serde{}, serde::U64Serde{});
+  if (maybe_kv.HasError()) {
+    LOG_CRIT("error while opening db: {}", maybe_kv.GetError().Message());
+  }
+  auto& kv = maybe_kv.GetValue();
+
+  kv->Get(42).ExpectFail();
+  kv->Get(43).ExpectFail();
+
+  kv->Put(0, 0).ExpectOk();
+  kv->Put(1, 1).ExpectOk();
+  kv->Put(101, 101).ExpectOk();
+
+  auto write_batch = kv->MakeWriteBatch();
+  write_batch.Put(42, 42).ExpectOk();
+  write_batch.Put(43, 43).ExpectOk();
+  write_batch.DeleteRange(0, 2).ExpectOk();
+  write_batch.Delete(101).ExpectOk();
+
+  kv->Write(std::move(write_batch)).ExpectOk();
+
+  EXPECT_EQ(kv->Get(42).GetValue(), 42);
+  EXPECT_EQ(kv->Get(43).GetValue(), 43);
+
+  kv->Get(0).ExpectFail();
+  kv->Get(1).ExpectFail();
+  kv->Get(101).ExpectFail();
+
+  kv->Delete(42).ExpectOk();
+  kv->Delete(43).ExpectOk();
 }

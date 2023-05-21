@@ -6,7 +6,6 @@
 #include <google/protobuf/any.pb.h>
 
 #include <runtime/api.h>
-#include <runtime/rpc_server.h>
 
 namespace ceq::raft {
 
@@ -27,6 +26,6 @@ struct RaftConfig {
   std::filesystem::path raft_state_db_path;
 };
 
-void RunMain(IStateMachine* state_machine, RaftConfig config) noexcept;
+Status<std::string> RunMain(IStateMachine* state_machine, RaftConfig config) noexcept;
 
 }  // namespace ceq::raft

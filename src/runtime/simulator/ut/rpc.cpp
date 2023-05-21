@@ -36,10 +36,14 @@ TEST(SimulatorRpc, SimplyWorks) {
       EchoService service;
 
       server.Register(&service);
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
 
       SleepFor(1h);
       server.ShutDown();
+      worker.join();
     }
   };
 
@@ -76,11 +80,15 @@ TEST(SimulatorRpc, DeliveryTime) {
       EchoService service;
 
       server.Register(&service);
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
 
       SleepFor(1h);
 
       server.ShutDown();
+      worker.join();
     }
   };
 
@@ -130,11 +138,15 @@ TEST(SimulatorRpc, NetworkErrorProba) {
       EchoService service;
 
       server.Register(&service);
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
 
       SleepFor(10h);
 
       server.ShutDown();
+      worker.join();
     }
   };
 
@@ -184,18 +196,28 @@ TEST(SimulatorRpc, ManyClientsManyServers) {
         rpc::Server server3;
 
         server3.Register(&service3);
-        server3.Run(3);
+        server3.Start(3);
+        boost::fibers::fiber worker3([&]() {
+          server3.Run();
+        });
 
         SleepFor(10h);
 
         server3.ShutDown();
+        worker3.join();
       });
 
       server1.Register(&service1);
-      server1.Run(1);
+      server1.Start(1);
+      boost::fibers::fiber worker1([&]() {
+        server1.Run();
+      });
 
       server2.Register(&service2);
-      server2.Run(2);
+      server2.Start(2);
+      boost::fibers::fiber worker2([&]() {
+        server2.Run();
+      });
 
       SleepFor(10h);
 
@@ -203,6 +225,9 @@ TEST(SimulatorRpc, ManyClientsManyServers) {
 
       server1.ShutDown();
       server2.ShutDown();
+
+      worker1.join();
+      worker2.join();
     }
   };
 
@@ -274,9 +299,15 @@ TEST(SimulatorRpc, EchoProxy) {
       host_id = sim::GetHostUniqueId();
       rpc::Server server;
       server.Register(this);
-      server.Run(42);
+      server.Start(42);
+
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
+
       SleepFor(10h);
       server.ShutDown();
+      worker.join();
     }
 
     ceq::Result<EchoReply, rpc::RpcError> Forward1(const EchoRequest& request) noexcept override {
@@ -305,9 +336,13 @@ TEST(SimulatorRpc, EchoProxy) {
       rpc::Server server;
       EchoService service("host1");
       server.Register(&service);
-      server.Run(1);
+      server.Start(1);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
       SleepFor(10h);
       server.ShutDown();
+      worker.join();
     }
   };
 
@@ -316,9 +351,13 @@ TEST(SimulatorRpc, EchoProxy) {
       rpc::Server server;
       EchoService service("host2");
       server.Register(&service);
-      server.Run(2);
+      server.Start(2);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
       SleepFor(10h);
       server.ShutDown();
+      worker.join();
     }
   };
 
@@ -403,10 +442,14 @@ TEST(SimulatorRpc, CancelSimplyWorks) {
       rpc::Server server;
 
       server.Register(this);
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
 
       SleepFor(1h);
       server.ShutDown();
+      worker.join();
     }
 
     ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
@@ -449,9 +492,13 @@ TEST(SimulatorRpc, HandlerNotFound) {
   struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
       rpc::Server server;
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
       SleepFor(1h);
       server.ShutDown();
+      worker.join();
     }
   };
 
@@ -502,11 +549,15 @@ TEST(SimulatorRpc, LongDeliveryTime) {
       EchoService service;
 
       server.Register(&service);
-      server.Run(42);
+      server.Start(42);
+      boost::fibers::fiber worker([&]() {
+        server.Run();
+      });
 
       SleepFor(1h);
 
       server.ShutDown();
+      worker.join();
     }
   };
 

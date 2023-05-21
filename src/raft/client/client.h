@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <runtime/api.h>
+#include <runtime/util/backoff/backoff.h>
 #include <runtime/util/proto/proto_conversion.h>
 
 #include <raft/raft.client.h>
@@ -28,11 +29,13 @@ struct RaftClientError {
 class RaftClient {
  public:
   struct Config {
-    Config(rt::Duration global_timeout, rt::Duration rpc_timeout, size_t retry_count) noexcept;
+    Config(rt::Duration global_timeout, rt::Duration rpc_timeout, size_t retry_count,
+           rt::BackoffParams backoff_params = {}) noexcept;
 
     rt::Duration global_timeout;
     rt::Duration rpc_timeout;
     size_t retry_count;
+    rt::BackoffParams backoff_params;
   };
 
  public:
