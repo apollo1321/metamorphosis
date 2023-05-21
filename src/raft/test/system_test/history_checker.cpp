@@ -1,75 +1,88 @@
+#include <raft/test/util/history_checker.h>
+
 #include <runtime/util/parse/parse.h>
 
+#include <spdlog/spdlog.h>
 #include <CLI/CLI.hpp>
 
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <string>
 
 using namespace std::chrono_literals;
 using namespace ceq::rt;  // NOLINT
+using ceq::raft::test::RequestInfo;
+
+std::vector<RequestInfo> ParseHistory(std::istream& is) noexcept {
+  std::vector<RequestInfo> result;
+
+  while (is) {
+    std::string tag;
+    is >> tag;
+    if (tag != "OK:") {
+      std::string line;
+      std::getline(is, line);
+      continue;
+    }
+
+    uint64_t invocation_time{}, completion_time{};
+    is >> invocation_time >> completion_time;
+
+    uint64_t command{};
+    is >> command;
+
+    char bracket{};
+    is >> bracket;
+    if (bracket != '[') {
+      break;
+    }
+
+    size_t count{};
+    is >> count;
+    std::vector<uint64_t> log;
+    while (count != 0 && is) {
+      uint64_t data{};
+      is >> data;
+
+      log.emplace_back(data);
+      --count;
+    }
+
+    is >> bracket;
+    if (bracket != ']') {
+      break;
+    }
+
+    Timestamp ts;
+
+    result.emplace_back(RequestInfo{
+        .invocation_time = Timestamp(Duration(invocation_time)),
+        .completion_time = Timestamp(Duration(completion_time)),
+        .command = command,
+        .result = std::move(log),
+    });
+  }
+
+  return result;
+}
 
 int main(int argc, char** argv) {
   CLI::App app{"Raft history checker"};
 
-  std::vector<Endpoint> raft_nodes;
-  app.add_option("--raft-nodes", raft_nodes, "raft nodes endpoints, addr:port")->required();
-
-  Duration global_timeout{};
-  app.add_option("--timeout", global_timeout, "request global timeout")->default_val("500ms");
-
-  Duration rpc_timeout{};
-  app.add_option("--rps-timeout", rpc_timeout, "rpc timeout")->default_val("500ms");
-
-  uint64_t attempts{};
-  app.add_option("--attempts", attempts, "request max attempts")->default_val("10");
-
-  app.set_config("--config", "", "read toml config");
-  app.allow_config_extras(false);
-
-  auto interactive =
-      app.add_subcommand("interactive", "read commands from command line and perform requests");
-  auto random =
-      app.add_subcommand("random",
-                         "Generate random messages and print debug info to stdout in format:\n"
-                         "OK: <invocation_time> <completion_time> <command> [ <cmd0> <cmd1> ... ]\n"
-                         "ERR: <error_message>");
-
-  app.require_subcommand(1);
+  std::filesystem::path path;
+  app.add_option("path", path, "Path to history file")->check(CLI::ExistingFile);
 
   CLI11_PARSE(app, argc, argv);
 
-  ceq::raft::RaftClient client(raft_nodes);
-  ceq::raft::RaftClient::Config client_config(global_timeout, rpc_timeout, attempts);
-
-  if (*interactive) {
-    while (std::cin) {
-      RsmCommand command;
-      std::cout << "> ";
-      uint64_t data{};
-      std::cin >> data;
-      command.set_data(data);
-      auto result = client.Apply<RsmResult>(command, client_config);
-      if (result.HasError()) {
-        std::cout << "> ERROR: " << result.GetError().Message() << std::endl;
-      } else {
-        std::cout << "> OK: " << result.GetValue() << std::endl;
-      }
-    }
-  } else {
-    while (true) {
-      RsmCommand command;
-      command.set_data(ceq::rt::GetRandomInt());
-      auto invocation_time = ceq::rt::Now();
-      auto result = client.Apply<RsmResult>(command, client_config);
-      auto completion_time = ceq::rt::Now();
-      if (result.HasError()) {
-        fmt::print("ERROR: {}\n", result.GetError().Message());
-      } else {
-        fmt::print("OK: {} {} {} [ {} ]\n", invocation_time.time_since_epoch().count(),
-                   completion_time.time_since_epoch().count(), command.data(),
-                   fmt::join(result.GetValue().log_entries(), " "));
-      }
-    }
+  auto history = ParseHistory(std::cin);
+  fmt::print("Successes: {}\n", history.size());
+  auto result = ceq::raft::test::CheckLinearizability(history);
+  if (result.HasError()) {
+    fmt::print("Fail: {}\n", result.GetError());
+    return 1;
   }
+  fmt::print("Ok\n");
 
   return 0;
 }

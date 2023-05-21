@@ -98,11 +98,11 @@ Result<google::protobuf::Any, RaftClientError> RaftClient::Apply(
     if (result->HasError()) {
       current_leader_ = (current_leader_ + 1) % clients_.size();
 
-      LOG("RAFT_CLIENT: attempt {} finished with error: {}", attempt_id,
-          result->GetError().Message());
+      LOG_ERR("RAFT_CLIENT: attempt {} finished with error: {}", attempt_id,
+              result->GetError().Message());
 
       auto sleep_time = backoff.Next();
-      LOG("RAFT_CLIENT: sleep for {}", rt::ToString(sleep_time));
+      LOG_DBG("RAFT_CLIENT: sleep for {}", rt::ToString(sleep_time));
       rt::SleepFor(sleep_time, stop_source.GetToken());
     } else {
       LOG("RAFT_CLIENT: attempt {} finished with success", attempt_id);
@@ -122,7 +122,7 @@ Result<google::protobuf::Any, RaftClientError> RaftClient::Apply(
   }
 
   if (result->HasError()) {
-    LOG("RAFT_CLIENT: finished all attempts, last error: ", result->GetError().Message());
+    LOG_ERR("RAFT_CLIENT: finished all attempts, last error: {}", result->GetError().Message());
   } else {
     LOG("RAFT_CLIENT: finished all attempts, success");
   }

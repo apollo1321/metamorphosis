@@ -1,3 +1,7 @@
+from io import BytesIO
+import docker
+
+dockerfile = '''
 FROM ubuntu:22.04 AS builder
 
 RUN apt update && \
@@ -24,3 +28,12 @@ FROM alpine:3.18
 WORKDIR /app
 COPY --from=builder /app/build/src/raft/test/exe/ceq_raft_test_client .
 COPY --from=builder /app/build/src/raft/test/exe/ceq_raft_test_node .
+'''
+
+f = BytesIO(dockerfile.encode('utf-8'))
+cli = docker.from_env()
+response = cli.api.build(path="/Users/apollo1321/Projects/cost-effective-queue",
+                         tag='tag1', decode=True)
+
+for l in response:
+    print(l)
