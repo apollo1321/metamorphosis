@@ -1,5 +1,0 @@
-modifyLineBreaks:
-    textWrapOptions:
-        columns: 80
-    preserveBlankLines: 0
-defaultIndent: "  "
