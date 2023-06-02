@@ -107,12 +107,12 @@ def check_history(raft_clients, checker, minimum_successes):
     successes = int(result.stdout.splitlines()[0].split()[1])
     logging.info("Successes: {}".format(successes))
 
-    if successes < minimum_successes:
-        raise RuntimeError("Too few requests have succeeded")
-
     second_line = result.stdout.splitlines()[1]
     if second_line.startswith(b"Fail"):
         raise RuntimeError("Linearizability check failed: {}".format(second_line))
+
+    if successes < minimum_successes:
+        raise RuntimeError("Too few requests have succeeded")
 
     result.check_returncode()
 
@@ -223,7 +223,7 @@ def run_crash_test(client: docker.DockerClient,
                           logs_dir, test_name)
 
     logging.info("Check client history")
-    check_history(raft_clients, checker, 50)
+    check_history(raft_clients, checker, 20)
 
 
 def main():

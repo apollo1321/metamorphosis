@@ -1,0 +1,32 @@
+name: Build Latex Presentation
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: 
+      - "papers/**"
+  pull_request:
+    branches: [ "main" ]
+    paths: 
+      - "papers/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup tectonic
+      uses: wtfjoke/setup-tectonic@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Run compilation
+      run: tectonic papers/presentation/presentation.tex
+
+    - name: Upload pdf
+      uses: actions/upload-artifact@v3
+      with:
+        name: presentation
+        path: papers/presentation/presentation.pdf
