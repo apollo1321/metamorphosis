@@ -85,18 +85,23 @@ spdlog::pattern_formatter::custom_flags MakeFlags() noexcept {
 std::shared_ptr<spdlog::logger> CreateLogger(std::string host_name) noexcept {
   auto logger = std::make_shared<spdlog::logger>(host_name);
 
+#if SPDLOG_ACTIVE_LEVEL < SPDLOG_LEVEL_OFF
+
   auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_st>(host_name + ".host.log",
                                                                           1024 * 1024, 0, true);
   file_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
       "G:[%H:%M:%Q.%E.%F] [%^%L%$] %v", spdlog::pattern_time_type::local,
       spdlog::details::os::default_eol, MakeFlags()));
 
+  logger->sinks().emplace_back(std::move(file_sink));
+
+#endif
+
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_st>();
   console_sink->set_formatter(std::make_unique<spdlog::pattern_formatter>(
       "G:[%H:%M:%Q.%E.%F] [%^%L%$] [%n] %v", spdlog::pattern_time_type::local,
       spdlog::details::os::default_eol, MakeFlags()));
 
-  logger->sinks().emplace_back(std::move(file_sink));
   logger->sinks().emplace_back(std::move(console_sink));
 
   logger->set_level(spdlog::level::trace);

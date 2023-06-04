@@ -30,11 +30,11 @@ std::istringstream& operator>>(std::istringstream& in, ceq::rt::Duration& durati
   using ceq::rt::Duration;
 
   static const std::unordered_map<std::string, Duration> kSuffix{
-      {"us", Duration(1)},
-      {"ms", Duration(1'000)},
-      {"s", Duration(1'000'000)},
-      {"m", Duration(60 * 1'000'000)},
-      {"h", Duration(60 * 60 * 1'000'000)},
+      {"us", Duration(1ull)},
+      {"ms", Duration(1'000ull)},
+      {"s", Duration(1'000'000ull)},
+      {"m", Duration(60 * 1'000'000ull)},
+      {"h", Duration(60 * 60 * 1'000'000ull)},
   };
 
   uint64_t value;

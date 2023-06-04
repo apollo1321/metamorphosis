@@ -39,12 +39,14 @@ void World::SleepUntil(Timestamp wake_up_time, StopToken stop_token) noexcept {
   event.Await();
 }
 
-void World::RunSimulation(Duration duration) noexcept {
+void World::RunSimulation(Duration duration, size_t iteration_count) noexcept {
   VERIFY(initialized_, "world in unitialized");
   boost::this_fiber::properties<RuntimeSimulationProps>().MarkAsMainFiber();
   boost::this_fiber::yield();
 
-  while (!events_queue_.empty() && events_queue_.begin()->first.time_since_epoch() <= duration) {
+  while (!events_queue_.empty() && events_queue_.begin()->first.time_since_epoch() <= duration &&
+         iteration_count > 0) {
+    --iteration_count;
     auto [ts, event] = *events_queue_.begin();
     events_queue_.erase(events_queue_.begin());
 
@@ -59,6 +61,9 @@ void World::RunSimulation(Duration duration) noexcept {
   FlushAllLogs();
   current_time_ = Timestamp(static_cast<Duration>(0));
   events_queue_.clear();
+  for (auto& [addr, host] : hosts_) {
+    host.release();
+  }
   hosts_.clear();
   closed_links_.clear();
   initialized_ = false;

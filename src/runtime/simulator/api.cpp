@@ -16,8 +16,8 @@ void AddHost(const Address& address, IHostRunnable* host_main,
   GetWorld()->AddHost(address, std::make_unique<Host>(address, host_main, options));
 }
 
-void RunSimulation(Duration duration) noexcept {
-  GetWorld()->RunSimulation(duration);
+void RunSimulation(Duration duration, size_t iteration_count) noexcept {
+  GetWorld()->RunSimulation(duration, iteration_count);
 }
 
 uint64_t GetHostUniqueId() noexcept {

@@ -1,0 +1,24 @@
+diff -ru ./cmake/protobuf.cmake ../grpc-src/cmake/protobuf.cmake
+--- ./cmake/protobuf.cmake	2023-06-06 01:07:24.458349739 +0000
++++ ../grpc-src/cmake/protobuf.cmake	2023-06-06 01:08:04.274284149 +0000
+@@ -30,7 +30,6 @@
+ 
+   if(EXISTS "${PROTOBUF_ROOT_DIR}/CMakeLists.txt")
+     set(protobuf_MSVC_STATIC_RUNTIME OFF CACHE BOOL "Link static runtime libraries")
+-    add_subdirectory(${PROTOBUF_ROOT_DIR} third_party/protobuf)
+     if(TARGET ${_gRPC_PROTOBUF_LIBRARY_NAME})
+       set(_gRPC_PROTOBUF_LIBRARIES ${_gRPC_PROTOBUF_LIBRARY_NAME})
+     endif()
+Only in ../grpc-src/cmake: protobuf.cmake.rej
+diff -ru ./cmake/re2.cmake ../grpc-src/cmake/re2.cmake
+--- ./cmake/re2.cmake	2023-06-06 01:07:24.458349739 +0000
++++ ../grpc-src/cmake/re2.cmake	2023-06-06 01:07:58.378293864 +0000
+@@ -25,7 +25,6 @@
+     option(BUILD_TESTING "re2.cmake explicitly disabled CTest's BUILD_TESTING option." OFF)
+ 
+     include_directories("${RE2_ROOT_DIR}")
+-    add_subdirectory(${RE2_ROOT_DIR} third_party/re2)
+ 
+     if(TARGET re2)
+       set(_gRPC_RE2_LIBRARIES re2)
+Only in ../grpc-src/cmake: re2.cmake.rej

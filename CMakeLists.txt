@@ -4,24 +4,36 @@ project(cost_effective_queue)
 set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_FLAGS_ASAN "-g -O1 -fsanitize=address -fno-omit-frame-pointer") 
-set(CMAKE_CXX_FLAGS_TSAN "-g -O1 -fsanitize=thread -fno-omit-frame-pointer") 
+set(CMAKE_CXX_FLAGS_ASAN "${CMAKE_CXX_FLAGS_ASAN} -g -O1 -fsanitize=address -fno-omit-frame-pointer") 
+set(CMAKE_CXX_FLAGS_TSAN "${CMAKE_CXX_FLAGS_TSAN} -g -O1 -fsanitize=thread -fno-omit-frame-pointer") 
+
+set(DEFAULT_LOG_LEVEL INFO)
+if (${CMAKE_BUILD_TYPE} STREQUAL "Fuzz")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+  set(MORF_FUZZ_TEST ON)
+  set(FUZZTEST_FUZZING_MODE ON)
+  set(FUZZTEST_TESTING ON)
+  set(DEFAULT_LOG_LEVEL OFF)
+endif()
+
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.24")
+  cmake_policy(SET CMP0135 NEW)
+endif()
 
 # For clangd to work
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# For GTest discovery
-include(GoogleTest)
-
-include(cmake/third_party.cmake)
+include(third_party/third_party.cmake)
 include(cmake/code_generation.cmake)
 
+# For GTest discovery
+include(GoogleTest)
 enable_testing()
 
-set(LOG_LEVEL INFO CACHE STRING "Set the logging level")
+set(LOG_LEVEL ${DEFAULT_LOG_LEVEL} CACHE STRING "Set the logging level")
 set_property(CACHE LOG_LEVEL PROPERTY STRINGS INFO ERROR CRITICAL OFF)
 
-option(MORF_PRECOMPILE "Compile only third party" OFF)
+option(MORF_PRECOMPILE   "Compile only third party" OFF)
 option(MORF_BUILD_STATIC "Build static executables" OFF)
 
 if (MORF_BUILD_STATIC) 
