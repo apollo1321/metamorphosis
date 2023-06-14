@@ -20,7 +20,11 @@ namespace ceq::raft::test {
 
 using rt::Duration;
 
-struct Sleep {
+struct SleepAction {
+  SleepAction() noexcept = default;
+  explicit SleepAction(Duration duration) noexcept : duration{duration} {
+  }
+
   Duration duration{};
 };
 
@@ -32,6 +36,10 @@ struct HostAction {
     Start,
   };
 
+  HostAction() noexcept = default;
+  HostAction(size_t host_id, Type type) noexcept : host_id{host_id}, type{type} {
+  }
+
   size_t host_id{};
   Type type{};
 };
@@ -42,13 +50,17 @@ struct NetworkAction {
     Restore,
   };
 
+  NetworkAction() noexcept = default;
+  NetworkAction(size_t from, size_t to, Type type) noexcept : from{from}, to{to}, type{type} {
+  }
+
   size_t from{};
   size_t to{};
 
   Type type{};
 };
 
-using Action = std::variant<Sleep, HostAction, NetworkAction>;
+using Action = std::variant<SleepAction, HostAction, NetworkAction>;
 
 struct ClientConfig {
   raft::RaftClient::Config raft_config;
@@ -79,8 +91,8 @@ struct Advisory final : public rt::sim::IHostRunnable {
 
   void Main() noexcept override {
     for (const auto& action_var : actions) {
-      if (std::holds_alternative<Sleep>(action_var)) {
-        rt::SleepFor(std::get<Sleep>(action_var).duration);
+      if (std::holds_alternative<SleepAction>(action_var)) {
+        rt::SleepFor(std::get<SleepAction>(action_var).duration);
       } else if (std::holds_alternative<HostAction>(action_var)) {
         const auto& action = std::get<HostAction>(action_var);
         const auto& address = hosts[action.host_id];
@@ -119,7 +131,7 @@ struct Advisory final : public rt::sim::IHostRunnable {
   std::vector<Action> actions;
 };
 
-size_t ind = 0;
+static size_t ind = 0;
 
 void RunRaftTest(TestConfig config, std::vector<Action> actions) noexcept {
   std::vector<ceq::rt::Address> raft_addresses;
@@ -277,7 +289,7 @@ auto TestConfigDomain() noexcept {
 
 auto HostActionDomain() noexcept {
   using Type = test::HostAction::Type;
-  return StructOf<test::HostAction>(                                         //
+  return ConstructorOf<test::HostAction>(                                    //
       Arbitrary<size_t>(),                                                   // host_id
       ElementOf<Type>({Type::Start, Type::Pause, Type::Resume, Type::Kill})  // type
   );
@@ -285,7 +297,7 @@ auto HostActionDomain() noexcept {
 
 auto NetworkActionDomain() noexcept {
   using Type = test::NetworkAction::Type;
-  return StructOf<test::NetworkAction>(             //
+  return ConstructorOf<test::NetworkAction>(        //
       Arbitrary<size_t>(),                          // from
       Arbitrary<size_t>(),                          // to
       ElementOf<Type>({Type::Drop, Type::Restore})  // type
@@ -293,10 +305,10 @@ auto NetworkActionDomain() noexcept {
 }
 
 auto ActionDomain() noexcept {
-  return VariantOf(                                         //
-      StructOf<test::Sleep>(DurationDomain({0ms, 100ms})),  //
-      HostActionDomain(),                                   //
-      NetworkActionDomain()                                 //
+  return VariantOf(                                                    //
+      ConstructorOf<test::SleepAction>(DurationDomain({0ms, 100ms})),  //
+      HostActionDomain(),                                              //
+      NetworkActionDomain()                                            //
   );
 }
 

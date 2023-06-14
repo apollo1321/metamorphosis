@@ -16,5 +16,5 @@ target_link_libraries(ceq_logging_state_machine
 )
 
 target_compile_definitions(ceq_logging_state_machine PUBLIC
-  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${LOG_LEVEL}
+  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${MORF_LOG_LEVEL}
 )

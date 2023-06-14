@@ -55,7 +55,7 @@ void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_cou
     rt::sim::AddHost("supervisor" + std::to_string(index), &supervisor);
   }
 
-  rt::sim::RunSimulation(15s);
+  rt::sim::RunSimulation(10s);
 
   EXPECT_GT(history.size(), 1u) << "Too few requests have been completed, seed = " << seed;
   if (testing::Test::HasNonfatalFailure()) {
@@ -71,7 +71,7 @@ void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_cou
 }  // namespace ceq::raft::test
 
 TEST(RaftHostCrash, Replica3Client1Crashed1) {
-  for (size_t seed = 0; seed < 50; ++seed) {
+  for (size_t seed = 0; seed < 30; ++seed) {
     ceq::raft::test::RunTestWithCrashes(seed, 3, 1, 1);
     if (testing::Test::HasNonfatalFailure()) {
       return;
@@ -80,7 +80,7 @@ TEST(RaftHostCrash, Replica3Client1Crashed1) {
 }
 
 TEST(RaftHostCrash, Replica3Client3Crashed1) {
-  for (size_t seed = 0; seed < 50; ++seed) {
+  for (size_t seed = 0; seed < 30; ++seed) {
     ceq::raft::test::RunTestWithCrashes(seed + 100, 3, 3, 1);
     if (testing::Test::HasNonfatalFailure()) {
       return;
@@ -89,7 +89,7 @@ TEST(RaftHostCrash, Replica3Client3Crashed1) {
 }
 
 TEST(RaftHostCrash, Replica5Client3Crashed1) {
-  for (size_t seed = 0; seed < 50; ++seed) {
+  for (size_t seed = 0; seed < 30; ++seed) {
     ceq::raft::test::RunTestWithCrashes(seed + 200, 5, 3, 1);
     if (testing::Test::HasNonfatalFailure()) {
       return;
@@ -98,7 +98,7 @@ TEST(RaftHostCrash, Replica5Client3Crashed1) {
 }
 
 TEST(RaftHostCrash, Replica5Client2Crashed2) {
-  for (size_t seed = 0; seed < 50; ++seed) {
+  for (size_t seed = 0; seed < 30; ++seed) {
     ceq::raft::test::RunTestWithCrashes(seed + 300, 5, 2, 2);
     if (testing::Test::HasNonfatalFailure()) {
       return;

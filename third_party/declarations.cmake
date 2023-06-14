@@ -16,6 +16,7 @@ if (MORF_FUZZ_TEST)
     fuzztest
     URL https://github.com/google/fuzztest/archive/4825da056b52636ebe895fa365b84036882efa8a.tar.gz
     URL_HASH MD5=38c902614e62abe1d1011834df7a8baa
+    PATCH_COMMAND patch -p0 -s < ${CMAKE_CURRENT_LIST_DIR}/patches/fuzztest.patch
   )
 endif()
 
@@ -23,6 +24,7 @@ FetchContent_Declare(
   protobuf
   URL https://github.com/protocolbuffers/protobuf/archive/refs/tags/v22.2.tar.gz
   URL_HASH MD5=6d8cd8470fd1ee1eacb6c12cade820e2
+  PATCH_COMMAND patch -p0 -s < ${CMAKE_CURRENT_LIST_DIR}/patches/protobuf.patch
 )
 
 FetchContent_Declare(

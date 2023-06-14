@@ -58,14 +58,16 @@ void World::RunSimulation(Duration duration, size_t iteration_count) noexcept {
     boost::this_fiber::yield();
   }
 
-  FlushAllLogs();
-  current_time_ = Timestamp(static_cast<Duration>(0));
-  events_queue_.clear();
   for (auto& [addr, host] : hosts_) {
-    host.release();
+    host->KillHost();
+    host->ResumeHost();  // block all running fibers forever
   }
+  boost::this_fiber::yield();  // wait until all running fibers are blocked
+  FlushAllLogs();
   hosts_.clear();
+  events_queue_.clear();
   closed_links_.clear();
+  current_time_ = Timestamp(static_cast<Duration>(0));
   initialized_ = false;
 }
 

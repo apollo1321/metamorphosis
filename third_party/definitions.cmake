@@ -1,27 +1,20 @@
-# If fuzztest is used, it must be loaded first to set up appropriate compile 
-# flags
-
 set(ABSL_PROPAGATE_CXX_STD ON)
-set(RE2_BUILD_TESTING OFF)
+FetchContent_MakeAvailable(abseil-cpp)
+
+FetchContent_MakeAvailable(googletest)
 
 set(protobuf_BUILD_TESTS OFF)
 set(protobuf_INSTALL OFF)
 set(protobuf_WITH_ZLIB OFF)
-if (NOT MORF_FUZZ_TEST)
-  FetchContent_MakeAvailable(abseil-cpp)
-  FetchContent_MakeAvailable(googletest)
-  FetchContent_MakeAvailable(protobuf)
-else()
-  # fuzztest will make targets above available 
-  FetchContent_MakeAvailable(fuzztest)
+FetchContent_MakeAvailable(protobuf)
 
-  # Add compile flags for dependencies as well
-  fuzztest_setup_fuzzing_flags()
-endif()
-
-# ------------------------------------------------------------------------------
-
+set(RE2_BUILD_TESTING OFF)
 FetchContent_MakeAvailable(re2)
+
+if (MORF_FUZZ_TEST)
+  FetchContent_MakeAvailable(antlr_cpp)
+  FetchContent_MakeAvailable(fuzztest)
+endif()
 
 # ------------------------------------------------------------------------------
 
@@ -78,7 +71,6 @@ endif()
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   # Not working correctly for darwin
   if (${CMAKE_BUILD_TYPE} STREQUAL "Asan" OR 
-      ${CMAKE_BUILD_TYPE} STREQUAL "Fuzz" OR 
       ${CMAKE_BUILD_TYPE} STREQUAL "Tsan")
     # Use appropriate context for tsan/asan
     # ucontext is less performant than fcontext (which is set by default)

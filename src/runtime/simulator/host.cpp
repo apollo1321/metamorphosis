@@ -176,14 +176,6 @@ size_t Host::GetCurrentEpoch() const noexcept {
   return epoch_;
 }
 
-Host::~Host() {
-  KillHost();
-  if (paused_) {
-    ResumeHost();
-    boost::this_fiber::yield();  // Block all paused fibers forever
-  }
-}
-
 Host* GetCurrentHost() noexcept {
   VERIFY(boost::this_fiber::properties<RuntimeSimulationProps>().HostIsInitialized(),
          "current host is not initialized");

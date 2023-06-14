@@ -16,7 +16,7 @@ target_link_libraries(ceq_runtime_base INTERFACE
 )
 
 target_compile_definitions(ceq_runtime_base INTERFACE
-  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${LOG_LEVEL}
+  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${MORF_LOG_LEVEL}
 )
 
 # ------------------------------------------------------------------------------

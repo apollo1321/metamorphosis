@@ -26,7 +26,7 @@ class RuntimeSimulationProps : public boost::fibers::fiber_properties {
   size_t host_epoch_ = 0;
 };
 
-class RuntimeSimulationScheduler
+class RuntimeSimulationScheduler final
     : public boost::fibers::algo::algorithm_with_properties<RuntimeSimulationProps> {
  public:
   void awakened(boost::fibers::context* ctx, RuntimeSimulationProps& props) noexcept override;
@@ -44,8 +44,6 @@ class RuntimeSimulationScheduler
 
  private:
   boost::fibers::scheduler::ready_queue_type rqueue_;
-  bool flag_{false};
-
   Host* last_host_ = nullptr;
   size_t last_epoch_ = 0;
 };

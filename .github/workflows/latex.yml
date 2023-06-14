@@ -1,4 +1,4 @@
-name: Build Latex Presentation
+name: Build Latex Papers
 
 on:
   push:
@@ -17,13 +17,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Setup tectonic
-      uses: wtfjoke/setup-tectonic@v2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install Nix
+      uses: cachix/install-nix-action@v20
 
     - name: Run compilation
-      run: tectonic papers/presentation/presentation.tex
+      run: nix-shell ./nix/latex.nix --run "tectonic papers/presentation/presentation.tex"
 
     - name: Upload pdf
       uses: actions/upload-artifact@v3

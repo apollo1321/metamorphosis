@@ -47,8 +47,6 @@ class Host {
 
   void StopFiberIfNecessary() noexcept;
 
-  ~Host();
-
  public:
   std::map<std::string, db::HostDatabase> databases;
 
