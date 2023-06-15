@@ -1,0 +1,38 @@
+diff -ru ./src/google/protobuf/io/printer.cc ../protobuf-src/src/google/protobuf/io/printer.cc
+--- ./src/google/protobuf/io/printer.cc	2023-06-12 17:23:09.475044290 +0000
++++ ../protobuf-src/src/google/protobuf/io/printer.cc	2023-06-12 17:23:24.715086176 +0000
+@@ -272,6 +272,12 @@
+ 
+ constexpr absl::string_view Printer::kProtocCodegenTrace;
+ 
++Printer::Printer(ZeroCopyOutputStream* output) : Printer(output, Options{}) {}
++
++Printer::Printer(ZeroCopyOutputStream* output, char variable_delimiter,
++                 AnnotationCollector* annotation_collector)
++    : Printer(output, Options{variable_delimiter, annotation_collector}) {}
++
+ Printer::Printer(ZeroCopyOutputStream* output, Options options)
+     : sink_(output), options_(options) {
+   if (!options_.enable_codegen_trace.has_value()) {
+diff -ru ./src/google/protobuf/io/printer.h ../protobuf-src/src/google/protobuf/io/printer.h
+--- ./src/google/protobuf/io/printer.h	2023-06-12 17:23:09.475044290 +0000
++++ ../protobuf-src/src/google/protobuf/io/printer.h	2023-06-12 17:23:19.215071041 +0000
+@@ -518,7 +518,7 @@
+ 
+   // Constructs a new Printer with the default options to output to
+   // `output`.
+-  explicit Printer(ZeroCopyOutputStream* output) : Printer(output, Options{}) {}
++  explicit Printer(ZeroCopyOutputStream* output);
+ 
+   // Constructs a new printer with the given set of options to output to
+   // `output`.
+@@ -528,8 +528,7 @@
+   //
+   // Will eventually be marked as deprecated.
+   Printer(ZeroCopyOutputStream* output, char variable_delimiter,
+-          AnnotationCollector* annotation_collector = nullptr)
+-      : Printer(output, Options{variable_delimiter, annotation_collector}) {}
++          AnnotationCollector* annotation_collector = nullptr);
+ 
+   Printer(const Printer&) = delete;
+   Printer& operator=(const Printer&) = delete;

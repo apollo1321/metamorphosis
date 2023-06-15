@@ -27,7 +27,7 @@ class World {
 
   void SleepUntil(Timestamp wake_up_time, StopToken stop_token = StopToken{}) noexcept;
 
-  void RunSimulation(Duration duration) noexcept;
+  void RunSimulation(Duration duration, size_t iteration_count) noexcept;
 
   Result<rpc::SerializedData, rpc::RpcError> MakeRequest(Address from, Endpoint endpoint,
                                                          rpc::SerializedData data,

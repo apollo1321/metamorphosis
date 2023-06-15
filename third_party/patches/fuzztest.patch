@@ -1,0 +1,23 @@
+diff -ru ./CMakeLists.txt ../fuzztest-src/CMakeLists.txt
+--- ./CMakeLists.txt	2023-06-12 12:41:09.853651247 +0000
++++ ../fuzztest-src/CMakeLists.txt	2023-06-12 12:41:20.557666416 +0000
+@@ -32,9 +32,6 @@
+ 
+ include(cmake/AddFuzzTest.cmake)
+ include(cmake/FuzzTestFlagSetup.cmake)
+-
+-fuzztest_setup_fuzzing_flags()
+-
+ include(cmake/BuildDependencies.cmake)
+ 
+ include_directories(${re2_SOURCE_DIR})
+diff -ru ./fuzztest/fuzztest_gtest_main.cc ../fuzztest-src/fuzztest/fuzztest_gtest_main.cc
+--- ./fuzztest/fuzztest_gtest_main.cc	2023-06-12 12:41:09.905651320 +0000
++++ ../fuzztest-src/fuzztest/fuzztest_gtest_main.cc	2023-06-12 12:42:32.289777052 +0000
+@@ -73,5 +73,5 @@
+     GOOGLEFUZZTEST_REGISTER_FOR_GOOGLETEST(fuzztest::RunMode::kUnitTest, &argc,
+                                            &argv);
+   }
+-  return RUN_ALL_TESTS();
++  _Exit(RUN_ALL_TESTS()); // Memory leak is expected
+ }

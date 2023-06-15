@@ -1,67 +1,105 @@
-name: Tests
+name: Run tests
 
 on:
   push:
     branches: [ "main" ]
-    paths-ignore: 
+    paths-ignore:
       - "papers/**"
       - "doc/**"
       - "README.md"
   pull_request:
     branches: [ "main" ]
-    paths-ignore: 
+    paths-ignore:
       - "papers/**"
       - "doc/**"
       - "README.md"
 
 jobs:
   test:
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04]
-        compiler: [clang, gcc]
         build_type: [Asan, Tsan, Release]
-        exclude:
-          - compiler: gcc
-            build_type: Tsan
-    runs-on: ${{ matrix.os }}
+
     steps:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Install Clang
-      if: ${{ matrix.compiler == 'clang' }}
-      uses: egor-tensin/setup-clang@v1.4
+    - name: Install Nix
+      uses: cachix/install-nix-action@v20
 
-    - name: Install GCC
-      if: ${{ matrix.compiler == 'gcc' }}
-      uses: egor-tensin/setup-gcc@v1.3
-      with:
-        version: 11
-
-    - name: Setup Ninja
-      uses: ashutoshvarma/setup-ninja@v1.1
-
-    - name: Restore Cache
+    - name: Restore Build
       uses: actions/cache/restore@v3
       with:
-        path: ${{ github.workspace }}/build-${{ matrix.build_type }}
-        key: ${{ github.job }}-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
+        path: ${{ github.workspace }}/build
+        key: build-${{ matrix.build_type }}
 
     - name: Configure CMake
-      run: cmake -B ${{ github.workspace }}/build-${{ matrix.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DPORTABLE=1 -GNinja
+      run: nix-shell --run "cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -GNinja"
 
     - name: Build
-      run: cmake --build ${{ github.workspace }}/build-${{ matrix.build_type }} --target src/all
+      run: nix-shell --run "cmake --build build --target src/all"
 
-    - name: Save Cache
+    - name: Save Build
       uses: actions/cache/save@v3
       if: always()
       with:
-        path: ${{github.workspace}}/build-${{ matrix.build_type }}
-        key: ${{ github.job }}-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
+        path: ${{ github.workspace }}/build
+        key: build-${{ matrix.build_type }}
 
-    - name: Test
-      working-directory: ${{github.workspace}}/build-${{ matrix.build_type }}
-      run: TSAN_OPTIONS=report_atomic_races=0 ctest --output-on-failure
+    - name: Run Tests
+      run: nix-shell --run "cd build/src && TSAN_OPTIONS=report_atomic_races=0 ctest --output-on-failure"
+
+  fuzz_test:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Asan, Release]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v20
+
+    - name: Restore Build
+      uses: actions/cache/restore@v3
+      with:
+        path: ${{ github.workspace }}/build
+        key: build-fuzz-${{ matrix.build_type }}
+
+    - name: Configure CMake
+      run: nix-shell --run "cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DMORF_FUZZ_TEST=ON -GNinja"
+
+    - name: Build
+      run: nix-shell --run "cmake --build build --target ceq_test_raft_fuzztest"
+
+    - name: Save Build
+      uses: actions/cache/save@v3
+      if: always()
+      with:
+        path: ${{ github.workspace }}/build
+        key: build-fuzz-${{ matrix.build_type }}
+
+    - name: Run Asan Fuzz Tests
+      if: ${{ matrix.build_type == 'Asan' }}
+      run: nix-shell --run "./build/src/raft/test/simulation_test/ceq_test_raft_fuzztest --fuzz_for 20s --fuzz=RaftFuzzTest.RaftTestWrapper"
+
+    - name: Run Release Fuzz Tests
+      if: ${{ matrix.build_type == 'Release' }}
+      run: nix-shell --run "./build/src/raft/test/simulation_test/ceq_test_raft_fuzztest --fuzz_for 100s --fuzz=RaftFuzzTest.RaftTestWrapper"
+
+  system_test:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v20
+
+    - name: Start system test
+      run: nix-shell ./nix/test.nix --run "python3 src/raft/test/system_test/system_test.py"

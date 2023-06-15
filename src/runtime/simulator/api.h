@@ -39,9 +39,9 @@ struct HostOptions {
 struct WorldOptions {
   double network_error_proba = 0.;
 
-  Interval delivery_time;
+  Interval delivery_time{};
 
-  Interval long_delivery_time;
+  Interval long_delivery_time{};
   double long_delivery_time_proba = 0.;
 };
 
@@ -50,7 +50,8 @@ void InitWorld(uint64_t seed, WorldOptions options = WorldOptions{}) noexcept;
 void AddHost(const Address& address, IHostRunnable* server_main,
              const HostOptions& options = HostOptions{}) noexcept;
 
-void RunSimulation(Duration duration = Duration::max()) noexcept;
+void RunSimulation(Duration duration = Duration::max(),
+                   size_t iteration_count = std::numeric_limits<size_t>::max()) noexcept;
 
 ////////////////////////////////////////////////////////////
 // Helper functions for tests

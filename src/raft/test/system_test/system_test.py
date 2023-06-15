@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
-import docker
 import argparse
-import subprocess
+import docker
 import logging
-import time
+import pathlib
 import random
+import time
 
 DOCKER_IMAGE_TAG = "morf-raft-exe"
 DOCKER_NETWORK_NAME = "morf-raft-net"
@@ -98,27 +98,46 @@ def write_containers_logs(nodes, iteration, logs_dir, test_name):
             f.write(text)
 
 
-def check_history(raft_clients, checker, minimum_successes):
+def check_history(client: docker.DockerClient, raft_clients, minimum_successes):
     history = b""
     for node in raft_clients:
         history += node.logs()
-    result = subprocess.run(checker, input=history, capture_output=True)
 
-    successes = int(result.stdout.splitlines()[0].split()[1])
+    container = client.api.create_container(
+        DOCKER_IMAGE_TAG,
+        "./ceq_history_checker_exe",
+        name="history_checker",
+        labels=[DOCKER_CONTAINER_LABEL],
+        stdin_open=True,
+    )
+
+    sock = client.api.attach_socket(
+        container, params={"stdin": 1, "stdout": 1, "stderr": 1, "stream": 1})
+    client.api.start(container)
+
+    sock._sock.send(history)
+    sock._sock.close()
+    sock.close()
+
+    status = client.api.wait(container)
+    retcode = status['StatusCode']
+    output = client.api.logs(container)
+
+    successes = int(output.splitlines()[0].split()[1])
     logging.info("Successes: {}".format(successes))
 
-    second_line = result.stdout.splitlines()[1]
+    second_line = output.splitlines()[1]
     if second_line.startswith(b"Fail"):
         raise RuntimeError("Linearizability check failed: {}".format(second_line))
 
     if successes < minimum_successes:
         raise RuntimeError("Too few requests have succeeded")
 
-    result.check_returncode()
+    if retcode != 0:
+        raise RuntimeError("Non-zero retcode")
 
 
 def run_simple_test(client: docker.DockerClient,
-                    checker,
                     iteration,
                     logs_dir,
                     node_count,
@@ -152,11 +171,10 @@ def run_simple_test(client: docker.DockerClient,
                           logs_dir, test_name)
 
     logging.info("Check client history")
-    check_history(raft_clients, checker, 50)
+    check_history(client, raft_clients, 50)
 
 
 def run_crash_test(client: docker.DockerClient,
-                   checker,
                    iteration,
                    logs_dir,
                    node_count,
@@ -223,7 +241,7 @@ def run_crash_test(client: docker.DockerClient,
                           logs_dir, test_name)
 
     logging.info("Check client history")
-    check_history(raft_clients, checker, 20)
+    check_history(client, raft_clients, 20)
 
 
 def main():
@@ -231,9 +249,6 @@ def main():
                         datefmt="[%H:%M:%S]", level=logging.INFO)
 
     parser = argparse.ArgumentParser(description="Raft system tests")
-
-    parser.add_argument("docker_dir", help="path to directory with dockerfile")
-    parser.add_argument("checker", help="path to history checker executable")
 
     parser.add_argument("--logs-dir", help="path to directory to store logs")
     parser.add_argument("--iterations", default=1, help="test iterations count", type=int)
@@ -246,22 +261,24 @@ def main():
 
     clear_test_environment(client)
 
+    root_dir = pathlib.Path(__file__ + "/../../../../../").resolve()
+
     logging.info("Building image {}".format(DOCKER_IMAGE_TAG))
-    build_docker_image(client, args.docker_dir)
+    build_docker_image(client, str(root_dir))
 
     try:
         for iteration in range(args.iterations):
-            run_simple_test(client, args.checker, iteration,
-                            args.logs_dir, node_count=3, client_count=2)
-            run_simple_test(client, args.checker, iteration,
-                            args.logs_dir, node_count=2, client_count=3)
-            run_simple_test(client, args.checker, iteration,
-                            args.logs_dir, node_count=5, client_count=6)
+            run_simple_test(client, iteration, args.logs_dir,
+                            node_count=3, client_count=2)
+            run_simple_test(client, iteration, args.logs_dir,
+                            node_count=2, client_count=3)
+            run_simple_test(client, iteration, args.logs_dir,
+                            node_count=5, client_count=6)
 
-            run_crash_test(client, args.checker, iteration,
-                           args.logs_dir, node_count=3, client_count=2)
-            run_crash_test(client, args.checker, iteration,
-                           args.logs_dir, node_count=3, client_count=5)
+            run_crash_test(client, iteration, args.logs_dir,
+                           node_count=3, client_count=2)
+            run_crash_test(client, iteration, args.logs_dir,
+                           node_count=3, client_count=5)
     finally:
         clear_test_environment(client)
 

@@ -19,7 +19,7 @@ using namespace ceq::rt;  // NOLINT
 class EchoService final : public rpc::EchoServiceStub {
   Result<EchoReply, rpc::RpcError> SayHello(const EchoRequest& request) noexcept override {
     EchoReply reply;
-    reply.set_message("Hello from async server " + request.name());
+    reply.set_message(request.name());
     return ceq::Ok(reply);
   }
 };
@@ -47,9 +47,10 @@ void BenchEchoService(ClientConfig client_config, uint16_t port) {
   std::atomic<bool> running{true};
   std::atomic<size_t> count{};
 
-  rpc::EchoServiceClient client(Endpoint{"127.0.0.1:", port});
+  rpc::EchoServiceClient client(Endpoint{"[::]", port});
 
   std::vector<std::thread> threads;
+  boost::fibers::barrier barrier(client_config.thread_count + 1);
   for (size_t thread_id = 0; thread_id < client_config.thread_count; ++thread_id) {
     threads.emplace_back([&, thread_id]() {
       std::vector<boost::fibers::fiber> fibers;
@@ -59,7 +60,8 @@ void BenchEchoService(ClientConfig client_config, uint16_t port) {
           while (running) {
             EchoRequest request;
             request.set_name(std::to_string(thread_id) + ":" + std::to_string(fiber_id));
-            client.SayHello(request).GetValue().message();
+            VERIFY(client.SayHello(request).GetValue().message() == request.name(),
+                   "invalid response");
             count.fetch_add(1);
           }
         });
@@ -68,22 +70,28 @@ void BenchEchoService(ClientConfig client_config, uint16_t port) {
       for (auto& fiber : fibers) {
         fiber.join();
       }
+
+      barrier.wait();
     });
   }
 
   std::cout << "Warmup (5s)\n";
-  std::this_thread::sleep_for(5s);  // Warm up
+  SleepFor(5s);
 
   std::cout << "Benchmarking (5s)\n";
   count = 0;
   auto start_time = std::chrono::steady_clock::now();
-  std::this_thread::sleep_for(5s);
+  SleepFor(5s);
   auto end_time = std::chrono::steady_clock::now();
   size_t count_result = count;
+
+  std::chrono::duration<double> duration = end_time - start_time;
+  std::cout << "RPS: " << count_result / duration.count() << "\n\n";
 
   std::cout << "Stoping clients\n";
 
   running = false;
+  barrier.wait();
 
   for (auto& thread : threads) {
     thread.join();
@@ -92,9 +100,6 @@ void BenchEchoService(ClientConfig client_config, uint16_t port) {
   std::cout << "Stoping server\n";
   server.ShutDown();
   worker.join();
-
-  std::chrono::duration<double> duration = end_time - start_time;
-  std::cout << "RPS: " << count_result / duration.count() << "\n\n";
 }
 
 int main(int argc, char** argv) {

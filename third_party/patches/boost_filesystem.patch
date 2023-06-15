@@ -1,0 +1,12 @@
+diff -ru ./src/operations.cpp ../boost-filesystem-src/src/operations.cpp
+--- ./src/operations.cpp	2023-06-06 01:47:49.735954190 +0000
++++ ../boost-filesystem-src/src/operations.cpp	2023-06-06 01:48:00.895992062 +0000
+@@ -70,7 +70,7 @@
+ 
+ #include <unistd.h>
+ #include <fcntl.h>
+-#if _POSIX_C_SOURCE < 200809L
++#if _POSIX_C_SOURCE <= 200809L
+ #include <utime.h>
+ #endif
+ #include <limits.h>
