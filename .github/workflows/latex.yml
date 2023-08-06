@@ -20,11 +20,20 @@ jobs:
     - name: Install Nix
       uses: cachix/install-nix-action@v20
 
-    - name: Run compilation
-      run: nix-shell ./nix/latex.nix --run "tectonic papers/presentation/presentation.tex"
+    - name: Run presentation compilation
+      run: nix-shell ./nix/latex.nix --pure --run "tectonic papers/presentation/presentation.tex"
 
-    - name: Upload pdf
+    - name: Run thesis compilation
+      run: nix-shell ./nix/latex.nix --pure --run "tectonic -X compile -Z shell-escape papers/thesis/thesis.tex"
+
+    - name: Upload presentation pdf
       uses: actions/upload-artifact@v3
       with:
         name: presentation
         path: papers/presentation/presentation.pdf
+
+    - name: Upload thesis pdf
+      uses: actions/upload-artifact@v3
+      with:
+        name: presentation
+        path: papers/thesis/thesis.pdf

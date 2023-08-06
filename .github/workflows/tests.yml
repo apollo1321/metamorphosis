@@ -36,10 +36,10 @@ jobs:
         key: build-${{ matrix.build_type }}
 
     - name: Configure CMake
-      run: nix-shell --run "cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -GNinja"
+      run: nix-shell --pure --run "cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -GNinja"
 
     - name: Build
-      run: nix-shell --run "cmake --build build --target src/all"
+      run: nix-shell --pure --run "cmake --build build --target src/all"
 
     - name: Save Build
       uses: actions/cache/save@v3
@@ -49,7 +49,7 @@ jobs:
         key: build-${{ matrix.build_type }}
 
     - name: Run Tests
-      run: nix-shell --run "cd build/src && TSAN_OPTIONS=report_atomic_races=0 ctest --output-on-failure"
+      run: nix-shell --pure --run "cd build/src && TSAN_OPTIONS=report_atomic_races=0 ctest --output-on-failure"
 
   fuzz_test:
     runs-on: ubuntu-22.04
@@ -72,10 +72,10 @@ jobs:
         key: build-fuzz-${{ matrix.build_type }}
 
     - name: Configure CMake
-      run: nix-shell --run "cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DMORF_FUZZ_TEST=ON -GNinja"
+      run: nix-shell --pure --run "cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DMORF_FUZZ_TEST=ON -GNinja"
 
     - name: Build
-      run: nix-shell --run "cmake --build build --target ceq_test_raft_fuzztest"
+      run: nix-shell --pure --run "cmake --build build --target ceq_test_raft_fuzztest"
 
     - name: Save Build
       uses: actions/cache/save@v3
@@ -86,11 +86,11 @@ jobs:
 
     - name: Run Asan Fuzz Tests
       if: ${{ matrix.build_type == 'Asan' }}
-      run: nix-shell --run "./build/src/raft/test/simulation_test/ceq_test_raft_fuzztest --fuzz_for 20s --fuzz=RaftFuzzTest.RaftTestWrapper"
+      run: nix-shell --pure --run "./build/src/raft/test/simulation_test/ceq_test_raft_fuzztest --fuzz_for 20s --fuzz=RaftFuzzTest.RaftTestWrapper"
 
     - name: Run Release Fuzz Tests
       if: ${{ matrix.build_type == 'Release' }}
-      run: nix-shell --run "./build/src/raft/test/simulation_test/ceq_test_raft_fuzztest --fuzz_for 100s --fuzz=RaftFuzzTest.RaftTestWrapper"
+      run: nix-shell --pure --run "./build/src/raft/test/simulation_test/ceq_test_raft_fuzztest --fuzz_for 100s --fuzz=RaftFuzzTest.RaftTestWrapper"
 
   system_test:
     runs-on: ubuntu-22.04
@@ -102,4 +102,4 @@ jobs:
       uses: cachix/install-nix-action@v20
 
     - name: Start system test
-      run: nix-shell ./nix/test.nix --run "python3 src/raft/test/system_test/system_test.py"
+      run: nix-shell ./nix/test.nix --pure --run "python3 src/raft/test/system_test/system_test.py"

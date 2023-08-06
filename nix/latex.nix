@@ -1,10 +1,12 @@
 let
-  pkgs = import ./source.nix;
+  pkgs = (import ./source.nix).latexPkgs;
 in
-  with pkgs;
-  mkShell {
-    name = "LaTeX environment";
-    packages = [ 
-      tectonic
-    ];
-  }
+pkgs.mkShell
+{
+  name = "LaTeX environment";
+  packages = [
+    pkgs.python311Packages.pygments
+    pkgs.which
+    pkgs.tectonic
+  ];
+}
