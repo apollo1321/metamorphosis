@@ -13,7 +13,7 @@ RUN nix-shell ./nix/build_static.nix --run "cmake -B build -DCMAKE_BUILD_TYPE=Re
 RUN nix-shell ./nix/build_static.nix --run "cmake --build build --target morf_precompile"
 
 COPY src src
-RUN nix-shell ./nix/build_static.nix --run "cmake -B build -DMORF_PRECOMPILE=OFF"
+RUN nix-shell ./nix/build_static.nix --run "cmake -B build -DMORF_PRECOMPILE=OFF -DMORF_LOG_LEVEL=DEBUG"
 RUN nix-shell ./nix/build_static.nix --run "cmake --build build --target ceq_raft_test_client ceq_raft_test_node ceq_history_checker_exe"
 
 

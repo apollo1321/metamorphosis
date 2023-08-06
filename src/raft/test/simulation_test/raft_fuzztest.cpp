@@ -34,13 +34,13 @@ struct HostAction {
     Resume,
     Kill,
     Start,
+    Restart,
   };
 
   HostAction() noexcept = default;
-  HostAction(size_t host_id, Type type) noexcept : host_id{host_id}, type{type} {
+  explicit HostAction(Type type) noexcept : type{type} {
   }
 
-  size_t host_id{};
   Type type{};
 };
 
@@ -51,11 +51,8 @@ struct NetworkAction {
   };
 
   NetworkAction() noexcept = default;
-  NetworkAction(size_t from, size_t to, Type type) noexcept : from{from}, to{to}, type{type} {
+  explicit NetworkAction(Type type) noexcept : type{type} {
   }
-
-  size_t from{};
-  size_t to{};
 
   Type type{};
 };
@@ -89,39 +86,96 @@ struct Advisory final : public rt::sim::IHostRunnable {
       : hosts{hosts}, actions{actions} {
   }
 
+  template <class Container>
+  bool Transfer(Container& from, Container& to) {
+    if (from.empty()) {
+      return false;
+    }
+    size_t index = rt::GetRandomInt(0, from.size() - 1);
+    to.emplace_back(from[index]);
+    from.erase(from.begin() + index);
+    return true;
+  }
+
   void Main() noexcept override {
+    std::vector<rt::Address> killed_hosts;
+    std::vector<rt::Address> paused_hosts;
+    std::vector<rt::Address> running_hosts = hosts;
+
+    std::vector<std::pair<rt::Address, rt::Address>> alive_connections;
+    std::vector<std::pair<rt::Address, rt::Address>> dead_connections;
+
+    for (const auto& from : hosts) {
+      for (const auto& to : hosts) {
+        alive_connections.emplace_back(from, to);
+      }
+    }
+
     for (const auto& action_var : actions) {
       if (std::holds_alternative<SleepAction>(action_var)) {
-        rt::SleepFor(std::get<SleepAction>(action_var).duration);
+        auto duration = std::get<SleepAction>(action_var).duration;
+        LOG("Sleep for {}", rt::ToString(duration));
+        rt::SleepFor(duration);
       } else if (std::holds_alternative<HostAction>(action_var)) {
         const auto& action = std::get<HostAction>(action_var);
-        const auto& address = hosts[action.host_id];
         switch (action.type) {
-          case HostAction::Type::Pause:
-            rt::sim::PauseHost(address);
+          case HostAction::Type::Pause: {
+            if (Transfer(running_hosts, paused_hosts)) {
+              LOG("Pause {}", paused_hosts.back());
+              rt::sim::PauseHost(paused_hosts.back());
+            }
             break;
-          case HostAction::Type::Resume:
-            rt::sim::ResumeHost(address);
+          }
+          case HostAction::Type::Resume: {
+            if (Transfer(paused_hosts, running_hosts)) {
+              LOG("Resume {}", running_hosts.back());
+              rt::sim::ResumeHost(running_hosts.back());
+            }
             break;
-          case HostAction::Type::Kill:
-            rt::sim::KillHost(address);
+          }
+          case HostAction::Type::Kill: {
+            if (Transfer(running_hosts, killed_hosts)) {
+              LOG("Kill {}", killed_hosts.back());
+              rt::sim::KillHost(killed_hosts.back());
+            }
             break;
-          case HostAction::Type::Start:
-            rt::sim::StartHost(address);
+          }
+          case HostAction::Type::Start: {
+            if (Transfer(killed_hosts, running_hosts)) {
+              LOG("Start {}", running_hosts.back());
+              rt::sim::StartHost(running_hosts.back());
+            }
             break;
+          }
+          case HostAction::Type::Restart: {
+            if (!running_hosts.empty()) {
+              size_t index = rt::GetRandomInt(0, running_hosts.size() - 1);
+              rt::sim::KillHost(running_hosts[index]);
+              rt::sim::StartHost(running_hosts[index]);
+              LOG("Restart {}", running_hosts[index]);
+            }
+            break;
+          }
         }
       } else if (std::holds_alternative<NetworkAction>(action_var)) {
         const auto& action = std::get<NetworkAction>(action_var);
-        const auto& from = hosts[action.from];
-        const auto& to = hosts[action.to];
-
         switch (action.type) {
-          case NetworkAction::Type::Drop:
-            rt::sim::CloseLink(from, to);
+          case NetworkAction::Type::Drop: {
+            if (Transfer(alive_connections, dead_connections)) {
+              auto [from, to] = dead_connections.back();
+              LOG("Drop {} -> {}", from, to);
+              rt::sim::CloseLink(from, to);
+            }
             break;
-          case NetworkAction::Type::Restore:
-            rt::sim::RestoreLink(from, to);
+          }
+          case NetworkAction::Type::Restore: {
+            if (Transfer(dead_connections, alive_connections)) {
+              auto [from, to] = alive_connections.back();
+              LOG("Restore {} -> {}", from, to);
+              rt::sim::RestoreLink(from, to);
+            }
             break;
+          }
         }
       }
     }
@@ -173,24 +227,22 @@ void RunRaftTest(TestConfig config, std::vector<Action> actions) noexcept {
 
   std::vector<rt::Address> all_addresses;
   for (size_t index = 0; index < config.nodes_configs.size(); ++index) {
-    rt::sim::AddHost(raft_addresses[index], &raft_hosts[index]);
+    rt::sim::AddHost(raft_addresses[index], &raft_hosts[index],
+                     config.nodes_configs[index].host_config);
     all_addresses.emplace_back(raft_addresses[index]);
   }
   for (size_t index = 0; index < client_hosts.size(); ++index) {
-    rt::sim::AddHost(client_addresses[index], &client_hosts[index]);
+    rt::sim::AddHost(client_addresses[index], &client_hosts[index],
+                     config.clients_configs[index].host_config);
     all_addresses.emplace_back(client_addresses[index]);
   }
   Advisory advisory(std::move(all_addresses), actions);
   rt::sim::AddHost("adv", &advisory);
 
-  rt::sim::RunSimulation(config.simulation_duration, 400);
-
-  std::cerr << "[" << ind++ << "]: "                                 //
-            << "Nodes count = " << config.nodes_configs.size()       //
-            << "; Client count = " << config.clients_configs.size()  //
-            << "; Actions size = " << actions.size()                 //
-            << "; History size = " << history.size()                 //
-            << std::endl;
+  rt::sim::RunSimulation(config.simulation_duration, 800);
+  fmt::print(" {}: Nodes count = {}; Client count = {}; Actions size = {}; History size = {}\n",
+             ind++, config.nodes_configs.size(), config.clients_configs.size(), actions.size(),
+             history.size());
 
   auto check_result = CheckLinearizability(std::move(history));
   if (check_result.HasError()) {
@@ -205,17 +257,6 @@ using namespace ceq::raft;  // NOLINT
 using namespace fuzztest;   // NOLINT
 
 void RaftTestWrapper(test::TestConfig config, std::vector<test::Action> actions) {
-  const size_t total_hosts = config.nodes_configs.size() + config.clients_configs.size();
-  for (auto& action_var : actions) {
-    if (std::holds_alternative<test::HostAction>(action_var)) {
-      auto& action = std::get<test::HostAction>(action_var);
-      action.host_id = action.host_id % total_hosts;
-    } else if (std::holds_alternative<test::NetworkAction>(action_var)) {
-      auto& action = std::get<test::NetworkAction>(action_var);
-      action.from = action.from % total_hosts;
-      action.to = action.to % total_hosts;
-    }
-  }
   test::RunRaftTest(config, actions);
 }
 
@@ -235,7 +276,7 @@ auto HostOptionsDomain() noexcept {
   return StructOf<ceq::rt::sim::HostOptions>(         //
       IntervalDomain({0ms, 100ms}, {0ms, 100ms}),     // start_time
       PairOf(InRange(0.0, 0.05), InRange(0., 0.05)),  // drift_interval
-      DurationDomain({0ms, 5ms})                      // max_sleep_lag
+      DurationDomain({0ms, 10ms})                     // max_sleep_lag
   );
 }
 
@@ -244,16 +285,16 @@ auto WorldOptionsDomain() noexcept {
       InRange(0.0, 0.6),                           // network_error_proba
       IntervalDomain({1ms, 100ms}, {1ms, 300ms}),  // delivery_time
       IntervalDomain({1ms, 100ms}, {1ms, 500ms}),  // long_delivery_time
-      InRange(0.0, 0.1)                            // long_delivery_time_proba
+      InRange(0.0, 0.2)                            // long_delivery_time_proba
   );
 }
 
 auto RaftConfigDomain() noexcept {
-  return StructOf<test::NodeConfig>(                  //
-      IntervalDomain({50ms, 500ms}, {100ms, 500ms}),  // election_timeout
-      DurationDomain({50ms, 500ms}),                  // heart_beat_period
-      DurationDomain({500ms, 500ms}),                 // rpc_timeout
-      HostOptionsDomain()                             // host_config
+  return StructOf<test::NodeConfig>(               //
+      IntervalDomain({1ms, 500ms}, {1ms, 500ms}),  // election_timeout
+      DurationDomain({1ms, 500ms}),                // heart_beat_period
+      DurationDomain({1ms, 500ms}),                // rpc_timeout
+      HostOptionsDomain()                          // host_config
   );
 }
 
@@ -279,8 +320,8 @@ auto RaftConfigsDomain() noexcept {
 
 auto TestConfigDomain() noexcept {
   return StructOf<test::TestConfig>(  //
-      ElementOf({42}),                // seed
-      DurationDomain({10s, 10s}),     // simulation_duration
+      Arbitrary<size_t>(),            // seed
+      DurationDomain({20s, 20s}),     // simulation_duration
       WorldOptionsDomain(),           // world_config
       ClientsDomain(),                // clients_configs
       RaftConfigsDomain()             // nodes_configs
@@ -289,17 +330,14 @@ auto TestConfigDomain() noexcept {
 
 auto HostActionDomain() noexcept {
   using Type = test::HostAction::Type;
-  return ConstructorOf<test::HostAction>(                                    //
-      Arbitrary<size_t>(),                                                   // host_id
-      ElementOf<Type>({Type::Start, Type::Pause, Type::Resume, Type::Kill})  // type
+  return ConstructorOf<test::HostAction>(                                                   //
+      ElementOf<Type>({Type::Start, Type::Pause, Type::Resume, Type::Kill, Type::Restart})  // type
   );
 }
 
 auto NetworkActionDomain() noexcept {
   using Type = test::NetworkAction::Type;
   return ConstructorOf<test::NetworkAction>(        //
-      Arbitrary<size_t>(),                          // from
-      Arbitrary<size_t>(),                          // to
       ElementOf<Type>({Type::Drop, Type::Restore})  // type
   );
 }
@@ -313,4 +351,4 @@ auto ActionDomain() noexcept {
 }
 
 FUZZ_TEST(RaftFuzzTest, RaftTestWrapper)
-    .WithDomains(TestConfigDomain(), VectorOf(ActionDomain()).WithMaxSize(20));
+    .WithDomains(TestConfigDomain(), VectorOf(ActionDomain()).WithMinSize(2));

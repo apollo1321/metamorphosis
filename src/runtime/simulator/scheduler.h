@@ -1,8 +1,10 @@
 #pragma once
 
+#include "host.h"
+
 #include <boost/fiber/all.hpp>
 
-#include "host.h"
+#include <random>
 
 namespace ceq::rt::sim {
 
@@ -29,6 +31,8 @@ class RuntimeSimulationProps : public boost::fibers::fiber_properties {
 class RuntimeSimulationScheduler final
     : public boost::fibers::algo::algorithm_with_properties<RuntimeSimulationProps> {
  public:
+  explicit RuntimeSimulationScheduler(std::mt19937& generator) noexcept;
+
   void awakened(boost::fibers::context* ctx, RuntimeSimulationProps& props) noexcept override;
 
   boost::fibers::context* pick_next() noexcept override;
@@ -43,9 +47,12 @@ class RuntimeSimulationScheduler final
   void notify() noexcept override;
 
  private:
-  boost::fibers::scheduler::ready_queue_type rqueue_;
+  std::vector<boost::fibers::context*> ready_fibers_;
+  boost::fibers::context* main_fiber_ = nullptr;
   Host* last_host_ = nullptr;
   size_t last_epoch_ = 0;
+
+  std::mt19937& generator_;
 };
 
 }  // namespace ceq::rt::sim

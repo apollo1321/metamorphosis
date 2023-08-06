@@ -35,6 +35,10 @@ size_t RuntimeSimulationProps::GetCurrentEpoch() const noexcept {
   return host_epoch_;
 }
 
+RuntimeSimulationScheduler::RuntimeSimulationScheduler(std::mt19937& generator) noexcept
+    : generator_{generator} {
+}
+
 void RuntimeSimulationScheduler::awakened(boost::fibers::context* ctx,
                                           RuntimeSimulationProps& props) noexcept {
   if (!props.HostIsInitialized()) {
@@ -44,17 +48,25 @@ void RuntimeSimulationScheduler::awakened(boost::fibers::context* ctx,
              props.GetCurrentHost() == nullptr,
          "dispatching fiber has non-null current_host");
 
-  if (props.IsMainFiber() || rqueue_.empty()) {
-    rqueue_.insert(rqueue_.end(), *ctx);
+  if (props.IsMainFiber()) {
+    VERIFY(main_fiber_ == nullptr, "Main fiber is already awakened");
+    main_fiber_ = ctx;
   } else {
-    rqueue_.insert(std::prev(rqueue_.end()), *ctx);
+    ready_fibers_.emplace_back(ctx);
   }
 }
 
 boost::fibers::context* RuntimeSimulationScheduler::pick_next() noexcept {
-  VERIFY(!rqueue_.empty(), "unexpected schedule state (maybe some of fibers are not joined)");
-  boost::fibers::context* ctx(&rqueue_.front());
-  rqueue_.pop_front();
+  VERIFY(has_ready_fibers(), "unexpected schedule state (maybe some of fibers are not joined)");
+  boost::fibers::context* ctx = nullptr;
+  if (ready_fibers_.empty()) {
+    std::swap(main_fiber_, ctx);
+  } else {
+    size_t index = std::uniform_int_distribution<size_t>(0u, ready_fibers_.size() - 1)(generator_);
+    ctx = ready_fibers_[index];
+    ready_fibers_.erase(ready_fibers_.begin() + index);
+  }
+
   auto current_host = properties(ctx).GetCurrentHost();
   if (current_host != nullptr || properties(ctx).IsMainFiber()) {
     last_host_ = current_host;
@@ -64,7 +76,7 @@ boost::fibers::context* RuntimeSimulationScheduler::pick_next() noexcept {
 }
 
 bool RuntimeSimulationScheduler::has_ready_fibers() const noexcept {
-  return !rqueue_.empty();
+  return main_fiber_ || !ready_fibers_.empty();
 }
 
 void RuntimeSimulationScheduler::property_change(boost::fibers::context* ctx,

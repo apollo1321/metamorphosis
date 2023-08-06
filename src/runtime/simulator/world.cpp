@@ -10,9 +10,9 @@
 namespace ceq::rt::sim {
 
 void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
-  boost::fibers::use_scheduling_algorithm<RuntimeSimulationScheduler>();
   options_ = options;
   generator_ = std::mt19937(seed);
+  boost::fibers::use_scheduling_algorithm<RuntimeSimulationScheduler>(generator_);
   initialized_ = true;
 }
 
@@ -62,7 +62,10 @@ void World::RunSimulation(Duration duration, size_t iteration_count) noexcept {
     host->KillHost();
     host->ResumeHost();  // block all running fibers forever
   }
-  boost::this_fiber::yield();  // wait until all running fibers are blocked
+  // wait until all running fibers are blocked
+  while (boost::fibers::context::active()->get_scheduler()->has_ready_fibers()) {
+    boost::this_fiber::yield();
+  }
   FlushAllLogs();
   hosts_.clear();
   events_queue_.clear();

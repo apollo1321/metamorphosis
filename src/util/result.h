@@ -69,9 +69,15 @@ class [[nodiscard]] Result {
         requires(const Error& error) {
           { error.Message() } -> std::convertible_to<std::string>;
         };
+    constexpr bool kConvertibleToString =  //
+        requires(const Error& error) {
+          { error.Message() } -> std::convertible_to<std::string>;
+        };
 
     if constexpr (kHasErrorMessage) {
       VERIFY(HasValue(), "Result does not hold value: " + std::get<1>(data_).Message());
+    } else if constexpr (kConvertibleToString) {
+      VERIFY(HasValue(), "Result does not hold value: " + std::get<1>(data_));
     } else {
       VERIFY(HasValue(), "Result does not hold value");
     }

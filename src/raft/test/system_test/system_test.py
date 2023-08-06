@@ -268,17 +268,20 @@ def main():
 
     try:
         for iteration in range(args.iterations):
-            run_simple_test(client, iteration, args.logs_dir,
-                            node_count=3, client_count=2)
-            run_simple_test(client, iteration, args.logs_dir,
-                            node_count=2, client_count=3)
-            run_simple_test(client, iteration, args.logs_dir,
-                            node_count=5, client_count=6)
+            # run_simple_test(client, iteration, args.logs_dir,
+            #                 node_count=3, client_count=2)
+            # run_simple_test(client, iteration, args.logs_dir,
+            #                 node_count=2, client_count=3)
+            # run_simple_test(client, iteration, args.logs_dir,
+            #                 node_count=5, client_count=6)
 
-            run_crash_test(client, iteration, args.logs_dir,
-                           node_count=3, client_count=2)
-            run_crash_test(client, iteration, args.logs_dir,
-                           node_count=3, client_count=5)
+            # run_crash_test(client, iteration, args.logs_dir,
+            #                node_count=3, client_count=2)
+            # run_crash_test(client, iteration, args.logs_dir,
+            #                node_count=3, client_count=5)
+
+            run_simple_test(client, iteration, args.logs_dir,
+                            node_count=3, client_count=15)
     finally:
         clear_test_environment(client)
 
