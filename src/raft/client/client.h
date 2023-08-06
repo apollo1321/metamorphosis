@@ -45,7 +45,7 @@ class RaftClient {
   Result<ProtoOut, RaftClientError> Apply(const ProtoIn& command, const Config& config,
                                           rt::StopToken stop_token = {}) noexcept {
     using namespace rt::rpc;  // NOLINT
-    LOG("RAFT_CLIENT: start with command: {}", command);
+    LOG("RAFT_CLIENT: sending command: {}", command);
 
     return rt::proto::ToAny(command)
         .TransformError([](std::string&& error) {

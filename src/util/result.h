@@ -71,7 +71,7 @@ class [[nodiscard]] Result {
         };
     constexpr bool kConvertibleToString =  //
         requires(const Error& error) {
-          { error.Message() } -> std::convertible_to<std::string>;
+          { error } -> std::convertible_to<std::string>;
         };
 
     if constexpr (kHasErrorMessage) {

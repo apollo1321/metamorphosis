@@ -244,23 +244,23 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
 
     const uint64_t last_log_term = GetLastSavedLogTerm();
     if (last_log_term > request.last_log_term()) {
-      LOG_DBG("REQUEST_VOTE: dismiss: current last_log_term = {} > candidate last_log_term = {}",
+      LOG_DBG("REQUEST_VOTE: dismiss: (current last_log_term = {}) > (candidate last_log_term = {})",
               last_log_term, request.last_log_term());
       result.set_vote_granted(false);
     } else if (last_log_term == request.last_log_term()) {
-      LOG_DBG("REQUEST_VOTE: current last_log_term = {} == candidate last_log_term = {}",
+      LOG_DBG("REQUEST_VOTE: (current last_log_term = {}) == (candidate last_log_term = {})",
               last_log_term, request.last_log_term());
       if (GetSavedLogSize() <= request.last_log_index()) {
-        LOG_DBG("REQUEST_VOTE: accept: current log_size = {} <= candidate log_size {}",
+        LOG_DBG("REQUEST_VOTE: accept: (current log_size = {}) <= (candidate log_size = {})",
                 GetSavedLogSize(), request.last_log_index());
         result.set_vote_granted(true);
       } else {
-        LOG_DBG("REQUEST_VOTE: dismiss: current log_size = {} > candidate log_size {}",
+        LOG_DBG("REQUEST_VOTE: dismiss: (current log_size = {}) > (candidate log_size {})",
                 GetSavedLogSize(), request.last_log_index());
         result.set_vote_granted(false);
       }
     } else {
-      LOG_DBG("REQUEST_VOTE: accept: current last_log_term = {} < candidate last_log_term = {}",
+      LOG_DBG("REQUEST_VOTE: accept: (current last_log_term = {}) < (candidate last_log_term = {})",
               last_log_term, request.last_log_term());
       result.set_vote_granted(true);
     }
@@ -423,7 +423,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
       }
 
       if (result.HasError()) {
-        LOG_ERR("LEADER[{}]: AppendEntries end with error: {}", node_id,
+        LOG_ERR("LEADER[{}]: AppendEntries RPC has failed with error: {}", node_id,
                 result.GetError().Message());
         request_timeout.join();  // Sleep for some time
         continue;
@@ -689,6 +689,9 @@ std::string ToString(const std::vector<rt::Endpoint>& nodes) {
   std::string result;
   for (const auto& node : nodes) {
     result += node.ToString() + " ";
+  }
+  if (!result.empty()) {
+    result.pop_back();
   }
   return result;
 }

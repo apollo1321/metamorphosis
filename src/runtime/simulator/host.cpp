@@ -44,7 +44,6 @@ bool Host::SleepUntil(Timestamp local_time, StopToken stop_token) noexcept {
 }
 
 void Host::RunMain() noexcept {
-  boost::this_fiber::properties<RuntimeSimulationProps>().SetCurrentHost(this, epoch_);
   if (epoch_ == 0) {
     SleepUntil(start_time_, StopToken{});
   }
@@ -169,6 +168,7 @@ void Host::StartHost() noexcept {
   main_fiber_ = boost::fibers::fiber{[this]() {
     RunMain();
   }};
+  main_fiber_.properties<RuntimeSimulationProps>().SetCurrentHost(this, epoch_);
   boost::this_fiber::yield();
 }
 

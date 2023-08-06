@@ -62,10 +62,7 @@ void World::RunSimulation(Duration duration, size_t iteration_count) noexcept {
     host->KillHost();
     host->ResumeHost();  // block all running fibers forever
   }
-  // wait until all running fibers are blocked
-  while (boost::fibers::context::active()->get_scheduler()->has_ready_fibers()) {
-    boost::this_fiber::yield();
-  }
+  boost::this_fiber::yield();  // wait until all running fibers are blocked
   FlushAllLogs();
   hosts_.clear();
   events_queue_.clear();

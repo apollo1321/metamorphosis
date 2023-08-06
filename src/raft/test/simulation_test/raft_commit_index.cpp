@@ -62,7 +62,7 @@ struct Supervisor final : public rt::sim::IHostRunnable {
     //////////////////////////////////////////////////////////
     LOG("REACHING STATE (a)");
 
-    // Drop links between S0 and {S2, S3, S4}, and pause these
+    // Drop links between S0 and {S2, S3, S4}, and pause these hosts
     rt::sim::CloseLinkBidirectional(raft_nodes[0].address, raft_nodes[2].address);
     rt::sim::CloseLinkBidirectional(raft_nodes[0].address, raft_nodes[3].address);
     rt::sim::CloseLinkBidirectional(raft_nodes[0].address, raft_nodes[4].address);
@@ -97,14 +97,14 @@ struct Supervisor final : public rt::sim::IHostRunnable {
     // Restore all links
     RestoreAllLinks();
 
-    // Close link between S4 and {S0, S1} for S4 not to overwrite their logs
+    // Close link between S4 and {S0, S1} to prevent S4 from overwritting their logs
     rt::sim::CloseLinkBidirectional(raft_nodes[4].address, raft_nodes[0].address);
     rt::sim::CloseLinkBidirectional(raft_nodes[4].address, raft_nodes[1].address);
 
     // Wait for S4 to become leader
     rt::SleepFor(300ms);
 
-    // S4 should be a leader, now drop links from S4 to all other replicas
+    // S4 should be a leader now, drop links from S4 to all other replicas
     rt::sim::CloseLinkBidirectional(raft_nodes[4].address, raft_nodes[2].address);
     rt::sim::CloseLinkBidirectional(raft_nodes[4].address, raft_nodes[3].address);
 
@@ -129,7 +129,7 @@ struct Supervisor final : public rt::sim::IHostRunnable {
     rt::sim::ResumeHost(raft_nodes[0].address);
     rt::sim::ResumeHost(raft_nodes[1].address);
 
-    // Wait for S1 to become leader and to replicate 2 to S3
+    // Wait for S0 to become leader and to replicate 2 to S3
     rt::SleepFor(1s);
 
     //////////////////////////////////////////////////////////
@@ -150,13 +150,13 @@ struct Supervisor final : public rt::sim::IHostRunnable {
     rt::sim::ResumeHost(raft_nodes[4].address);
 
     // Wait for S4 to become leader
-    rt::SleepFor(300ms);
+    rt::SleepFor(600ms);
 
     // Finally resume S0
     rt::sim::ResumeHost(raft_nodes[0].address);
 
     // Now S4 should replicate its log to all other replicas
-    rt::SleepFor(500ms);
+    rt::SleepFor(600ms);
 
     //////////////////////////////////////////////////////////
     // Checking log consistency
@@ -233,13 +233,15 @@ TEST(RaftCommit, Replica5Client1) {
       election_timeout = {900ms, 1500ms};
     }
 
-    raft_hosts.emplace_back(raft::RaftConfig{.node_id = node_id,
-                                             .raft_nodes = raft_nodes,
-                                             .election_timeout = election_timeout,
-                                             .heart_beat_period = 50ms,
-                                             .rpc_timeout = 90ms,
-                                             .log_db_path = "/tmp/raft_log",
-                                             .raft_state_db_path = "/tmp/raft_state"});
+    raft_hosts.emplace_back(raft::RaftConfig{
+        .node_id = node_id,
+        .raft_nodes = raft_nodes,
+        .election_timeout = election_timeout,
+        .heart_beat_period = 50ms,
+        .rpc_timeout = 90ms,
+        .log_db_path = "/tmp/raft_log",
+        .raft_state_db_path = "/tmp/raft_state",
+    });
   }
 
   std::vector<RequestInfo> history;

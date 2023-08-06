@@ -82,7 +82,6 @@ def run_raft_client_cluster(client: docker.DockerClient, client_count, node_coun
             make_raft_client_run_cmd(node_count),
             name="raft_client_{}".format(node_id),
             detach=True,
-            network=DOCKER_NETWORK_NAME,
             labels=[DOCKER_CONTAINER_LABEL],
         ))
     return nodes
@@ -149,7 +148,7 @@ def run_simple_test(client: docker.DockerClient,
     logging.info("START TEST: {}".format(test_name))
 
     logging.info("Creating network {}".format(DOCKER_NETWORK_NAME))
-    client.networks.create(DOCKER_NETWORK_NAME, driver="ipvlan")
+    network = client.networks.create(DOCKER_NETWORK_NAME, driver="ipvlan")
 
     logging.info("Starting raft nodes")
     raft_nodes = run_raft_nodes_cluster(client, node_count=node_count)
@@ -160,8 +159,16 @@ def run_simple_test(client: docker.DockerClient,
     logging.info("Starting raft clients")
     raft_clients = run_raft_client_cluster(client, client_count=client_count, node_count=node_count)
 
+    logging.info("Connect raft clients to network")
+    for container in raft_clients:
+        network.connect(container)
+
     logging.info("Wait for 5s")
     time.sleep(5)
+
+    logging.info("Pause raft client")
+    for node in raft_clients:
+        node.pause()
 
     logging.info("Killing containers")
     for node in raft_nodes + raft_clients:
@@ -193,6 +200,10 @@ def run_crash_test(client: docker.DockerClient,
 
     logging.info("Starting raft clients")
     raft_clients = run_raft_client_cluster(client, client_count=client_count, node_count=node_count)
+
+    logging.info("Connect raft clients to network")
+    for container in raft_clients:
+        network.connect(container)
 
     actions = ["disconnect", "connect",
                "stop", "start",
@@ -268,20 +279,17 @@ def main():
 
     try:
         for iteration in range(args.iterations):
-            # run_simple_test(client, iteration, args.logs_dir,
-            #                 node_count=3, client_count=2)
-            # run_simple_test(client, iteration, args.logs_dir,
-            #                 node_count=2, client_count=3)
-            # run_simple_test(client, iteration, args.logs_dir,
-            #                 node_count=5, client_count=6)
-
-            # run_crash_test(client, iteration, args.logs_dir,
-            #                node_count=3, client_count=2)
-            # run_crash_test(client, iteration, args.logs_dir,
-            #                node_count=3, client_count=5)
-
             run_simple_test(client, iteration, args.logs_dir,
-                            node_count=3, client_count=15)
+                            node_count=3, client_count=2)
+            run_simple_test(client, iteration, args.logs_dir,
+                            node_count=2, client_count=3)
+            run_simple_test(client, iteration, args.logs_dir,
+                            node_count=5, client_count=6)
+
+            run_crash_test(client, iteration, args.logs_dir,
+                           node_count=3, client_count=2)
+            run_crash_test(client, iteration, args.logs_dir,
+                           node_count=3, client_count=5)
     finally:
         clear_test_environment(client)
 
