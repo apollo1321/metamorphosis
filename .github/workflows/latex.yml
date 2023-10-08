@@ -4,10 +4,12 @@ on:
   push:
     branches: [ "main" ]
     paths: 
+      - ".github/workflows/latex.yml"
       - "papers/**"
   pull_request:
     branches: [ "main" ]
     paths: 
+      - ".github/workflows/latex.yml"
       - "papers/**"
 
 jobs:
@@ -35,5 +37,5 @@ jobs:
     - name: Upload thesis pdf
       uses: actions/upload-artifact@v3
       with:
-        name: presentation
+        name: thesis
         path: papers/thesis/thesis.pdf
