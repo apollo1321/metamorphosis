@@ -7,12 +7,14 @@ on:
       - "papers/**"
       - "doc/**"
       - "README.md"
+      - ".github/workflows/latex.yml"
   pull_request:
     branches: [ "main" ]
     paths-ignore:
       - "papers/**"
       - "doc/**"
       - "README.md"
+      - ".github/workflows/latex.yml"
 
 jobs:
   test:

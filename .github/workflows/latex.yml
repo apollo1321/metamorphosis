@@ -28,14 +28,23 @@ jobs:
     - name: Run thesis compilation
       run: nix-shell ./nix/latex.nix --pure --run "tectonic -X compile -Z shell-escape papers/thesis/thesis.tex"
 
+    - name: Run paper compilation
+      run: nix-shell ./nix/latex.nix --pure --run "tectonic -X compile -Z shell-escape papers/paper/paper.tex"
+
     - name: Upload presentation pdf
       uses: actions/upload-artifact@v3
       with:
-        name: presentation
+        name: presentation.pdf
         path: papers/presentation/presentation.pdf
 
     - name: Upload thesis pdf
       uses: actions/upload-artifact@v3
       with:
-        name: thesis
+        name: thesis.pdf
         path: papers/thesis/thesis.pdf
+
+    - name: Upload paper pdf
+      uses: actions/upload-artifact@v3
+      with:
+        name: paper.pdf
+        path: papers/paper/paper.pdf
