@@ -23,13 +23,13 @@ jobs:
       uses: cachix/install-nix-action@v20
 
     - name: Run presentation compilation
-      run: nix-shell ./nix/latex.nix --pure --run "tectonic papers/presentation/presentation.tex"
+      run: nix develop \#latex -i --command tectonic papers/presentation/presentation.tex
 
     - name: Run thesis compilation
-      run: nix-shell ./nix/latex.nix --pure --run "tectonic -X compile -Z shell-escape papers/thesis/thesis.tex"
+      run: nix develop \#latex -i --command tectonic -X compile -Z shell-escape papers/thesis/thesis.tex
 
     - name: Run paper compilation
-      run: nix-shell ./nix/latex.nix --pure --run "tectonic -X compile -Z shell-escape papers/paper/paper.tex"
+      run: nix develop \#latex -i --command tectonic -X compile -Z shell-escape papers/paper/paper.tex
 
     - name: Upload presentation pdf
       uses: actions/upload-artifact@v3
