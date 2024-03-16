@@ -14,7 +14,7 @@
 
 #include <vector>
 
-namespace ceq::raft::test {
+namespace mtf::raft::test {
 
 struct RaftHost final : public rt::sim::IHostRunnable {
   explicit RaftHost(raft::RaftConfig config) noexcept : config{std::move(config)} {
@@ -100,4 +100,4 @@ struct CrashSupervisor final : public rt::sim::IHostRunnable {
   rt::Duration max_pause_time;
 };
 
-}  // namespace ceq::raft::test
+}  // namespace mtf::raft::test

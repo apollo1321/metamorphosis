@@ -2,7 +2,7 @@
 
 #include <util/condition_check.h>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 RpcError::RpcError(RpcErrorType error_type, const std::string& message) noexcept
     : error_type{error_type}, status_message{std::move(message)} {
@@ -33,4 +33,4 @@ std::string RpcError::Message() const noexcept {
   return result;
 }
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

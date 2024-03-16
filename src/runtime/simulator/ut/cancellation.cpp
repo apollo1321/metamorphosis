@@ -5,21 +5,21 @@
 #include <runtime/simulator/api.h>
 
 using namespace std::chrono_literals;
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 TEST(SimulatorCancellation, CancelSleepSimplyWorks) {
   struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
-      ceq::rt::StopSource source;
+      mtf::rt::StopSource source;
 
       auto handle = boost::fibers::async([&]() {
-        ceq::rt::SleepFor(1s);
+        mtf::rt::SleepFor(1s);
         source.Stop();
       });
 
-      EXPECT_TRUE(ceq::rt::SleepFor(1h, source.GetToken()));
+      EXPECT_TRUE(mtf::rt::SleepFor(1h, source.GetToken()));
 
-      EXPECT_EQ(ceq::rt::Now(), Timestamp(1s));
+      EXPECT_EQ(mtf::rt::Now(), Timestamp(1s));
 
       handle.wait();
     }
@@ -35,13 +35,13 @@ TEST(SimulatorCancellation, CancelSleepSimplyWorks) {
 TEST(SimulatorCancellation, SleepAfterCancel) {
   struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
-      ceq::rt::StopSource source;
+      mtf::rt::StopSource source;
 
       source.Stop();
 
-      ceq::rt::SleepFor(1h, source.GetToken());
+      mtf::rt::SleepFor(1h, source.GetToken());
 
-      EXPECT_EQ(ceq::rt::Now(), Timestamp(0s));
+      EXPECT_EQ(mtf::rt::Now(), Timestamp(0s));
     }
   };
 
@@ -55,31 +55,31 @@ TEST(SimulatorCancellation, SleepAfterCancel) {
 TEST(SimulatorCancellation, CancellationDoesNotAffectOther) {
   struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
-      ceq::rt::StopSource source;
+      mtf::rt::StopSource source;
 
       source.Stop();
 
       auto h1 = boost::fibers::async([&]() {
-        ceq::rt::SleepFor(1h, source.GetToken());
+        mtf::rt::SleepFor(1h, source.GetToken());
       });
       auto h2 = boost::fibers::async([&]() {
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
       });
       auto h3 = boost::fibers::async([&]() {
-        ceq::rt::SleepFor(1h, source.GetToken());
+        mtf::rt::SleepFor(1h, source.GetToken());
       });
 
-      EXPECT_EQ(ceq::rt::Now(), Timestamp(0s));
+      EXPECT_EQ(mtf::rt::Now(), Timestamp(0s));
 
       source.Stop();
 
-      EXPECT_EQ(ceq::rt::Now(), Timestamp(0s));
+      EXPECT_EQ(mtf::rt::Now(), Timestamp(0s));
 
       h1.wait();
       h2.wait();
       h3.wait();
 
-      EXPECT_EQ(ceq::rt::Now(), Timestamp(1h));
+      EXPECT_EQ(mtf::rt::Now(), Timestamp(1h));
     }
   };
 

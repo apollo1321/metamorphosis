@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-std::istringstream& operator>>(std::istringstream& in, ceq::rt::Endpoint& endpoint) {
+std::istringstream& operator>>(std::istringstream& in, mtf::rt::Endpoint& endpoint) {
   auto str = in.str();
   auto pos = str.find_last_of(':');
   if (pos == str.npos) {
@@ -15,7 +15,7 @@ std::istringstream& operator>>(std::istringstream& in, ceq::rt::Endpoint& endpoi
   std::string port_str(str.begin() + pos + 1, str.end());
 
   int port = std::stoi(port_str);
-  if (port < 0 || port > std::numeric_limits<ceq::rt::Port>::max()) {
+  if (port < 0 || port > std::numeric_limits<mtf::rt::Port>::max()) {
     throw std::invalid_argument("invalid port: " + port_str);
   }
   endpoint.port = port;
@@ -26,8 +26,8 @@ std::istringstream& operator>>(std::istringstream& in, ceq::rt::Endpoint& endpoi
   return in;
 }
 
-std::istringstream& operator>>(std::istringstream& in, ceq::rt::Duration& duration) {
-  using ceq::rt::Duration;
+std::istringstream& operator>>(std::istringstream& in, mtf::rt::Duration& duration) {
+  using mtf::rt::Duration;
 
   static const std::unordered_map<std::string, Duration> kSuffix{
       {"us", Duration(1ull)},
@@ -53,8 +53,8 @@ std::istringstream& operator>>(std::istringstream& in, ceq::rt::Duration& durati
   return in;
 }
 
-std::istringstream& operator>>(std::istringstream& in, ceq::rt::Interval& interval) {
-  using ceq::rt::Duration;
+std::istringstream& operator>>(std::istringstream& in, mtf::rt::Interval& interval) {
+  using mtf::rt::Duration;
   auto str = in.str();
   auto pos = str.find_first_of('-');
   if (pos == str.npos) {

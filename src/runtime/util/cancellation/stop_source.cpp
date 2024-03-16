@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 StopSource::StopSource() noexcept : state_{new impl::StopState{}} {
   state_->Ref();
@@ -44,4 +44,4 @@ StopSource::~StopSource() {
   }
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

@@ -1,7 +1,7 @@
 #include "database.h"
 #include "host.h"
 
-namespace ceq::rt::sim::db {
+namespace mtf::rt::sim::db {
 
 // Iterator simply makes copy of all data. Should be enough for tests.
 struct Iterator final : public IIterator {
@@ -172,4 +172,4 @@ Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) n
   return Ok(DatabasePtr(new Database{&it->second}));
 }
 
-}  // namespace ceq::rt::sim::db
+}  // namespace mtf::rt::sim::db

@@ -6,7 +6,7 @@
 #include "production/database.h"
 #endif
 
-namespace ceq::rt::db {
+namespace mtf::rt::db {
 
 DBError::DBError(DBErrorType error_type, const std::string& message) noexcept
     : error_type{error_type}, status_message{std::move(message)} {
@@ -39,4 +39,4 @@ Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) n
 #endif
 }
 
-}  // namespace ceq::rt::db
+}  // namespace mtf::rt::db

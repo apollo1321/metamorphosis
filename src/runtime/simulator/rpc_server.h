@@ -12,11 +12,11 @@
 #include <unordered_map>
 #include <vector>
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 class Host;
 }
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 using SerializedData = std::vector<uint8_t>;
 using ServiceName = std::string;
@@ -56,4 +56,4 @@ class Server::ServerImpl {
   friend class sim::Host;
 };
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

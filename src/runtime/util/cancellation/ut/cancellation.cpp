@@ -7,7 +7,7 @@
 #include <runtime/util/cancellation/stop_source.h>
 #include <runtime/util/cancellation/stop_token.h>
 
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 TEST(Cancellation, SimplyWorks) {
   StopSource source;

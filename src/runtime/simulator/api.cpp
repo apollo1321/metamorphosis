@@ -1,7 +1,7 @@
 #include "api.h"
 #include "world.h"
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 void InitWorld(uint64_t seed, WorldOptions options) noexcept {
   GetWorld()->Initialize(seed, options);
@@ -66,4 +66,4 @@ void RestoreLinkBidirectional(const Address& first, const Address& second) noexc
   RestoreLink(second, first);
 }
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim

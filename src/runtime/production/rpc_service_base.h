@@ -12,7 +12,7 @@
 
 #include <memory>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 class Server::Service : public grpc::Service {
  protected:
@@ -72,4 +72,4 @@ class Server::Service : public grpc::Service {
   friend class Server::ServerImpl;
 };
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

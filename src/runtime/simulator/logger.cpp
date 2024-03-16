@@ -8,7 +8,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 template <class GetTime>
 struct TimeFlags : public spdlog::custom_flag_formatter {
@@ -109,12 +109,12 @@ std::shared_ptr<spdlog::logger> CreateLogger(std::string host_name) noexcept {
   return logger;
 }
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 std::shared_ptr<spdlog::logger> GetLogger() noexcept {
   return sim::GetCurrentHost()->GetLogger();
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

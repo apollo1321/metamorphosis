@@ -2,10 +2,10 @@
 
 #include "world.h"
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 std::mt19937& GetGenerator() noexcept {
   return sim::GetWorld()->GetGenerator();
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

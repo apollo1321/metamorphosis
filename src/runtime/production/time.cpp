@@ -4,7 +4,7 @@
 
 #include <runtime/util/cancellation/stop_callback.h>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 Timestamp Now() noexcept {
   return std::chrono::time_point_cast<Duration>(std::chrono::steady_clock::now());
@@ -32,4 +32,4 @@ bool SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
   });
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

@@ -11,8 +11,8 @@
 #include <string>
 
 using namespace std::chrono_literals;
-using namespace ceq::rt;  // NOLINT
-using ceq::raft::test::RequestInfo;
+using namespace mtf::rt;  // NOLINT
+using mtf::raft::test::RequestInfo;
 
 std::vector<RequestInfo> ParseHistory(std::istream& is) noexcept {
   std::vector<RequestInfo> result;
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
 
   auto history = ParseHistory(std::cin);
   fmt::print("Successes: {}\n", history.size());
-  auto result = ceq::raft::test::CheckLinearizability(history);
+  auto result = mtf::raft::test::CheckLinearizability(history);
   if (result.HasError()) {
     fmt::print("Fail: {}\n", result.GetError());
     return 1;

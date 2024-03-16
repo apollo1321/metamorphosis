@@ -5,7 +5,7 @@
 #include <limits>
 #include <random>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 std::mt19937& GetGenerator() noexcept;
 
@@ -15,4 +15,4 @@ double GetRandomFloat(double from, double to) noexcept;
 uint64_t GetRandomInt(uint64_t from = 0,
                       uint64_t to = std::numeric_limits<uint64_t>::max()) noexcept;
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

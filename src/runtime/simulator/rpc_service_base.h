@@ -6,7 +6,7 @@
 
 #include "rpc_server.h"
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 class Server::Service {
  public:
@@ -40,4 +40,4 @@ class Server::Service {
   const ServiceName service_name_;
 };
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

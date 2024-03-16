@@ -9,7 +9,7 @@
 using google::protobuf::io::Printer;
 using google::protobuf::io::ZeroCopyOutputStream;
 
-namespace ceq::codegen::prod {
+namespace mtf::codegen::prod {
 
 void GenerateClientHeader(GeneratorContext* generator_context,
                           const FileDescriptor* file) noexcept {
@@ -25,7 +25,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
   AddDependencyHeaders(printer, file);
   printer.Print("#include <runtime/production/rpc_client_base.h>\n\n");
 
-  printer.Print("namespace ceq::rt::rpc {\n");
+  printer.Print("namespace mtf::rt::rpc {\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -53,7 +53,7 @@ void GenerateClientHeader(GeneratorContext* generator_context,
     printer.Print("};\n");
   }
 
-  printer.Print("\n}  // namespace ceq::rt::rpc\n");
+  printer.Print("\n}  // namespace mtf::rt::rpc\n");
 }
 
 void GenerateClientSource(GeneratorContext* generator_context,
@@ -67,7 +67,7 @@ void GenerateClientSource(GeneratorContext* generator_context,
   // Includes
   printer.Print("#include \"$name$.client.prod.h\"\n\n", "name", file_name);
 
-  printer.Print("namespace ceq::rt::rpc {\n");
+  printer.Print("namespace mtf::rt::rpc {\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -95,7 +95,7 @@ void GenerateClientSource(GeneratorContext* generator_context,
     }
   }
 
-  printer.Print("\n}  // namespace ceq::rt::rpc\n");
+  printer.Print("\n}  // namespace mtf::rt::rpc\n");
 }
 
 void GenerateServiceHeader(GeneratorContext* generator_context,
@@ -113,7 +113,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context,
   printer.Print("#include <runtime/production/rpc_service_base.h>\n");
   printer.Print("#include <util/result.h>\n\n");
 
-  printer.Print("namespace ceq::rt::rpc {\n");
+  printer.Print("namespace mtf::rt::rpc {\n");
 
   // Services
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -182,7 +182,7 @@ void GenerateServiceHeader(GeneratorContext* generator_context,
     printer.Print("};\n");
   }
 
-  printer.Print("\n}  // namespace ceq::rt::rpc\n");
+  printer.Print("\n}  // namespace mtf::rt::rpc\n");
 }
 
 void GenerateServiceSource(GeneratorContext* generator_context,
@@ -196,7 +196,7 @@ void GenerateServiceSource(GeneratorContext* generator_context,
   // Includes
   printer.Print("#include \"$name$.service.prod.h\"\n\n", "name", file_name);
 
-  printer.Print("namespace ceq::rt::rpc {\n\n");
+  printer.Print("namespace mtf::rt::rpc {\n\n");
 
   // Using
   printer.Print("using namespace grpc::internal;  // NOLINT\n");
@@ -285,7 +285,7 @@ void GenerateServiceSource(GeneratorContext* generator_context,
     }
   }
 
-  printer.Print("\n}  // namespace ceq::rt::rpc\n");
+  printer.Print("\n}  // namespace mtf::rt::rpc\n");
 }
 
-}  // namespace ceq::codegen::prod
+}  // namespace mtf::codegen::prod

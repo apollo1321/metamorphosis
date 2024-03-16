@@ -7,16 +7,16 @@
 #include <runtime/simulator/api.h>
 
 using namespace std::chrono_literals;
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 TEST(SimulatorTime, SimpleOneHost) {
   struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
-      EXPECT_EQ(ceq::rt::Now(), Timestamp(0h));
-      ceq::rt::SleepFor(ceq::rt::Duration(24h));
-      EXPECT_EQ(ceq::rt::Now(), Timestamp(24h));
-      ceq::rt::SleepFor(ceq::rt::Duration(24h));
-      EXPECT_EQ(ceq::rt::Now(), Timestamp(48h));
+      EXPECT_EQ(mtf::rt::Now(), Timestamp(0h));
+      mtf::rt::SleepFor(mtf::rt::Duration(24h));
+      EXPECT_EQ(mtf::rt::Now(), Timestamp(24h));
+      mtf::rt::SleepFor(mtf::rt::Duration(24h));
+      EXPECT_EQ(mtf::rt::Now(), Timestamp(48h));
     }
   };
 
@@ -48,10 +48,10 @@ TEST(SimulatorTime, HostOrdering) {
     }
 
     void Main() noexcept override {
-      auto start = ceq::rt::Now();
-      ceq::rt::SleepUntil(start + 2s);
+      auto start = mtf::rt::Now();
+      mtf::rt::SleepUntil(start + 2s);
       ids.push_back(1);
-      ceq::rt::SleepUntil(start + 3s);
+      mtf::rt::SleepUntil(start + 3s);
       ids.push_back(1);
     }
 
@@ -63,12 +63,12 @@ TEST(SimulatorTime, HostOrdering) {
     }
 
     void Main() noexcept override {
-      auto start = ceq::rt::Now();
-      ceq::rt::SleepUntil(start + 1s);
+      auto start = mtf::rt::Now();
+      mtf::rt::SleepUntil(start + 1s);
       ids.push_back(2);
-      ceq::rt::SleepUntil(start + 4s);
+      mtf::rt::SleepUntil(start + 4s);
       ids.push_back(2);
-      ceq::rt::SleepUntil(start + 6s);
+      mtf::rt::SleepUntil(start + 6s);
       ids.push_back(2);
     }
 
@@ -95,10 +95,10 @@ TEST(SimulatorTime, Loop) {
     }
 
     void Main() noexcept override {
-      auto end_time = ceq::rt::Now() + 10h;
-      ceq::rt::SleepFor(start_sleep);
-      while (ceq::rt::Now() < end_time) {
-        ceq::rt::SleepFor(1s);
+      auto end_time = mtf::rt::Now() + 10h;
+      mtf::rt::SleepFor(start_sleep);
+      while (mtf::rt::Now() < end_time) {
+        mtf::rt::SleepFor(1s);
         EXPECT_TRUE(prev != id);
         if (prev == id) {
           return;
@@ -130,10 +130,10 @@ TEST(SimulatorTime, Drift) {
     }
 
     void Main() noexcept override {
-      auto end_time = ceq::rt::Now() + 10h;
-      ceq::rt::SleepFor(start_sleep);
-      while (ceq::rt::Now() < end_time) {
-        ceq::rt::SleepFor(1s);
+      auto end_time = mtf::rt::Now() + 10h;
+      mtf::rt::SleepFor(start_sleep);
+      while (mtf::rt::Now() < end_time) {
+        mtf::rt::SleepFor(1s);
         if (prev == id) {
           ++inconsistency_count;
         }
@@ -168,10 +168,10 @@ TEST(SimulatorTime, SleepLag) {
     }
 
     void Main() noexcept override {
-      auto end_time = ceq::rt::Now() + 10h;
-      ceq::rt::SleepFor(start_sleep);
-      while (ceq::rt::Now() < end_time) {
-        ceq::rt::SleepFor(1s);
+      auto end_time = mtf::rt::Now() + 10h;
+      mtf::rt::SleepFor(start_sleep);
+      while (mtf::rt::Now() < end_time) {
+        mtf::rt::SleepFor(1s);
         if (prev == id) {
           ++inconsistency_count;
         }
@@ -208,23 +208,23 @@ TEST(SimulatorTime, AwaitFiberInHost) {
     void Main() noexcept override {
       {
         boost::fibers::fiber handle(boost::fibers::launch::post, [&]() {
-          ceq::rt::SleepFor(first_dur);
+          mtf::rt::SleepFor(first_dur);
         });
 
         handle.join();
       }
 
-      EXPECT_EQ(ceq::rt::Now().time_since_epoch(), first_dur);
+      EXPECT_EQ(mtf::rt::Now().time_since_epoch(), first_dur);
 
       {
         boost::fibers::fiber handle(boost::fibers::launch::dispatch, [&]() {
-          ceq::rt::SleepFor(second_dur);
+          mtf::rt::SleepFor(second_dur);
         });
 
         handle.join();
       }
 
-      auto current = ceq::rt::Now().time_since_epoch();
+      auto current = mtf::rt::Now().time_since_epoch();
       EXPECT_EQ(current, first_dur + second_dur);
 
       EXPECT_TRUE(last <= current);
@@ -259,84 +259,84 @@ TEST(SimulatorTime, Dispatch) {
     }
 
     void Main() noexcept override {
-      auto start_time = ceq::rt::Now();
+      auto start_time = mtf::rt::Now();
 
       const auto host_id = sim::GetHostUniqueId();
       EXPECT_FALSE(hosts.contains(host_id));
       hosts.insert(host_id);
 
       auto h1 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         EXPECT_EQ(host_id, sim::GetHostUniqueId());
         auto h1 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
           EXPECT_EQ(host_id, sim::GetHostUniqueId());
-          ceq::rt::SleepFor(1h);
+          mtf::rt::SleepFor(1h);
           EXPECT_EQ(host_id, sim::GetHostUniqueId());
           boost::fibers::async(boost::fibers::launch::dispatch, []() {
-            ceq::rt::SleepFor(1h);
+            mtf::rt::SleepFor(1h);
           }).wait();
-          ceq::rt::SleepFor(1h);
+          mtf::rt::SleepFor(1h);
           EXPECT_EQ(host_id, sim::GetHostUniqueId());
         });
 
         auto h2 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
-          ceq::rt::SleepFor(1h);
+          mtf::rt::SleepFor(1h);
           EXPECT_EQ(host_id, sim::GetHostUniqueId());
           boost::fibers::async(boost::fibers::launch::dispatch, []() {
-            ceq::rt::SleepFor(1h);
+            mtf::rt::SleepFor(1h);
           }).wait();
-          ceq::rt::SleepFor(1h);
+          mtf::rt::SleepFor(1h);
         });
         EXPECT_EQ(host_id, sim::GetHostUniqueId());
 
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         h1.wait();
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         h2.wait();
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         EXPECT_EQ(host_id, sim::GetHostUniqueId());
       });
 
       auto h2 = boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
         EXPECT_EQ(host_id, sim::GetHostUniqueId());
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         EXPECT_EQ(host_id, sim::GetHostUniqueId());
         auto h1 = boost::fibers::async(boost::fibers::launch::post, [&]() {
-          ceq::rt::SleepFor(1h);
+          mtf::rt::SleepFor(1h);
           boost::fibers::async(boost::fibers::launch::dispatch, []() {
-            ceq::rt::SleepFor(1h);
+            mtf::rt::SleepFor(1h);
           }).wait();
           EXPECT_EQ(host_id, sim::GetHostUniqueId());
-          ceq::rt::SleepFor(1h);
+          mtf::rt::SleepFor(1h);
         });
 
         auto h2 = boost::fibers::async(boost::fibers::launch::post, []() {
-          ceq::rt::SleepFor(1h);
+          mtf::rt::SleepFor(1h);
           boost::fibers::async(boost::fibers::launch::post, []() {
-            ceq::rt::SleepFor(1h);
+            mtf::rt::SleepFor(1h);
           }).wait();
-          ceq::rt::SleepFor(1h);
+          mtf::rt::SleepFor(1h);
         });
 
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         h1.wait();
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         h2.wait();
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
       });
 
       boost::fibers::async(boost::fibers::launch::dispatch, [&]() {
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         EXPECT_EQ(host_id, sim::GetHostUniqueId());
         h1.wait();
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         EXPECT_EQ(host_id, sim::GetHostUniqueId());
         h2.wait();
-        ceq::rt::SleepFor(1h);
+        mtf::rt::SleepFor(1h);
         EXPECT_EQ(host_id, sim::GetHostUniqueId());
       }).wait();
 
-      auto duration = ceq::rt::Now() - start_time;
+      auto duration = mtf::rt::Now() - start_time;
       EXPECT_EQ(duration, 8h);
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
     }

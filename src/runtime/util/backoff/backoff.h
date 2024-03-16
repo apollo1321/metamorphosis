@@ -6,7 +6,7 @@
 
 using namespace std::chrono_literals;
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 struct BackoffParams {
   Duration initial = 10ms;
@@ -29,4 +29,4 @@ struct Backoff {
   std::mt19937& generator_;
 };
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

@@ -5,7 +5,7 @@
 #include <span>
 #include <vector>
 
-namespace ceq::rt::serde {
+namespace mtf::rt::serde {
 
 using Data = std::vector<uint8_t>;
 using DataView = std::span<const uint8_t>;
@@ -20,4 +20,4 @@ concept CSerde =  //
       { serde.Serialize(serde.Deserialize(data)) } noexcept -> CDataOrView;
     };
 
-}  // namespace ceq::rt::serde
+}  // namespace mtf::rt::serde

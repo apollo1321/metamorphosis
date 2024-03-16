@@ -1,6 +1,6 @@
 #include "backoff.h"
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 Backoff::Backoff(BackoffParams params, std::mt19937& generator) noexcept
     : params_{params}, generator_{generator}, current_{params.initial} {
@@ -13,4 +13,4 @@ Duration Backoff::Next() noexcept {
   return result;
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

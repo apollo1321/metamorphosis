@@ -7,12 +7,12 @@
 
 #include <google/protobuf/message.h>
 
-#define LOG(...) SPDLOG_LOGGER_INFO(ceq::rt::GetLogger(), __VA_ARGS__)
-#define LOG_DBG(...) SPDLOG_LOGGER_DEBUG(ceq::rt::GetLogger(), __VA_ARGS__)
-#define LOG_ERR(...) SPDLOG_LOGGER_ERROR(ceq::rt::GetLogger(), __VA_ARGS__)
-#define LOG_CRIT(...) SPDLOG_LOGGER_CRITICAL(ceq::rt::GetLogger(), __VA_ARGS__)
+#define LOG(...) SPDLOG_LOGGER_INFO(mtf::rt::GetLogger(), __VA_ARGS__)
+#define LOG_DBG(...) SPDLOG_LOGGER_DEBUG(mtf::rt::GetLogger(), __VA_ARGS__)
+#define LOG_ERR(...) SPDLOG_LOGGER_ERROR(mtf::rt::GetLogger(), __VA_ARGS__)
+#define LOG_CRIT(...) SPDLOG_LOGGER_CRITICAL(mtf::rt::GetLogger(), __VA_ARGS__)
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 std::shared_ptr<spdlog::logger> GetLogger() noexcept;
 

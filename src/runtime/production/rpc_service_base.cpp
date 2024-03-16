@@ -2,11 +2,11 @@
 
 #include <util/condition_check.h>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 grpc::Status Server::Service::SyncMethodStub() {
   VERIFY(false, "sync version of method must not be called");
   abort();
 }
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

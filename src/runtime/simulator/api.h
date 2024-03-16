@@ -8,7 +8,7 @@
 #include <runtime/rpc_server.h>
 #include <runtime/time.h>
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 /*
  * If not all fibers are joined (host was killed, paused or iteration_count is set), there is
@@ -77,4 +77,4 @@ void CloseLinkBidirectional(const Address& first, const Address& second) noexcep
 void RestoreLink(const Address& from, const Address& to) noexcept;
 void RestoreLinkBidirectional(const Address& first, const Address& second) noexcept;
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim

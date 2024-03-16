@@ -5,6 +5,6 @@
 
 #include <sstream>
 
-std::istringstream& operator>>(std::istringstream& in, ceq::rt::Endpoint& endpoint);
-std::istringstream& operator>>(std::istringstream& in, ceq::rt::Duration& duration);
-std::istringstream& operator>>(std::istringstream& in, ceq::rt::Interval& interval);
+std::istringstream& operator>>(std::istringstream& in, mtf::rt::Endpoint& endpoint);
+std::istringstream& operator>>(std::istringstream& in, mtf::rt::Duration& duration);
+std::istringstream& operator>>(std::istringstream& in, mtf::rt::Interval& interval);

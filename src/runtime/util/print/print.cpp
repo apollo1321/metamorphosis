@@ -8,7 +8,7 @@
 #include <sstream>
 #include <string>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 std::string ToString(const Duration& duration) noexcept {
   auto us = duration.count() % 1000;
@@ -39,4 +39,4 @@ std::string ToString(const google::protobuf::Message& proto) noexcept {
   return output;
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

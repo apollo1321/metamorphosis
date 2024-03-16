@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 StopToken::StopToken(const StopToken& other) noexcept : StopToken(other.state_) {
 }
@@ -36,4 +36,4 @@ StopToken::~StopToken() {
   }
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

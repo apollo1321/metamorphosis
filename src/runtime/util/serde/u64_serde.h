@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace ceq::rt::serde {
+namespace mtf::rt::serde {
 
 struct U64Serde {
   DataView Serialize(const uint64_t& value) const noexcept {
@@ -21,4 +21,4 @@ struct U64Serde {
 
 static_assert(CSerde<U64Serde>);
 
-}  // namespace ceq::rt::serde
+}  // namespace mtf::rt::serde

@@ -2,7 +2,7 @@
 
 #include "host.h"
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 Timestamp Now() noexcept {
   return sim::GetCurrentHost()->GetLocalTime();
@@ -16,4 +16,4 @@ bool SleepUntil(Timestamp timestamp, StopToken stop_token) noexcept {
   return sim::GetCurrentHost()->SleepUntil(timestamp, std::move(stop_token));
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

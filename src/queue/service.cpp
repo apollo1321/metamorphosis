@@ -13,8 +13,8 @@
 
 #include <util/condition_check.h>
 
-using namespace ceq;      // NOLINT
-using namespace ceq::rt;  // NOLINT
+using namespace mtf;      // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 using KVStoragePtr = kv::KVStoragePtr<serde::U64Serde, serde::StringSerde>;
 
@@ -62,9 +62,9 @@ class QueueService final : public rpc::QueueServiceStub {
       const TrimRequest& request) noexcept override {
     auto result = kv_storage_->DeleteRange(0, request.id());
     if (result.HasError()) {
-      return ceq::Err(rpc::RpcErrorType::Internal, result.GetError().Message());
+      return mtf::Err(rpc::RpcErrorType::Internal, result.GetError().Message());
     }
-    return ceq::Ok(google::protobuf::Empty{});
+    return mtf::Ok(google::protobuf::Empty{});
   }
 
   Result<google::protobuf::Empty, rpc::RpcError> ShutDown(
@@ -73,7 +73,7 @@ class QueueService final : public rpc::QueueServiceStub {
     shut_down_ = true;
     shut_down_cv_.notify_one();
 
-    return ceq::Ok(google::protobuf::Empty{});
+    return mtf::Ok(google::protobuf::Empty{});
   }
 
   void WaitShutDown() {

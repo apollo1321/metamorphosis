@@ -2,7 +2,7 @@
 
 #include "stop_state.h"
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 /*
  * Unfortunately clang does not yet support C++20 <stop_token> feature and the proposed
@@ -37,4 +37,4 @@ class StopToken {
   friend class StopCallback;
 };
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

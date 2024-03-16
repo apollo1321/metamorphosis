@@ -16,7 +16,7 @@
 
 using namespace std::chrono_literals;
 
-namespace ceq::raft::test {
+namespace mtf::raft::test {
 
 using rt::Duration;
 
@@ -188,18 +188,18 @@ struct Advisory final : public rt::sim::IHostRunnable {
 static size_t ind = 0;
 
 void RunRaftTest(TestConfig config, std::vector<Action> actions) noexcept {
-  std::vector<ceq::rt::Address> raft_addresses;
-  std::vector<ceq::rt::Endpoint> raft_endpoints;
+  std::vector<mtf::rt::Address> raft_addresses;
+  std::vector<mtf::rt::Endpoint> raft_endpoints;
   for (size_t index = 0; index < config.nodes_configs.size(); ++index) {
     raft_addresses.emplace_back("node_" + std::to_string(index));
     raft_endpoints.emplace_back(raft_addresses.back(), 42);
   }
-  std::vector<ceq::rt::Address> client_addresses;
+  std::vector<mtf::rt::Address> client_addresses;
   for (size_t index = 0; index < config.clients_configs.size(); ++index) {
     client_addresses.emplace_back("client_" + std::to_string(index));
   }
 
-  std::vector<ceq::raft::test::RaftHost> raft_hosts;
+  std::vector<mtf::raft::test::RaftHost> raft_hosts;
   for (size_t index = 0; index < config.nodes_configs.size(); ++index) {
     const auto& node_config = config.nodes_configs[index];
     RaftConfig raft_config;
@@ -217,7 +217,7 @@ void RunRaftTest(TestConfig config, std::vector<Action> actions) noexcept {
 
   std::vector<RequestInfo> history;
 
-  std::vector<ceq::raft::test::RaftClientHost> client_hosts;
+  std::vector<mtf::raft::test::RaftClientHost> client_hosts;
   for (size_t client_id = 0; client_id < config.clients_configs.size(); ++client_id) {
     client_hosts.emplace_back(raft_endpoints, history,
                               config.clients_configs[client_id].raft_config);
@@ -251,29 +251,29 @@ void RunRaftTest(TestConfig config, std::vector<Action> actions) noexcept {
   }
 }
 
-}  // namespace ceq::raft::test
+}  // namespace mtf::raft::test
 
-using namespace ceq::raft;  // NOLINT
+using namespace mtf::raft;  // NOLINT
 using namespace fuzztest;   // NOLINT
 
 void RaftTestWrapper(test::TestConfig config, std::vector<test::Action> actions) {
   test::RunRaftTest(config, actions);
 }
 
-auto DurationDomain(ceq::rt::Interval interval) noexcept {
-  return ConstructorOf<ceq::rt::Duration>(InRange(interval.from.count(), interval.to.count()));
+auto DurationDomain(mtf::rt::Interval interval) noexcept {
+  return ConstructorOf<mtf::rt::Duration>(InRange(interval.from.count(), interval.to.count()));
 }
 
-auto IntervalDomain(ceq::rt::Interval low_interval, ceq::rt::Interval high_interval) noexcept {
+auto IntervalDomain(mtf::rt::Interval low_interval, mtf::rt::Interval high_interval) noexcept {
   return Filter(
-      [](ceq::rt::Interval interval) {
+      [](mtf::rt::Interval interval) {
         return interval.from <= interval.to;
       },
-      StructOf<ceq::rt::Interval>(DurationDomain(low_interval), DurationDomain(high_interval)));
+      StructOf<mtf::rt::Interval>(DurationDomain(low_interval), DurationDomain(high_interval)));
 }
 
 auto HostOptionsDomain() noexcept {
-  return StructOf<ceq::rt::sim::HostOptions>(         //
+  return StructOf<mtf::rt::sim::HostOptions>(         //
       IntervalDomain({0ms, 100ms}, {0ms, 100ms}),     // start_time
       PairOf(InRange(0.0, 0.05), InRange(0., 0.05)),  // drift_interval
       DurationDomain({0ms, 10ms})                     // max_sleep_lag
@@ -281,7 +281,7 @@ auto HostOptionsDomain() noexcept {
 }
 
 auto WorldOptionsDomain() noexcept {
-  return StructOf<ceq::rt::sim::WorldOptions>(     //
+  return StructOf<mtf::rt::sim::WorldOptions>(     //
       InRange(0.0, 0.6),                           // network_error_proba
       IntervalDomain({1ms, 100ms}, {1ms, 300ms}),  // delivery_time
       IntervalDomain({1ms, 100ms}, {1ms, 500ms}),  // long_delivery_time

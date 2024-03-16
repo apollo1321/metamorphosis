@@ -12,7 +12,7 @@
 
 using namespace std::chrono_literals;
 
-namespace ceq::raft::test {
+namespace mtf::raft::test {
 
 void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_count,
                         size_t max_crashed_host_count) noexcept {
@@ -68,11 +68,11 @@ void RunTestWithCrashes(size_t seed, size_t raft_nodes_count, size_t clients_cou
   }
 }
 
-}  // namespace ceq::raft::test
+}  // namespace mtf::raft::test
 
 TEST(RaftHostCrash, Replica3Client1Crashed1) {
   for (size_t seed = 0; seed < 30; ++seed) {
-    ceq::raft::test::RunTestWithCrashes(seed, 3, 1, 1);
+    mtf::raft::test::RunTestWithCrashes(seed, 3, 1, 1);
     if (testing::Test::HasNonfatalFailure()) {
       return;
     }
@@ -81,7 +81,7 @@ TEST(RaftHostCrash, Replica3Client1Crashed1) {
 
 TEST(RaftHostCrash, Replica3Client3Crashed1) {
   for (size_t seed = 0; seed < 30; ++seed) {
-    ceq::raft::test::RunTestWithCrashes(seed + 100, 3, 3, 1);
+    mtf::raft::test::RunTestWithCrashes(seed + 100, 3, 3, 1);
     if (testing::Test::HasNonfatalFailure()) {
       return;
     }
@@ -90,7 +90,7 @@ TEST(RaftHostCrash, Replica3Client3Crashed1) {
 
 TEST(RaftHostCrash, Replica5Client3Crashed1) {
   for (size_t seed = 0; seed < 30; ++seed) {
-    ceq::raft::test::RunTestWithCrashes(seed + 200, 5, 3, 1);
+    mtf::raft::test::RunTestWithCrashes(seed + 200, 5, 3, 1);
     if (testing::Test::HasNonfatalFailure()) {
       return;
     }
@@ -99,7 +99,7 @@ TEST(RaftHostCrash, Replica5Client3Crashed1) {
 
 TEST(RaftHostCrash, Replica5Client2Crashed2) {
   for (size_t seed = 0; seed < 30; ++seed) {
-    ceq::raft::test::RunTestWithCrashes(seed + 300, 5, 2, 2);
+    mtf::raft::test::RunTestWithCrashes(seed + 300, 5, 2, 2);
     if (testing::Test::HasNonfatalFailure()) {
       return;
     }

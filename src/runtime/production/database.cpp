@@ -2,7 +2,7 @@
 
 #include <util/defer.h>
 
-namespace ceq::rt::prod::db {
+namespace mtf::rt::prod::db {
 
 using rocksdb::Slice;
 
@@ -169,4 +169,4 @@ Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) n
   return Ok(DatabasePtr(result.release()));
 }
 
-}  // namespace ceq::rt::prod::db
+}  // namespace mtf::rt::prod::db

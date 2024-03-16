@@ -4,7 +4,7 @@
 
 #include <boost/stacktrace.hpp>
 
-namespace ceq {
+namespace mtf {
 
 void PrintBackTrace(std::ostream& os) {
   auto bt = boost::stacktrace::stacktrace();
@@ -22,4 +22,4 @@ void PrintBackTrace(std::ostream& os) {
   os << std::flush;
 }
 
-}  // namespace ceq
+}  // namespace mtf

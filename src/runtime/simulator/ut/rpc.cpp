@@ -9,20 +9,20 @@
 #include <runtime/simulator/ut/test_service.service.h>
 
 using namespace std::chrono_literals;
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 struct EchoService final : public rpc::EchoServiceStub {
   explicit EchoService(std::string msg = "") : msg{msg} {
   }
 
-  ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
+  mtf::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
     EchoReply reply;
     reply.set_msg("Hello, " + request.msg());
     if (!msg.empty()) {
       *reply.mutable_msg() += msg;
     }
 
-    return ceq::Ok(std::move(reply));
+    return mtf::Ok(std::move(reply));
   }
 
   std::string msg;
@@ -310,7 +310,7 @@ TEST(SimulatorRpc, EchoProxy) {
       worker.join();
     }
 
-    ceq::Result<EchoReply, rpc::RpcError> Forward1(const EchoRequest& request) noexcept override {
+    mtf::Result<EchoReply, rpc::RpcError> Forward1(const EchoRequest& request) noexcept override {
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
       rpc::EchoServiceClient client(Endpoint{"addr1", 1});
       auto reply = client.Echo(request);
@@ -319,7 +319,7 @@ TEST(SimulatorRpc, EchoProxy) {
       return reply;
     }
 
-    ceq::Result<EchoReply, rpc::RpcError> Forward2(const EchoRequest& request) noexcept override {
+    mtf::Result<EchoReply, rpc::RpcError> Forward2(const EchoRequest& request) noexcept override {
       EXPECT_EQ(host_id, sim::GetHostUniqueId());
       rpc::EchoServiceClient client(Endpoint{"addr2", 2});
       auto reply = client.Echo(request);
@@ -452,9 +452,9 @@ TEST(SimulatorRpc, CancelSimplyWorks) {
       worker.join();
     }
 
-    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
+    mtf::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       SleepFor(5s);
-      return ceq::Err(rpc::RpcErrorType::Internal);
+      return mtf::Err(rpc::RpcErrorType::Internal);
     }
   };
 

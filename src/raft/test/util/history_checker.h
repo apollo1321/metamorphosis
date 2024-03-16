@@ -6,7 +6,7 @@
 
 #include <vector>
 
-namespace ceq::raft::test {
+namespace mtf::raft::test {
 
 struct RequestInfo {
   /**
@@ -32,4 +32,4 @@ struct RequestInfo {
  */
 Status<std::string> CheckLinearizability(std::vector<RequestInfo> history) noexcept;
 
-}  // namespace ceq::raft::test
+}  // namespace mtf::raft::test

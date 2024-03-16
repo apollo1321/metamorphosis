@@ -5,7 +5,7 @@
 
 #include "rpc_service_base.h"
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 void Server::ServerImpl::Register(Server::Service* service) noexcept {
   VERIFY(!services_.contains(service->GetServiceName()), "service is already registered");
@@ -50,4 +50,4 @@ Server::ServerImpl::~ServerImpl() {
   VERIFY(finished_, "Destruction of running server");
 }
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

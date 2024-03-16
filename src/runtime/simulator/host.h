@@ -13,7 +13,7 @@
 #include "database.h"
 #include "rpc_server.h"
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 class Host {
  public:
@@ -82,4 +82,4 @@ size_t GetCurrentEpoch() noexcept;
 
 using HostPtr = std::unique_ptr<Host>;
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim

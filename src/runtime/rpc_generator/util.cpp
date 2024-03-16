@@ -1,6 +1,6 @@
 #include "util.h"
 
-namespace ceq::codegen {
+namespace mtf::codegen {
 
 bool HasStreaming(const google::protobuf::FileDescriptor* file) noexcept {
   for (int service_id = 0; service_id < file->service_count(); ++service_id) {
@@ -59,4 +59,4 @@ void AddDependencyHeaders(google::protobuf::io::Printer& printer,
   printer.Print("\n");
 }
 
-}  // namespace ceq::codegen
+}  // namespace mtf::codegen

@@ -1,6 +1,6 @@
 #include "rpc_service_base.h"
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 Server::Service::Service(ServiceName service_name) noexcept
     : service_name_{std::move(service_name)} {
@@ -10,4 +10,4 @@ const ServiceName& Server::Service::GetServiceName() noexcept {
   return service_name_;
 }
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace ceq::rt::serde {
+namespace mtf::rt::serde {
 
 struct StringSerde {
   DataView Serialize(const std::string& value) const noexcept {
@@ -18,4 +18,4 @@ struct StringSerde {
 
 static_assert(CSerde<StringSerde>);
 
-}  // namespace ceq::rt::serde
+}  // namespace mtf::rt::serde

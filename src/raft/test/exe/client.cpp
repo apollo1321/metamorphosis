@@ -8,7 +8,7 @@
 #include <iostream>
 
 using namespace std::chrono_literals;
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 int main(int argc, char** argv) {
   CLI::App app{"Raft client"};
@@ -46,8 +46,8 @@ int main(int argc, char** argv) {
 
   CLI11_PARSE(app, argc, argv);
 
-  ceq::raft::RaftClient client(raft_nodes);
-  ceq::raft::RaftClient::Config client_config(global_timeout, rpc_timeout, attempts,
+  mtf::raft::RaftClient client(raft_nodes);
+  mtf::raft::RaftClient::Config client_config(global_timeout, rpc_timeout, attempts,
                                               backoff_params);
 
   if (*interactive) {
@@ -67,10 +67,10 @@ int main(int argc, char** argv) {
   } else {
     while (true) {
       RsmCommand command;
-      command.set_data(ceq::rt::GetRandomInt());
-      auto invocation_time = ceq::rt::Now();
+      command.set_data(mtf::rt::GetRandomInt());
+      auto invocation_time = mtf::rt::Now();
       auto result = client.Apply<RsmResult>(command, client_config);
-      auto completion_time = ceq::rt::Now();
+      auto completion_time = mtf::rt::Now();
       if (result.HasError()) {
         fmt::print("ERROR: {}\n", result.GetError().Message());
       } else {

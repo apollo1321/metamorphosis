@@ -4,7 +4,7 @@
 
 #include <runtime/database.h>
 
-namespace ceq::rt::prod::db {
+namespace mtf::rt::prod::db {
 
 using namespace rt::db;  // NOLINT
 
@@ -54,4 +54,4 @@ struct Database final : public IDatabase {
 
 Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept;
 
-}  // namespace ceq::rt::prod::db
+}  // namespace mtf::rt::prod::db

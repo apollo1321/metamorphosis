@@ -1,6 +1,6 @@
 #include "scheduler.h"
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 RuntimeSimulationProps::RuntimeSimulationProps(boost::fibers::context* ctx) noexcept
     : fiber_properties(ctx) {
@@ -94,4 +94,4 @@ void RuntimeSimulationScheduler::notify() noexcept {
   // No-op
 }
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim

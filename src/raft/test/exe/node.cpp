@@ -10,12 +10,12 @@
 #include <iostream>
 
 using namespace std::chrono_literals;
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 int main(int argc, char** argv) {
   CLI::App app{"Raft node"};
 
-  ceq::raft::RaftConfig config;
+  mtf::raft::RaftConfig config;
 
   // Nodes
   app.add_option("--raft-nodes", config.raft_nodes, "Raft nodes endpoints, addr:port")->required();
@@ -42,8 +42,8 @@ int main(int argc, char** argv) {
   config.raft_state_db_path = storage_path_prefix / "state/";
   config.log_db_path = storage_path_prefix / "log/";
 
-  ceq::raft::test::LoggingStateMachine rsm;
-  auto status = ceq::raft::RunMain(&rsm, config);
+  mtf::raft::test::LoggingStateMachine rsm;
+  auto status = mtf::raft::RunMain(&rsm, config);
   if (status.HasError()) {
     std::cerr << status.GetError() << std::endl;
     return 1;

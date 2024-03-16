@@ -24,7 +24,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace ceq::raft {
+namespace mtf::raft {
 
 using RaftStateDbPtr = rt::kv::KVStoragePtr<rt::serde::StringSerde, rt::serde::U64Serde>;
 using RaftLogDbPtr = rt::kv::KVStoragePtr<rt::serde::U64Serde, rt::serde::ProtobufSerde<LogEntry>>;
@@ -740,4 +740,4 @@ Status<std::string> RunMain(IStateMachine* state_machine, RaftConfig config) noe
   return Ok();
 }
 
-}  // namespace ceq::raft
+}  // namespace mtf::raft

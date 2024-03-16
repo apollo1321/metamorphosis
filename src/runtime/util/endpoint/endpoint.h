@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 using Port = uint16_t;
 using Address = std::string;
@@ -18,4 +18,4 @@ struct Endpoint {
   Port port{};
 };
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

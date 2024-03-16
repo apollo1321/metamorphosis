@@ -6,7 +6,7 @@
 
 #include <google/protobuf/message.h>
 
-namespace ceq::rt::serde {
+namespace mtf::rt::serde {
 
 template <class Proto>
 struct ProtobufSerde {
@@ -24,4 +24,4 @@ struct ProtobufSerde {
   }
 };
 
-}  // namespace ceq::rt::serde
+}  // namespace mtf::rt::serde

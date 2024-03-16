@@ -7,7 +7,7 @@
 using google::protobuf::io::Printer;
 using google::protobuf::io::ZeroCopyOutputStream;
 
-namespace ceq::codegen {
+namespace mtf::codegen {
 
 void GenerateClientHeader(GeneratorContext* generator_context,
                           const FileDescriptor* file) noexcept {
@@ -62,4 +62,4 @@ bool RpcGenerator::Generate(const FileDescriptor* file, const std::string& param
   return true;
 }
 
-}  // namespace ceq::codegen
+}  // namespace mtf::codegen

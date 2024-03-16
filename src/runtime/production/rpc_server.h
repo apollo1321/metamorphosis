@@ -13,7 +13,7 @@
 #include <string>
 #include <thread>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 class Server::ServerImpl {
  public:
@@ -50,4 +50,4 @@ class Server::ServerImpl {
   Latch workers_latch_;
 };
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

@@ -2,7 +2,7 @@
 
 #include "world.h"
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 ClientBase::ClientBase(const Endpoint& endpoint) noexcept : endpoint_{std::move(endpoint)} {
 }
@@ -15,4 +15,4 @@ Result<SerializedData, RpcError> ClientBase::MakeRequest(const SerializedData& d
                                             std::move(stop_token));
 }
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

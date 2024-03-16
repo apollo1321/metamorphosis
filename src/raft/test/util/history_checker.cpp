@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace ceq::raft::test {
+namespace mtf::raft::test {
 
 Status<std::string> CheckLinearizability(std::vector<RequestInfo> history) noexcept {
   // The linear history of commands is the order in which a command is added to the log.
@@ -43,4 +43,4 @@ Status<std::string> CheckLinearizability(std::vector<RequestInfo> history) noexc
   return Ok();
 }
 
-}  // namespace ceq::raft::test
+}  // namespace mtf::raft::test

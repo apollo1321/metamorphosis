@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 enum class RpcErrorType {
   NetworkError,
@@ -23,4 +23,4 @@ struct RpcError {
   std::string status_message;
 };
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

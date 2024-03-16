@@ -4,7 +4,7 @@
 #include <runtime/util/serde/string_serde.h>
 #include <runtime/util/serde/u64_serde.h>
 
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 TEST(ProductionDatabase, SimplyWorks) {
   db::Options options{.create_if_missing = true};

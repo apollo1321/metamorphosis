@@ -2,7 +2,7 @@
 
 #include <ostream>
 
-namespace ceq {
+namespace mtf {
 
 void PrintBackTrace(std::ostream& os);
 

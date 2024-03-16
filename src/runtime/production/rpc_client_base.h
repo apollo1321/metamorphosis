@@ -18,7 +18,7 @@
 #include <runtime/util/rpc_error/rpc_error.h>
 #include <util/result.h>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 class ClientBase {
  public:
@@ -97,4 +97,4 @@ class ClientBase {
   std::thread dispatching_thread_;
 };
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

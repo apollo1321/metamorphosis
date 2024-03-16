@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 LatchGuard Latch::MakeGuard() noexcept {
   return LatchGuard(this);
@@ -39,4 +39,4 @@ LatchGuard::~LatchGuard() {
   }
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

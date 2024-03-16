@@ -9,14 +9,14 @@
 
 using namespace std::chrono_literals;
 
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 TEST(ProductionRpc, SimplyWorks) {
   struct EchoService final : public rpc::EchoServiceStub {
-    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
+    mtf::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       reply.set_msg("Hello, " + request.msg());
-      return ceq::Ok(std::move(reply));
+      return mtf::Ok(std::move(reply));
     }
   };
 
@@ -44,11 +44,11 @@ TEST(ProductionRpc, SimplyWorks) {
 
 TEST(ProductionRpc, CancelSimplyWorks) {
   struct EchoService final : public rpc::EchoServiceStub {
-    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
+    mtf::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       SleepFor(2s);
       reply.set_msg("Hello, " + request.msg());
-      return ceq::Ok(std::move(reply));
+      return mtf::Ok(std::move(reply));
     }
   };
 

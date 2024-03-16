@@ -8,7 +8,7 @@
 #include <optional>
 #include <utility>
 
-namespace ceq::rt::kv {
+namespace mtf::rt::kv {
 
 using db::DBError;
 using db::DBErrorType;
@@ -230,4 +230,4 @@ Result<KVStoragePtr<KeySerde, ValueSerde, Cmp>, DBError> Open(std::filesystem::p
   return Ok(std::move(result));
 }
 
-}  // namespace ceq::rt::kv
+}  // namespace mtf::rt::kv

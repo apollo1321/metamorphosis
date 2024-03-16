@@ -6,7 +6,7 @@
 
 #include <random>
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 class RuntimeSimulationProps : public boost::fibers::fiber_properties {
  public:
@@ -55,4 +55,4 @@ class RuntimeSimulationScheduler final
   std::mt19937& generator_;
 };
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim

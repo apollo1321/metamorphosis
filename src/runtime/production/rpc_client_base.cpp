@@ -2,7 +2,7 @@
 
 #include <util/condition_check.h>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 ClientBase::ClientBase(const Endpoint& endpoint) noexcept
     : channel_{grpc::CreateChannel(endpoint.ToString(), grpc::InsecureChannelCredentials())},
@@ -31,4 +31,4 @@ void ClientBase::DispatchServiceResponses() {
   }
 }
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

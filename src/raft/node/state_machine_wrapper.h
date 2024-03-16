@@ -4,7 +4,7 @@
 
 #include "node.h"
 
-namespace ceq::raft::impl {
+namespace mtf::raft::impl {
 
 struct LastClientData {
   google::protobuf::Any response;
@@ -23,4 +23,4 @@ class ExactlyOnceStateMachine {
   std::unordered_map<uint64_t, LastClientData> clients_last_cmd_id_;
 };
 
-}  // namespace ceq::raft::impl
+}  // namespace mtf::raft::impl

@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 class Server {
  public:
@@ -33,4 +33,4 @@ class Server {
   ServerImpl* impl_;
 };
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

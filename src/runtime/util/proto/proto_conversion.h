@@ -7,7 +7,7 @@
 
 #include <util/result.h>
 
-namespace ceq::rt::proto {
+namespace mtf::rt::proto {
 
 template <class T>
 Result<google::protobuf::Any, std::string> ToAny(const T& proto) noexcept {
@@ -27,4 +27,4 @@ Result<T, std::string> FromAny(const google::protobuf::Any& proto) noexcept {
   return Ok(std::move(result));
 }
 
-}  // namespace ceq::rt::proto
+}  // namespace mtf::rt::proto

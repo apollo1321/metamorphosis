@@ -11,8 +11,8 @@
 #include <raft/test/util/history_checker.h>
 
 using namespace std::chrono_literals;
-using namespace ceq;              // NOLINT
-using namespace ceq::raft::test;  // NOLINT
+using namespace mtf;              // NOLINT
+using namespace mtf::raft::test;  // NOLINT
 
 /*
  * This test is intended to reproduce execution of raft algorithm as was shown in raft paper,
@@ -31,7 +31,7 @@ using namespace ceq::raft::test;  // NOLINT
  *
  */
 
-namespace ceq::raft::test {
+namespace mtf::raft::test {
 
 struct Supervisor final : public rt::sim::IHostRunnable {
   explicit Supervisor(const std::vector<rt::Endpoint>& raft_nodes,
@@ -213,7 +213,7 @@ struct Supervisor final : public rt::sim::IHostRunnable {
   bool finished = false;
 };
 
-}  // namespace ceq::raft::test
+}  // namespace mtf::raft::test
 
 TEST(RaftCommit, Replica5Client1) {
   constexpr size_t kSeed = 42;

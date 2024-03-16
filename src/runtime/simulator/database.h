@@ -5,7 +5,7 @@
 #include <map>
 #include <variant>
 
-namespace ceq::rt::sim::db {
+namespace mtf::rt::sim::db {
 
 using namespace rt::db;  // NOLINT
 
@@ -73,4 +73,4 @@ struct Database final : public IDatabase {
 
 Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept;
 
-}  // namespace ceq::rt::sim::db
+}  // namespace mtf::rt::sim::db

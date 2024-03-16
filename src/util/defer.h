@@ -1,6 +1,6 @@
 #include <utility>
 
-namespace ceq::internal {
+namespace mtf::internal {
 
 template <class Callback>
 struct OnScopeExit {
@@ -21,6 +21,6 @@ struct OnScopeExit {
   Callback callback;
 };
 
-}  // namespace ceq::internal
+}  // namespace mtf::internal
 
-#define DEFER auto defer_##__LINE__ = ceq::internal::OnScopeExit<int>::MacroHelper{} | [&]()
+#define DEFER auto defer_##__LINE__ = mtf::internal::OnScopeExit<int>::MacroHelper{} | [&]()

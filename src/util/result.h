@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <variant>
 
-namespace ceq {
+namespace mtf {
 
 namespace impl {
 
@@ -240,4 +240,4 @@ class [[nodiscard]] Result<void, E> : public Result<std::monostate, E> {
 template <class E>
 using Status = Result<void, E>;
 
-}  // namespace ceq
+}  // namespace mtf

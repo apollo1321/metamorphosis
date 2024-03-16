@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-namespace ceq::rt::impl {
+namespace mtf::rt::impl {
 
 void StopState::UnRef() noexcept {
   std::unique_lock guard(lock);
@@ -18,4 +18,4 @@ void StopState::Ref() noexcept {
   ++ref_count;
 }
 
-}  // namespace ceq::rt::impl
+}  // namespace mtf::rt::impl

@@ -7,7 +7,7 @@
 #include <runtime/util/cancellation/stop_callback.h>
 #include <util/condition_check.h>
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 void World::Initialize(uint64_t seed, WorldOptions options) noexcept {
   options_ = options;
@@ -182,4 +182,4 @@ World* GetWorld() noexcept {
   return &world;
 }
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim

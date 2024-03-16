@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace ceq::rt::db {
+namespace mtf::rt::db {
 
 using serde::Data;
 using serde::DataView;
@@ -103,4 +103,4 @@ using DatabasePtr = std::unique_ptr<IDatabase>;
 
 Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept;
 
-}  // namespace ceq::rt::db
+}  // namespace mtf::rt::db

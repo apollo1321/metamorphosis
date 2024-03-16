@@ -1,4 +1,4 @@
-namespace ceq {
+namespace mtf {
 
 template <class Integral, class Predicate>
 Integral BinarySearch(Integral begin, Integral end, Predicate predicate) {
@@ -13,4 +13,4 @@ Integral BinarySearch(Integral begin, Integral end, Predicate predicate) {
   return begin;
 }
 
-}  // namespace ceq
+}  // namespace mtf

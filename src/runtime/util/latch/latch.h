@@ -4,7 +4,7 @@
 
 #include <cstddef>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 class LatchGuard;
 
@@ -40,4 +40,4 @@ class LatchGuard {
   friend class Latch;
 };
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

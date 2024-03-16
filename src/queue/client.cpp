@@ -5,7 +5,7 @@
 
 #include <CLI/CLI.hpp>
 
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 int main(int argc, char** argv) {
   CLI::App app{"Queue service client"};

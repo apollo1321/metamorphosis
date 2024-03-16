@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-namespace ceq {
+namespace mtf {
 
 class SpinLock {
  public:
@@ -29,4 +29,4 @@ class SpinLock {
   std::atomic<bool> is_locked_{false};
 };
 
-}  // namespace ceq
+}  // namespace mtf

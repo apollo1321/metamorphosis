@@ -4,7 +4,7 @@
 #include "stop_state.h"
 #include "stop_token.h"
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 class StopSource {
  public:
@@ -23,4 +23,4 @@ class StopSource {
   impl::StopState* state_ = nullptr;
 };
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

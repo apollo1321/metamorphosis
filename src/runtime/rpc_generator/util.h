@@ -6,7 +6,7 @@
 #include <google/protobuf/io/printer.h>
 #include <google/protobuf/io/zero_copy_stream.h>
 
-namespace ceq::codegen {
+namespace mtf::codegen {
 
 bool HasStreaming(const google::protobuf::FileDescriptor* file) noexcept;
 
@@ -20,4 +20,4 @@ void AddMethodInfo(std::map<std::string, std::string>& vars,
 void AddDependencyHeaders(google::protobuf::io::Printer& printer,
                           const google::protobuf::FileDescriptor* file) noexcept;
 
-}  // namespace ceq::codegen
+}  // namespace mtf::codegen

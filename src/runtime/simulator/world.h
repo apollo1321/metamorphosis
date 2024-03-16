@@ -13,7 +13,7 @@
 #include "host.h"
 #include "rpc_client_base.h"
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 class World {
  public:
@@ -64,4 +64,4 @@ class World {
 
 World* GetWorld() noexcept;
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim

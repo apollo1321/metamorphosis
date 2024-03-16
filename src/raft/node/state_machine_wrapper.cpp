@@ -1,6 +1,6 @@
 #include "state_machine_wrapper.h"
 
-namespace ceq::raft::impl {
+namespace mtf::raft::impl {
 
 ExactlyOnceStateMachine::ExactlyOnceStateMachine(IStateMachine* state_machine) noexcept
     : state_machine_{state_machine} {
@@ -23,4 +23,4 @@ google::protobuf::Any ExactlyOnceStateMachine::Apply(const Request& request) noe
   return last_data.response;
 }
 
-}  // namespace ceq::raft::impl
+}  // namespace mtf::raft::impl

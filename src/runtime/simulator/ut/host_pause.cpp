@@ -9,7 +9,7 @@
 #include <runtime/simulator/ut/test_service.service.h>
 
 using namespace std::chrono_literals;
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 TEST(SimulatorHostPause, SimplyWorks) {
   struct Supervisor : public sim::IHostRunnable {
@@ -94,10 +94,10 @@ TEST(SimulatorHostPause, PauseServer) {
       worker.join();
     }
 
-    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
+    mtf::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       reply.set_msg(request.msg());
-      return ceq::Ok(std::move(reply));
+      return mtf::Ok(std::move(reply));
     }
   };
 
@@ -148,11 +148,11 @@ TEST(SimulatorHostPause, PauseClient) {
       worker.join();
     }
 
-    ceq::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
+    mtf::Result<EchoReply, rpc::RpcError> Echo(const EchoRequest& request) noexcept override {
       EchoReply reply;
       SleepFor(1h);
       reply.set_msg(request.msg());
-      return ceq::Ok(std::move(reply));
+      return mtf::Ok(std::move(reply));
     }
   };
 

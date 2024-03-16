@@ -4,7 +4,7 @@
 
 #include <util/condition_check.h>
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 void Server::ServerImpl::Register(Server::Service* service) noexcept {
   VERIFY(!running_, "cannot register service in running server");
@@ -80,4 +80,4 @@ Server::ServerImpl::~ServerImpl() {
   VERIFY(finished_, "Destruction of running server");
 }
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

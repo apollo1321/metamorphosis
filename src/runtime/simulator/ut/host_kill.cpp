@@ -6,7 +6,7 @@
 
 using namespace std::chrono_literals;
 
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 TEST(SimulatorHostKill, SimplyWorks) {
   struct Supervisor : public sim::IHostRunnable {
@@ -21,7 +21,7 @@ TEST(SimulatorHostKill, SimplyWorks) {
   struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
       ++count;
-      ceq::rt::SleepFor(10s);
+      mtf::rt::SleepFor(10s);
       ++count;
     }
 
@@ -58,7 +58,7 @@ TEST(SimulatorHostKill, KillWithoutRestarting) {
   struct Host final : public sim::IHostRunnable {
     void Main() noexcept override {
       ++count;
-      ceq::rt::SleepFor(10s);
+      mtf::rt::SleepFor(10s);
       ++count;
     }
 

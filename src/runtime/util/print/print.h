@@ -4,9 +4,9 @@
 
 #include <runtime/util/chrono/chrono.h>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 std::string ToString(const Duration& duration) noexcept;
 std::string ToString(const google::protobuf::Message& proto) noexcept;
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

@@ -12,7 +12,7 @@
 #include "production/rpc_server.h"
 #endif
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 Server::Server() noexcept : impl_{new ServerImpl} {
 }
@@ -39,4 +39,4 @@ Server::~Server() {
   delete impl_;
 }
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

@@ -2,7 +2,7 @@
 
 #include <boost/fiber/all.hpp>
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 struct Event {
  public:
@@ -16,4 +16,4 @@ struct Event {
   bool resumed_ = false;
 };
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

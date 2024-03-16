@@ -13,14 +13,14 @@
 
 using namespace std::chrono_literals;
 
-using ceq::Result;
-using namespace ceq::rt;  // NOLINT
+using mtf::Result;
+using namespace mtf::rt;  // NOLINT
 
 class EchoService final : public rpc::EchoServiceStub {
   Result<EchoReply, rpc::RpcError> SayHello(const EchoRequest& request) noexcept override {
     EchoReply reply;
     reply.set_message(request.name());
-    return ceq::Ok(reply);
+    return mtf::Ok(reply);
   }
 };
 

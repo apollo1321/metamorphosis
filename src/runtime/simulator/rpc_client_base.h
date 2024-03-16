@@ -6,7 +6,7 @@
 
 #include "rpc_server.h"
 
-namespace ceq::rt::rpc {
+namespace mtf::rt::rpc {
 
 class ClientBase {
  public:
@@ -50,4 +50,4 @@ class ClientBase {
   Endpoint endpoint_;
 };
 
-}  // namespace ceq::rt::rpc
+}  // namespace mtf::rt::rpc

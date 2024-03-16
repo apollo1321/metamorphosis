@@ -1,6 +1,6 @@
 #include "random.h"
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 double GetProbability() noexcept {
   return GetRandomFloat(0., 1.);
@@ -21,4 +21,4 @@ uint64_t GetRandomInt(uint64_t from, uint64_t to) noexcept {
   return dist(GetGenerator());
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

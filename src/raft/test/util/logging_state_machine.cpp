@@ -4,7 +4,7 @@
 
 #include <raft/test/util/logging_state_machine.pb.h>
 
-namespace ceq::raft::test {
+namespace mtf::raft::test {
 
 google::protobuf::Any LoggingStateMachine::Apply(const google::protobuf::Any& command) noexcept {
   log.push_back(rt::proto::FromAny<RsmCommand>(command).GetValue().data());
@@ -21,4 +21,4 @@ google::protobuf::Any LoggingStateMachine::Apply(const google::protobuf::Any& co
   return rt::proto::ToAny(result).GetValue();
 }
 
-}  // namespace ceq::raft::test
+}  // namespace mtf::raft::test

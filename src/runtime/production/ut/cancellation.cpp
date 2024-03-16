@@ -5,17 +5,17 @@
 
 using namespace std::chrono_literals;
 
-using ceq::rt::Duration;
-using ceq::rt::Timestamp;
+using mtf::rt::Duration;
+using mtf::rt::Timestamp;
 
 TEST(ProductionCancellation, SimplyWorks) {
-  auto start = ceq::rt::Now();
+  auto start = mtf::rt::Now();
 
-  ceq::rt::StopSource source;
+  mtf::rt::StopSource source;
 
-  ceq::rt::SleepFor(1s, source.GetToken());
+  mtf::rt::SleepFor(1s, source.GetToken());
 
-  auto duration = ceq::rt::Now() - start;
+  auto duration = mtf::rt::Now() - start;
 
   source.Stop();
 
@@ -24,18 +24,18 @@ TEST(ProductionCancellation, SimplyWorks) {
 }
 
 TEST(ProductionCancellation, CancelSleepSimplyWorks) {
-  auto start = ceq::rt::Now();
+  auto start = mtf::rt::Now();
 
-  ceq::rt::StopSource source;
+  mtf::rt::StopSource source;
 
   auto handle = boost::fibers::async([&]() {
-    ceq::rt::SleepFor(100ms);
+    mtf::rt::SleepFor(100ms);
     source.Stop();
   });
 
-  ceq::rt::SleepFor(1h, source.GetToken());
+  mtf::rt::SleepFor(1h, source.GetToken());
 
-  auto duration = ceq::rt::Now() - start;
+  auto duration = mtf::rt::Now() - start;
 
   EXPECT_LT(duration, 1s);
   EXPECT_GE(duration, 100ms);
@@ -44,24 +44,24 @@ TEST(ProductionCancellation, CancelSleepSimplyWorks) {
 }
 
 TEST(ProductionCancellation, SleepAfterCancel) {
-  auto start = ceq::rt::Now();
+  auto start = mtf::rt::Now();
 
-  ceq::rt::StopSource source;
+  mtf::rt::StopSource source;
 
   source.Stop();
 
-  ceq::rt::SleepFor(1h, source.GetToken());
+  mtf::rt::SleepFor(1h, source.GetToken());
 
-  auto duration = ceq::rt::Now() - start;
+  auto duration = mtf::rt::Now() - start;
 
   EXPECT_LT(duration, 1s);
 }
 
 TEST(ProductionCancellation, ConcurrentCancel) {
   for (size_t i = 0; i < 100; ++i) {
-    auto start = ceq::rt::Now();
+    auto start = mtf::rt::Now();
 
-    ceq::rt::StopSource source;
+    mtf::rt::StopSource source;
 
     std::vector<std::thread> threads;
 
@@ -71,7 +71,7 @@ TEST(ProductionCancellation, ConcurrentCancel) {
 
         for (size_t fiber_id = 0; fiber_id < 100; ++fiber_id) {
           fibers.emplace_back([&]() {
-            ceq::rt::SleepFor(1h, source.GetToken());
+            mtf::rt::SleepFor(1h, source.GetToken());
           });
         }
 
@@ -87,7 +87,7 @@ TEST(ProductionCancellation, ConcurrentCancel) {
       });
     }
 
-    auto duration = ceq::rt::Now() - start;
+    auto duration = mtf::rt::Now() - start;
 
     EXPECT_LT(duration, 2s);
 

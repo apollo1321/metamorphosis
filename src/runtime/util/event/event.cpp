@@ -1,6 +1,6 @@
 #include "event.h"
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 void Event::Await() noexcept {
   std::unique_lock guard(mutex_);
@@ -20,4 +20,4 @@ void Event::Reset() noexcept {
   resumed_ = false;
 }
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

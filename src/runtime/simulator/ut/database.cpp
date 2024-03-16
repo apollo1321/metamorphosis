@@ -7,7 +7,7 @@
 #include <runtime/util/serde/u64_serde.h>
 
 using namespace std::chrono_literals;
-using namespace ceq::rt;  // NOLINT
+using namespace mtf::rt;  // NOLINT
 
 TEST(SimulatorDatabase, SimplyWorks) {
   struct Host final : public sim::IHostRunnable {

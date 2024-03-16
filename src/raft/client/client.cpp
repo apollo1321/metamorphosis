@@ -3,7 +3,7 @@
 #include <util/defer.h>
 #include "runtime/util/print/print.h"
 
-namespace ceq::raft {
+namespace mtf::raft {
 
 RaftClientError::RaftClientError(rt::rpc::RpcError error) noexcept : error{std::move(error)} {
 }
@@ -168,4 +168,4 @@ Result<google::protobuf::Any, RaftClientError> RaftClient::StartAttempt(const Re
       });
 }
 
-}  // namespace ceq::raft
+}  // namespace mtf::raft

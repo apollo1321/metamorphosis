@@ -8,7 +8,7 @@
 #include <util/binary_search.h>
 #include <util/condition_check.h>
 
-namespace ceq::rt::sim {
+namespace mtf::rt::sim {
 
 Host::Host(const Address& address, IHostRunnable* host_main, const HostOptions& options) noexcept
     : logger_{CreateLogger(address)}, host_main_{host_main}, address_{address} {
@@ -190,4 +190,4 @@ size_t GetCurrentEpoch() noexcept {
   return boost::this_fiber::properties<RuntimeSimulationProps>().GetCurrentEpoch();
 }
 
-}  // namespace ceq::rt::sim
+}  // namespace mtf::rt::sim

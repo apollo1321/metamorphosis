@@ -9,7 +9,7 @@
 
 #include <raft/raft.client.h>
 
-namespace ceq::raft {
+namespace mtf::raft {
 
 enum class RaftClientErrorType {
   GlobalTimeout,
@@ -78,4 +78,4 @@ class RaftClient {
   uint64_t client_id_ = 0;
 };
 
-}  // namespace ceq::raft
+}  // namespace mtf::raft

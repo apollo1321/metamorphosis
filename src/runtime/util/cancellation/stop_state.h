@@ -4,7 +4,7 @@
 
 #include <util/spin_lock.h>
 
-namespace ceq::rt::impl {
+namespace mtf::rt::impl {
 
 struct StopCallbackNode;
 
@@ -19,4 +19,4 @@ struct StopState {
   uint64_t ref_count = 0;
 };
 
-}  // namespace ceq::rt::impl
+}  // namespace mtf::rt::impl

@@ -6,7 +6,7 @@
 using google::protobuf::FileDescriptor;
 using google::protobuf::compiler::GeneratorContext;
 
-namespace ceq::codegen::sim {
+namespace mtf::codegen::sim {
 
 void GenerateClientHeader(GeneratorContext* generator_context, const FileDescriptor* file) noexcept;
 void GenerateClientSource(GeneratorContext* generator_context, const FileDescriptor* file) noexcept;
@@ -15,4 +15,4 @@ void GenerateServiceHeader(GeneratorContext* generator_context,
 void GenerateServiceSource(GeneratorContext* generator_context,
                            const FileDescriptor* file) noexcept;
 
-}  // namespace ceq::codegen::sim
+}  // namespace mtf::codegen::sim

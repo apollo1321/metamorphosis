@@ -4,7 +4,7 @@
 
 #include "stop_token.h"
 
-namespace ceq::rt {
+namespace mtf::rt {
 
 namespace impl {
 
@@ -82,4 +82,4 @@ class StopCallback : private impl::StopCallbackNode {
   StopToken token_;
 };
 
-}  // namespace ceq::rt
+}  // namespace mtf::rt

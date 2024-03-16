@@ -7,7 +7,7 @@
 
 #include <runtime/api.h>
 
-namespace ceq::raft {
+namespace mtf::raft {
 
 struct IStateMachine {
   virtual google::protobuf::Any Apply(const google::protobuf::Any& command) noexcept = 0;
@@ -28,4 +28,4 @@ struct RaftConfig {
 
 Status<std::string> RunMain(IStateMachine* state_machine, RaftConfig config) noexcept;
 
-}  // namespace ceq::raft
+}  // namespace mtf::raft
