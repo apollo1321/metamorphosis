@@ -4,8 +4,8 @@ project(cost_effective_queue)
 set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_FLAGS_ASAN "${CMAKE_CXX_FLAGS_ASAN} -g -O2 -fsanitize=address -fno-omit-frame-pointer") 
-set(CMAKE_CXX_FLAGS_TSAN "${CMAKE_CXX_FLAGS_TSAN} -g -O2 -fsanitize=thread -fno-omit-frame-pointer") 
+set(CMAKE_CXX_FLAGS_ASAN "${CMAKE_CXX_FLAGS_ASAN} -g -O2 -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS_TSAN "${CMAKE_CXX_FLAGS_TSAN} -g -O2 -fsanitize=thread -fno-omit-frame-pointer")
 
 option(MORF_PRECOMPILE   "Compile only third party" OFF)
 option(MORF_BUILD_STATIC "Build static executables" OFF)
@@ -28,7 +28,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 
-if (MORF_BUILD_STATIC) 
+if (MORF_BUILD_STATIC)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lc++ -static")
 endif()
 

@@ -33,9 +33,9 @@ std::string DBError::Message() const noexcept {
 
 Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept {
 #ifdef SIMULATION
-  return sim::db::Open(std::move(path), options);
+  return sim::db::Database::Open(std::move(path), options);
 #else
-  return prod::db::Open(std::move(path), options);
+  return prod::db::Database::Open(std::move(path), options);
 #endif
 }
 

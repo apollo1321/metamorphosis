@@ -64,39 +64,39 @@ struct Iterator final : public IIterator {
 };
 
 Status<DBError> WriteBatch::Put(DataView key, DataView value) noexcept {
-  commands.emplace_back(PutCmd{Data{key.begin(), key.end()}, Data{value.begin(), value.end()}});
+  commands_.emplace_back(PutCmd{Data{key.begin(), key.end()}, Data{value.begin(), value.end()}});
   return Ok();
 }
 
 Status<DBError> WriteBatch::DeleteRange(DataView start_key, DataView end_key) noexcept {
-  commands.emplace_back(DeleteRangeCmd{Data{start_key.begin(), start_key.end()},
+  commands_.emplace_back(DeleteRangeCmd{Data{start_key.begin(), start_key.end()},
                                        Data{end_key.begin(), end_key.end()}});
   return Ok();
 }
 
 Status<DBError> WriteBatch::Delete(DataView key) noexcept {
-  commands.emplace_back(DeleteCmd{Data{key.begin(), key.end()}});
+  commands_.emplace_back(DeleteCmd{Data{key.begin(), key.end()}});
   return Ok();
 }
 
-Database::Database(HostDatabase* database) noexcept : database{database} {
+Database::Database(HostDatabase* database) noexcept : database_{database} {
 }
 
 std::unique_ptr<IIterator> Database::NewIterator() noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
-  return std::make_unique<Iterator>(database->data);
+  return std::make_unique<Iterator>(database_->data);
 }
 
 Status<DBError> Database::Put(DataView key, DataView value) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
-  database->data[Data(key.begin(), key.end())] = Data(value.begin(), value.end());
+  database_->data[Data(key.begin(), key.end())] = Data(value.begin(), value.end());
   return Ok();
 }
 
 Result<Data, DBError> Database::Get(DataView key) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
-  auto it = database->data.find(Data(key.begin(), key.end()));
-  if (it == database->data.end()) {
+  auto it = database_->data.find(Data(key.begin(), key.end()));
+  if (it == database_->data.end()) {
     return Err(DBErrorType::NotFound);
   }
   return Ok(it->second);
@@ -104,18 +104,18 @@ Result<Data, DBError> Database::Get(DataView key) noexcept {
 
 Status<DBError> Database::DeleteRange(DataView start_key, DataView end_key) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
-  auto start_it = database->data.lower_bound(Data(start_key.begin(), start_key.end()));
-  if (start_it == database->data.end()) {
+  auto start_it = database_->data.lower_bound(Data(start_key.begin(), start_key.end()));
+  if (start_it == database_->data.end()) {
     return Ok();
   }
-  auto end_it = database->data.lower_bound(Data(end_key.begin(), end_key.end()));
-  database->data.erase(start_it, end_it);
+  auto end_it = database_->data.lower_bound(Data(end_key.begin(), end_key.end()));
+  database_->data.erase(start_it, end_it);
   return Ok();
 }
 
 Status<DBError> Database::Delete(DataView key) noexcept {
   sim::GetCurrentHost()->StopFiberIfNecessary();
-  database->data.erase(Data(key.begin(), key.end()));
+  database_->data.erase(Data(key.begin(), key.end()));
   return Ok();
 }
 
@@ -124,7 +124,7 @@ WriteBatchPtr Database::MakeWriteBatch() noexcept {
 }
 
 Status<DBError> Database::Write(WriteBatchPtr write_batch) noexcept {
-  auto& commands = static_cast<WriteBatch*>(write_batch.get())->commands;
+  auto& commands = static_cast<WriteBatch*>(write_batch.get())->commands_;
   for (auto& command : commands) {
     if (std::holds_alternative<WriteBatch::PutCmd>(command)) {
       auto& cmd = std::get<WriteBatch::PutCmd>(command);
@@ -142,7 +142,7 @@ Status<DBError> Database::Write(WriteBatchPtr write_batch) noexcept {
   return Ok();
 }
 
-Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept {
+Result<DatabasePtr, DBError> Database::Open(std::filesystem::path path, Options options) noexcept {
   rt::sim::GetCurrentHost()->StopFiberIfNecessary();
   auto path_str = path.string();
   auto& databases = rt::sim::GetCurrentHost()->databases;

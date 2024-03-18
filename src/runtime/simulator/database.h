@@ -33,7 +33,13 @@ struct HostDatabase {
   size_t epoch = 0;  // only for checks
 };
 
-struct WriteBatch final : public IWriteBatch {
+class WriteBatch final : public IWriteBatch {
+ public:
+  Status<DBError> Put(DataView key, DataView value) noexcept override;
+  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept override;
+  Status<DBError> Delete(DataView key) noexcept override;
+
+ private:
   struct PutCmd {
     Data key;
     Data value;
@@ -48,14 +54,14 @@ struct WriteBatch final : public IWriteBatch {
     Data key;
   };
 
-  Status<DBError> Put(DataView key, DataView value) noexcept override;
-  Status<DBError> DeleteRange(DataView start_key, DataView end_key) noexcept override;
-  Status<DBError> Delete(DataView key) noexcept override;
+ private:
+  friend class Database;
 
-  std::vector<std::variant<PutCmd, DeleteRangeCmd, DeleteCmd>> commands;
+  std::vector<std::variant<PutCmd, DeleteRangeCmd, DeleteCmd>> commands_;
 };
 
 struct Database final : public IDatabase {
+ public:
   explicit Database(HostDatabase* database) noexcept;
 
   std::unique_ptr<IIterator> NewIterator() noexcept override;
@@ -68,9 +74,11 @@ struct Database final : public IDatabase {
   WriteBatchPtr MakeWriteBatch() noexcept override;
   Status<DBError> Write(WriteBatchPtr write_batch) noexcept override;
 
-  HostDatabase* database{};
-};
+ public:
+  static Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept;
 
-Result<DatabasePtr, DBError> Open(std::filesystem::path path, Options options) noexcept;
+ private:
+  HostDatabase* database_{};
+};
 
 }  // namespace mtf::rt::sim::db
