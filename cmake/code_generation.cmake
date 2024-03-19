@@ -44,9 +44,9 @@ function(generate_proto TARGET PROTO)
       --cpp_out "${PROTO_DIR}"
       --rpc_out "${PROTO_DIR}"
       -I "${IMPORTS_DIR}"
-      --plugin=protoc-gen-rpc=$<TARGET_FILE:ceq_rpc_generator>
+      --plugin=protoc-gen-rpc=$<TARGET_FILE:mtf_rpc_generator>
       "${PROTO_PATH}"
-    DEPENDS "${PROTO_PATH}" ceq_rpc_generator
+    DEPENDS "${PROTO_PATH}" mtf_rpc_generator
   )
 
   add_library(${TARGET}_prod
@@ -54,14 +54,14 @@ function(generate_proto TARGET PROTO)
     ${CLIENT_PROD_SRC}
     ${SERVICE_PROD_SRC}
   )
-  target_link_libraries(${TARGET}_prod ceq_runtime_production)
+  target_link_libraries(${TARGET}_prod mtf_runtime_production)
 
   add_library(${TARGET}_sim
     ${PROTO_SRC}
     ${CLIENT_SIM_SRC}
     ${SERVICE_SIM_SRC}
   )
-  target_link_libraries(${TARGET}_sim ceq_runtime_simulator)
+  target_link_libraries(${TARGET}_sim mtf_runtime_simulator)
 
   add_library(${TARGET} ${PROTO_SRC})
   target_link_libraries(${TARGET} libprotobuf)

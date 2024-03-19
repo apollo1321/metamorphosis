@@ -1,4 +1,4 @@
-generate_proto(ceq_raft_proto raft.proto)
+generate_proto(mtf_raft_proto raft.proto)
 
 add_subdirectory(node)
 add_subdirectory(client)

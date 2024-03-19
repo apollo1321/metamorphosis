@@ -2,10 +2,11 @@
 # Production Node
 ################################################################################
 
-add_library(mtf_raft_node_prod node.cpp state_machine_wrapper.cpp)
-target_link_libraries(mtf_raft_node_prod
+add_library(mtf_metamorphosis_node_prod node.cpp)
+target_link_libraries(mtf_metamorphosis_node_prod
   mtf_lib
-  mtf_raft_proto_prod
+  mtf_serde
+  mtf_metamorphosis_proto_prod
   mtf_runtime_production
 )
 
@@ -13,9 +14,10 @@ target_link_libraries(mtf_raft_node_prod
 # Simulator Node
 ################################################################################
 
-add_library(mtf_raft_node_sim node.cpp state_machine_wrapper.cpp)
-target_link_libraries(mtf_raft_node_sim
+add_library(mtf_metamorphosis_node_sim node.cpp)
+target_link_libraries(mtf_metamorphosis_node_sim
   mtf_lib
-  mtf_raft_proto_sim
+  mtf_serde
+  mtf_metamorphosis_proto_sim
   mtf_runtime_simulator
 )

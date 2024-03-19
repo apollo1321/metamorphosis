@@ -326,8 +326,6 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   }
 
   //////////////////////////////////////////////////////////
-  // State-specific code
-  //////////////////////////////////////////////////////////
 
   void StartLeader() noexcept {
     std::vector<boost::fibers::fiber> sessions;
@@ -577,6 +575,8 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
     election_timer.join();
   }
 
+  //////////////////////////////////////////////////////////
+
   rt::Duration GetElectionTimeout() noexcept {
     return rt::GetRandomDuration(config.election_timeout);
   }
@@ -656,7 +656,7 @@ struct RaftNode final : public rt::rpc::RaftInternalsStub, public rt::rpc::RaftA
   // Persistent state
   //////////////////////////////////////////////////////////
 
-  // Contains two keys: "current_term: and "voted_for"
+  // Contains two keys: "current_term" and "voted_for"
   RaftStateDbPtr raft_state;
   // Key is log id
   RaftLogDbPtr raft_log;

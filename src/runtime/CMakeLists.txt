@@ -1,21 +1,21 @@
-add_library(ceq_runtime_base INTERFACE)
-target_link_libraries(ceq_runtime_base INTERFACE
-  ceq_cancellation
-  ceq_chrono
-  ceq_endpoint
-  ceq_event
-  ceq_latch
-  ceq_lib
-  ceq_print
-  ceq_rpc_error
-  ceq_serde
-  ceq_util
+add_library(mtf_runtime_base INTERFACE)
+target_link_libraries(mtf_runtime_base INTERFACE
+  mtf_cancellation
+  mtf_chrono
+  mtf_endpoint
+  mtf_event
+  mtf_latch
+  mtf_lib
+  mtf_print
+  mtf_rpc_error
+  mtf_serde
+  mtf_util
   libprotobuf
   Boost::fiber
   spdlog
 )
 
-target_compile_definitions(ceq_runtime_base INTERFACE
+target_compile_definitions(mtf_runtime_base INTERFACE
   SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${MORF_LOG_LEVEL}
 )
 
@@ -23,7 +23,7 @@ target_compile_definitions(ceq_runtime_base INTERFACE
 # production runtime
 # ------------------------------------------------------------------------------
 
-add_library(ceq_runtime_production
+add_library(mtf_runtime_production
   database.cpp
   logger.cpp
   random.cpp
@@ -37,14 +37,14 @@ add_library(ceq_runtime_production
   production/time.cpp
 )
 
-target_link_libraries(ceq_runtime_production
-  ceq_runtime_base
+target_link_libraries(mtf_runtime_production
+  mtf_runtime_base
   grpc++_reflection
   grpc++
   rocksdb_lib
 )
 
-target_compile_definitions(ceq_runtime_production PUBLIC 
+target_compile_definitions(mtf_runtime_production PUBLIC 
   PRODUCTION
 )
 
@@ -54,7 +54,7 @@ add_subdirectory(production)
 # simulator runtime
 # ------------------------------------------------------------------------------
 
-add_library(ceq_runtime_simulator
+add_library(mtf_runtime_simulator
   database.cpp
   logger.cpp
   random.cpp
@@ -72,14 +72,14 @@ add_library(ceq_runtime_simulator
   simulator/world.cpp
 )
 
-target_link_libraries(ceq_runtime_simulator
-  ceq_runtime_base
+target_link_libraries(mtf_runtime_simulator
+  mtf_runtime_base
   libprotobuf
   Boost::fiber
   spdlog
 )
 
-target_compile_definitions(ceq_runtime_simulator PUBLIC 
+target_compile_definitions(mtf_runtime_simulator PUBLIC 
   SIMULATION
 )
 

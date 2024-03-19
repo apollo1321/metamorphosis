@@ -1,5 +1,5 @@
-add_library(ceq_util backtrace.cpp)
-target_link_libraries(ceq_util PRIVATE
+add_library(mtf_util backtrace.cpp)
+target_link_libraries(mtf_util PRIVATE
   Boost::stacktrace_addr2line
   dl
 )
