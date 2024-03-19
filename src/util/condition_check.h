@@ -17,7 +17,7 @@
   do {                                                                                           \
     if (!(CONDIDITION)) {                                                                        \
       std::cerr << __FILE__ << ":" << __LINE__ << ": VERIFY failed: " << (MESSAGE) << std::endl; \
-      mtf::PrintBackTrace(std::cerr);                                                            \
+      ::mtf::PrintBackTrace(std::cerr);                                                            \
       std::abort();                                                                              \
     }                                                                                            \
   } while (false)

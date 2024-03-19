@@ -1,5 +1,5 @@
-add_library(ceq_serde INTERFACE)
-target_link_libraries(ceq_serde INTERFACE
+add_library(mtf_serde INTERFACE)
+target_link_libraries(mtf_serde INTERFACE
   libprotobuf
-  ceq_lib
+  mtf_lib
 )

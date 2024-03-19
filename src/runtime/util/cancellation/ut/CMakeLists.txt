@@ -1,3 +1,3 @@
 add_executable(test_cancellation cancellation.cpp)
-target_link_libraries(test_cancellation ceq_cancellation GTest::gtest_main)
+target_link_libraries(test_cancellation mtf_cancellation GTest::gtest_main)
 gtest_discover_tests(test_cancellation)

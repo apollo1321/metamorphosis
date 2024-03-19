@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+////////////////////////////////////////////////////////////
+// Client API for Queue
+////////////////////////////////////////////////////////////
+
+message ReadReq {
+  uint64 message_id = 1;
+}
+
+message ReadRsp {
+  enum Status {
+    NOT_FOUND = 0;
+    HASH_ONLY = 1;
+    FULL_MESSAGE = 2;
+    TRUNCATED = 3;
+  };
+
+  Status status = 1;
+  oneof payload {
+    string data = 2;
+    uint64 hash = 3;
+  };
+}
+
+////////////////////////////////////////////////////////////
+
+message AppendReq {
+  string data = 1;
+  uint64 client_id = 2;
+  uint64 request_id = 3;
+
+  repeated uint64 full_copy_nodes_hint = 4;
+}
+
+message AppendRsp {
+  enum Status {
+    NotALeader = 0;
+    Commited = 1;
+  };
+  Status status = 1;
+  uint64 message_id = 2;
+}
+
+////////////////////////////////////////////////////////////
+
+service MetamorphosisApi {
+  rpc Read(ReadReq) returns (ReadRsp) {}
+  rpc Append(AppendReq) returns (AppendRsp) {}
+}
+
+////////////////////////////////////////////////////////////
+// Internal RPC's
+////////////////////////////////////////////////////////////
+
+message AppendEntriesReq {
+  message LogEntry {
+    uint64 term = 1;
+    uint64 client_id = 2;
+    uint64 request_id = 3;
+    oneof payload {
+      string data = 4;
+      uint64 hash = 5;
+    }
+  };
+
+  uint64 term = 1;
+  uint64 leader_id = 2;
+  uint64 prev_log_index = 3;
+  uint64 prev_log_term = 4;
+  repeated LogEntry entries = 5;
+  uint64 leader_commit = 6;
+}
+
+message AppendEntriesRsp {
+  uint64 term = 1;
+  bool success = 2;
+}
+
+////////////////////////////////////////////////////////////
+
+message RequestVoteReq {
+  uint64 term = 1;
+  uint64 candidate_id = 2;
+  uint64 last_log_index = 3;
+  uint64 last_log_term = 4;
+}
+
+message RequestVoteRsp {
+  uint64 term = 1;
+  bool vote_granted = 2;
+}
+
+////////////////////////////////////////////////////////////
+
+service MetamorphosisInternals {
+  rpc AppendEntries(AppendEntriesReq) returns (AppendEntriesRsp) {}
+  rpc RequestVote(RequestVoteReq) returns (RequestVoteRsp) {}
+}

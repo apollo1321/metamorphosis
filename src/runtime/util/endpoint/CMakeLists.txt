@@ -1,1 +1,1 @@
-add_library(ceq_endpoint endpoint.cpp)
+add_library(mtf_endpoint endpoint.cpp)

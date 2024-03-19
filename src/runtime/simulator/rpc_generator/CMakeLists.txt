@@ -1,10 +1,10 @@
-add_library(ceq_rpc_generator_simulator
+add_library(mtf_rpc_generator_simulator
   rpc_generator.cpp
 )
 
-target_link_libraries(ceq_rpc_generator_simulator
-  ceq_rpc_generator_util
-  ceq_lib
+target_link_libraries(mtf_rpc_generator_simulator
+  mtf_rpc_generator_util
+  mtf_lib
   libprotobuf
   libprotoc
 )

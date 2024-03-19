@@ -1,2 +1,2 @@
-add_library(ceq_rpc_error rpc_error.cpp)
-target_link_libraries(ceq_rpc_error ceq_lib)
+add_library(mtf_rpc_error rpc_error.cpp)
+target_link_libraries(mtf_rpc_error mtf_lib)

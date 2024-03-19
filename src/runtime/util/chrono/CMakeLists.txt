@@ -1,1 +1,1 @@
-add_library(ceq_chrono INTERFACE)
+add_library(mtf_chrono INTERFACE)
