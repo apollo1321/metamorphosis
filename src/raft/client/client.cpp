@@ -1,7 +1,6 @@
 #include "client.h"
 
 #include <util/defer.h>
-#include "runtime/util/print/print.h"
 
 namespace mtf::raft {
 

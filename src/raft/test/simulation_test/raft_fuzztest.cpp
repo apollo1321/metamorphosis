@@ -12,8 +12,6 @@
 
 #include <raft/test/util/history_checker.h>
 
-#include "runtime/util/print/print.h"
-
 using namespace std::chrono_literals;
 
 namespace mtf::raft::test {

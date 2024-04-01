@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
   app.add_option("--timeout", global_timeout, "Request global timeout")->default_val("500ms");
 
   Duration rpc_timeout{};
-  app.add_option("--rps-timeout", rpc_timeout, "Rpc timeout")->default_val("500ms");
+  app.add_option("--rpc-timeout", rpc_timeout, "Rpc timeout")->default_val("500ms");
 
   uint64_t attempts{};
   app.add_option("--attempts", attempts, "Request max attempts")->default_val("10");

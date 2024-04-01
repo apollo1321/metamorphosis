@@ -1,11 +1,11 @@
 #pragma once
 
-#include <string>
+#include <util/result.h>
 
 #include <google/protobuf/any.pb.h>
 #include <google/protobuf/message.h>
 
-#include <util/result.h>
+#include <string>
 
 namespace mtf::rt::proto {
 
@@ -26,5 +26,7 @@ Result<T, std::string> FromAny(const google::protobuf::Any& proto) noexcept {
   }
   return Ok(std::move(result));
 }
+
+std::string ToString(const google::protobuf::Message& proto) noexcept;
 
 }  // namespace mtf::rt::proto

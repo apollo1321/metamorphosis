@@ -12,4 +12,6 @@ struct Interval {
   Duration to;
 };
 
+std::string ToString(const Duration& duration) noexcept;
+
 }  // namespace mtf::rt

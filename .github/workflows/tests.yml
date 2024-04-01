@@ -77,7 +77,7 @@ jobs:
       run: nix develop -i --command cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DMORF_FUZZ_TEST=ON -GNinja
 
     - name: Build
-      run: nix develop -i --command cmake --build build --target ceq_test_raft_fuzztest
+      run: nix develop -i --command cmake --build build --target mtf_test_raft_fuzztest
 
     - name: Save Build
       uses: actions/cache/save@v3
@@ -88,11 +88,11 @@ jobs:
 
     - name: Run Asan Fuzz Tests
       if: ${{ matrix.build_type == 'Asan' }}
-      run: nix develop -i --command ./build/src/raft/test/simulation_test/ceq_test_raft_fuzztest --fuzz_for 20s --fuzz=RaftFuzzTest.RaftTestWrapper
+      run: nix develop -i --command ./build/src/raft/test/simulation_test/mtf_test_raft_fuzztest --fuzz_for 20s --fuzz=RaftFuzzTest.RaftTestWrapper
 
     - name: Run Release Fuzz Tests
       if: ${{ matrix.build_type == 'Release' }}
-      run: nix develop -i --command ./build/src/raft/test/simulation_test/ceq_test_raft_fuzztest --fuzz_for 100s --fuzz=RaftFuzzTest.RaftTestWrapper
+      run: nix develop -i --command ./build/src/raft/test/simulation_test/mtf_test_raft_fuzztest --fuzz_for 100s --fuzz=RaftFuzzTest.RaftTestWrapper
 
   system_test:
     runs-on: ubuntu-22.04

@@ -1,7 +1,4 @@
-#include <raft/test/util/logging_state_machine.h>
-#include <raft/test/util/logging_state_machine.pb.h>
-
-#include <raft/node/node.h>
+#include <metamorphosis/node/node.h>
 
 #include <runtime/util/parse/parse.h>
 
@@ -13,12 +10,13 @@ using namespace std::chrono_literals;
 using namespace mtf::rt;  // NOLINT
 
 int main(int argc, char** argv) {
-  CLI::App app{"Raft node"};
+  CLI::App app{"Metamorphosis node"};
 
-  mtf::raft::RaftConfig config;
+  mtf::mtf::NodeConfig config;
 
   // Nodes
-  app.add_option("--raft-nodes", config.raft_nodes, "Raft nodes endpoints, addr:port")->required();
+  app.add_option("--nodes", config.cluster_nodes, "Metamorphosis nodes endpoints, addr:port")
+      ->required();
   app.add_option("--node-id", config.node_id, "Current node id")->required();
 
   // Timing
@@ -31,19 +29,18 @@ int main(int argc, char** argv) {
 
   // Database
   std::filesystem::path storage_path_prefix;
-  app.add_option("--store-path", storage_path_prefix, "Raft storage path prefix")
-      ->default_val("/tmp/raft_storage/");
+  app.add_option("--store-path", storage_path_prefix, "Metamorphosis storage path prefix")
+      ->default_val("/tmp/mtf_storage/");
 
   app.set_config("--config", "", "Read toml config");
   app.allow_config_extras(false);
 
   CLI11_PARSE(app, argc, argv);
 
-  config.raft_state_db_path = storage_path_prefix / "state/";
+  config.state_db_path = storage_path_prefix / "state/";
   config.log_db_path = storage_path_prefix / "log/";
 
-  mtf::raft::test::LoggingStateMachine rsm;
-  auto status = mtf::raft::RunMain(&rsm, config);
+  auto status = mtf::mtf::RunMain(config);
   if (status.HasError()) {
     std::cerr << status.GetError() << std::endl;
     return 1;

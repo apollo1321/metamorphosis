@@ -23,4 +23,4 @@ struct OnScopeExit {
 
 }  // namespace mtf::internal
 
-#define DEFER auto defer_##__LINE__ = mtf::internal::OnScopeExit<int>::MacroHelper{} | [&]()
+#define DEFER auto defer_##__LINE__ = ::mtf::internal::OnScopeExit<int>::MacroHelper{} | [&]()

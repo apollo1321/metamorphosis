@@ -6,7 +6,7 @@ target_link_libraries(mtf_runtime_base INTERFACE
   mtf_event
   mtf_latch
   mtf_lib
-  mtf_print
+  mtf_proto
   mtf_rpc_error
   mtf_serde
   mtf_util
@@ -44,7 +44,7 @@ target_link_libraries(mtf_runtime_production
   rocksdb_lib
 )
 
-target_compile_definitions(mtf_runtime_production PUBLIC 
+target_compile_definitions(mtf_runtime_production PUBLIC
   PRODUCTION
 )
 
@@ -79,7 +79,7 @@ target_link_libraries(mtf_runtime_simulator
   spdlog
 )
 
-target_compile_definitions(mtf_runtime_simulator PUBLIC 
+target_compile_definitions(mtf_runtime_simulator PUBLIC
   SIMULATION
 )
 
