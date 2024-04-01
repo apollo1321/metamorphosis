@@ -1,6 +1,6 @@
 #include "logging_state_machine.h"
 
-#include <runtime/util/proto/proto_conversion.h>
+#include <runtime/util/proto/conversion.h>
 
 #include <raft/test/util/logging_state_machine.pb.h>
 

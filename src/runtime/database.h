@@ -82,7 +82,7 @@ class IWriteBatch {
 
 using WriteBatchPtr = std::unique_ptr<IWriteBatch>;
 
-// Imitation of the rocksdb API
+// Imitation of the rocksdb API.
 // https://github.com/facebook/rocksdb
 class IDatabase {
  public:

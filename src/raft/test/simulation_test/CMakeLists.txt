@@ -4,7 +4,7 @@ target_link_libraries(mtf_test_raft_base INTERFACE
   mtf_raft_client_sim
   mtf_logging_state_machine_proto_sim
   mtf_logging_state_machine
-  mtf_runtime_simulator 
+  mtf_runtime_simulator
   mtf_history_checker
   GTest::gtest_main
 )

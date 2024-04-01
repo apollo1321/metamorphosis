@@ -1,25 +1,22 @@
 ################################################################################
-# Production Node
+# Test Client
 ################################################################################
 
-add_library(mtf_node_prod node.cpp)
-target_link_libraries(mtf_node_prod
-  mtf_lib
-  mtf_hash
-  mtf_serde
+add_executable(mtf_client_exe client.cpp)
+target_link_libraries(mtf_client_exe
+  mtf_parse
+  mtf_proto
   mtf_metamorphosis_proto_prod
-  mtf_runtime_production
+  CLI11::CLI11
 )
 
 ################################################################################
-# Simulator Node
+# Test Node
 ################################################################################
 
-add_library(mtf_node_sim node.cpp)
-target_link_libraries(mtf_node_sim
-  mtf_lib
-  mtf_hash
-  mtf_serde
-  mtf_metamorphosis_proto_sim
-  mtf_runtime_simulator
+add_executable(mtf_node_exe node.cpp)
+target_link_libraries(mtf_node_exe
+  mtf_parse
+  mtf_node_prod
+  CLI11::CLI11
 )

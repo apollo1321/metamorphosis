@@ -7,10 +7,10 @@
 
 #include <google/protobuf/message.h>
 
-#define LOG(...) SPDLOG_LOGGER_INFO(mtf::rt::GetLogger(), __VA_ARGS__)
-#define LOG_DBG(...) SPDLOG_LOGGER_DEBUG(mtf::rt::GetLogger(), __VA_ARGS__)
-#define LOG_ERR(...) SPDLOG_LOGGER_ERROR(mtf::rt::GetLogger(), __VA_ARGS__)
-#define LOG_CRIT(...) SPDLOG_LOGGER_CRITICAL(mtf::rt::GetLogger(), __VA_ARGS__)
+#define LOG(...) SPDLOG_LOGGER_INFO(::mtf::rt::GetLogger(), __VA_ARGS__)
+#define LOG_DBG(...) SPDLOG_LOGGER_DEBUG(::mtf::rt::GetLogger(), __VA_ARGS__)
+#define LOG_ERR(...) SPDLOG_LOGGER_ERROR(::mtf::rt::GetLogger(), __VA_ARGS__)
+#define LOG_CRIT(...) SPDLOG_LOGGER_CRITICAL(::mtf::rt::GetLogger(), __VA_ARGS__)
 
 namespace mtf::rt {
 

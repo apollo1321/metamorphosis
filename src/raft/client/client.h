@@ -5,7 +5,7 @@
 
 #include <runtime/api.h>
 #include <runtime/util/backoff/backoff.h>
-#include <runtime/util/proto/proto_conversion.h>
+#include <runtime/util/proto/conversion.h>
 
 #include <raft/raft.client.h>
 

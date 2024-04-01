@@ -1,13 +1,16 @@
 syntax = "proto3";
 
-import "google/protobuf/any.proto";
+// Metamorphosis queue semantics:
+// - all messages are written to the same queue.
+// - each producer has it's own sequence id that is used to make appends idempotent.
+// - each commited message has it's own offset in the queue.
 
 ////////////////////////////////////////////////////////////
 // Client API for Queue
 ////////////////////////////////////////////////////////////
 
 message ReadReq {
-  uint64 message_id = 1;
+  uint64 offset = 1;
 }
 
 message ReadRsp {
@@ -15,33 +18,53 @@ message ReadRsp {
     NOT_FOUND = 0;
     HASH_ONLY = 1;
     FULL_MESSAGE = 2;
-    TRUNCATED = 3;
   };
 
   Status status = 1;
+
+  // Each Metamorphosis node can have either full or partial message copy.
   oneof payload {
     string data = 2;
-    uint64 hash = 3;
+    bytes md5hash = 3;
   };
 }
 
 ////////////////////////////////////////////////////////////
 
 message AppendReq {
+  // The data that should be stored into the queue.
   string data = 1;
-  uint64 client_id = 2;
-  uint64 request_id = 3;
 
-  repeated uint64 full_copy_nodes_hint = 4;
+  // Each producer has it's own id and sequence index. The sequence index is
+  // stored durably on the server and is used to ensure idempotent delivery
+  // semantics. For example, if a producer sends a message, fails, and then
+  // resends it, the leader checks the sequence ID of the received message and
+  // appends it only if it has not been appended yet.
+  uint64 producer_id = 2;
+  uint64 sequence_id = 3;
 }
 
 message AppendRsp {
   enum Status {
     NotALeader = 0;
     Commited = 1;
+    // The received sequence id does not point to the end of the queue. The
+    // next_sequence_id field can be used to determine the correct producer's
+    // sequence id.
+    InvalidSequenceId = 2;
+    // Producer parallel append requests are not allowed. Producer should wait
+    // for the previous request to be commited or rejected to send next
+    // request.
+    ParallelRequest = 3;
   };
+
   Status status = 1;
-  uint64 message_id = 2;
+
+  // Globally unique message offset in the queue.
+  uint64 offset = 2;
+
+  // Producer's next sequence id.
+  uint64 next_sequence_id = 3;
 }
 
 ////////////////////////////////////////////////////////////
@@ -58,12 +81,9 @@ service MetamorphosisApi {
 message AppendEntriesReq {
   message LogEntry {
     uint64 term = 1;
-    uint64 client_id = 2;
-    uint64 request_id = 3;
-    oneof payload {
-      string data = 4;
-      uint64 hash = 5;
-    }
+    uint64 producer_id = 2;
+    string data = 3;
+    bytes md5hash = 4;
   };
 
   uint64 term = 1;

@@ -47,7 +47,7 @@ def make_node_list(node_count) -> str:
 
 
 def make_raft_node_run_cmd(node_count, node_id) -> str:
-    return ("./ceq_raft_test_node "
+    return ("./mtf_raft_test_node "
             "--raft-nodes {} "
             "--node-id {} "
             "--store-path {}"
@@ -57,7 +57,7 @@ def make_raft_node_run_cmd(node_count, node_id) -> str:
 
 
 def make_raft_client_run_cmd(node_count) -> str:
-    return "./ceq_raft_test_client --raft-nodes {} random".format(make_node_list(node_count))
+    return "./mtf_raft_test_client --raft-nodes {} random".format(make_node_list(node_count))
 
 
 def run_raft_nodes_cluster(client: docker.DockerClient, node_count) -> list:
@@ -104,7 +104,7 @@ def check_history(client: docker.DockerClient, raft_clients, minimum_successes):
 
     container = client.api.create_container(
         DOCKER_IMAGE_TAG,
-        "./ceq_history_checker_exe",
+        "./mtf_history_checker_exe",
         name="history_checker",
         labels=[DOCKER_CONTAINER_LABEL],
         stdin_open=True,
